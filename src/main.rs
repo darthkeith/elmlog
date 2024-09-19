@@ -1,6 +1,13 @@
 use std::io;
+use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{
-    crossterm::event::{self, KeyCode, KeyEventKind},
+    buffer::Buffer,
+    layout::Rect,
+    widgets::{
+        block::{Block, BorderType},
+        Paragraph,
+        Widget,
+    },
     DefaultTerminal,
 };
 
@@ -18,6 +25,20 @@ impl Model {
         Model {
             quit: false,
         }
+    }
+}
+
+fn view(_model: &Model) -> Paragraph {
+    let block = Block::bordered()
+        .border_type(BorderType::Thick);
+    Paragraph::new("Hello, world!")
+        .centered()
+        .block(block)
+}
+
+impl Widget for &Model {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        view(self).render(area,buf);
     }
 }
 
@@ -43,8 +64,9 @@ fn update(model: &mut Model, msg: Message) {
 fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     let mut model = Model::new();
     while !model.quit {
+        terminal.draw(|frame| frame.render_widget(&model, frame.area()))?;
         let msg = handle_event()?;
-        update(&mut model, msg)
+        update(&mut model, msg);
     }
     Ok(())
 }
