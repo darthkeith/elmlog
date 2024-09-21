@@ -1,3 +1,4 @@
+mod data;
 use std::io;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{
