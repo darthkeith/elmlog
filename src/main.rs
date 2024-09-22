@@ -1,4 +1,4 @@
-mod data;
+mod heap;
 use std::io;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{
