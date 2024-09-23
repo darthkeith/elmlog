@@ -1,5 +1,3 @@
-type Heap = Option<Box<Node>>;
-
 /// A node in a left-child right-sibling binary tree
 struct Node {
     label: String,
@@ -7,6 +5,8 @@ struct Node {
     sibling: Heap,
     size: usize,
 }
+
+type Heap = Option<Box<Node>>;
 
 fn heap_size(heap: &Heap) -> usize {
     match heap {
