@@ -47,7 +47,15 @@ impl<'a> Iterator for PreOrderIter<'a> {
             }
             return Some(&node.label);
         }
-        return None;
+        None
     }
+}
+
+fn iter(heap: &Heap) -> PreOrderIter {
+    let mut stack = Vec::new();
+    if let Some(root) = heap {
+        stack.push(root.as_ref());
+    }
+    PreOrderIter { stack }
 }
 
