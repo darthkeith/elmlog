@@ -1,3 +1,5 @@
+type Heap = Option<Box<Node>>;
+
 /// A node in a left-child right-sibling binary tree
 struct Node {
     label: String,
@@ -5,8 +7,6 @@ struct Node {
     sibling: Heap,
     size: usize,
 }
-
-type Heap = Option<Box<Node>>;
 
 fn heap_size(heap: &Heap) -> usize {
     match heap {
@@ -29,3 +29,25 @@ fn new(label: String, child: Heap, sibling: Heap) -> Box<Node> {
 fn prepend(root: Heap, label: String) -> Heap {
     Some(new(label, None, root))
 }
+
+struct PreOrderIter<'a> {
+    stack: Vec<&'a Node>,
+}
+
+impl<'a> Iterator for PreOrderIter<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.stack.pop() {
+            if let Some(sibling) = &node.sibling {
+                self.stack.push(sibling);
+            }
+            if let Some(child) = &node.child {
+                self.stack.push(child);
+            }
+            return Some(&node.label);
+        }
+        return None;
+    }
+}
+
