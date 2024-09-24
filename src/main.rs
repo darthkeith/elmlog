@@ -4,7 +4,7 @@ use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{
     layout::{Constraint, Layout},
     style::Stylize,
-    text::Line,
+    text::{Line, Text},
     widgets::{
         block::Block,
         Borders,
@@ -41,13 +41,22 @@ fn view(_model: &Model, frame: &mut Frame) {
         ])
         .areas(frame.area());
     let top_item = Paragraph::new("Top Item".bold())
-        .centered()
-        .on_black()
-        .block(Block::new().borders(Borders::ALL));
-    let tree = Paragraph::new("Hello, world!")
+        .block(Block::new().borders(Borders::ALL))
         .centered()
         .on_black();
+    let tree = Text::from(vec![
+            Line::from(" 0  Item A"),
+            Line::from(" 1  ├──Item B"),
+            Line::from(" 2  ├──Item C"),
+            Line::from(" 3  │  └──Item D"),
+            Line::from(" 4  └──Item E"),
+            Line::from(" 5     ├──Item F"),
+            Line::from(" 6     └──Item G"),
+        ])
+        .left_aligned()
+        .on_black();
     let status = Line::from(" Top item selected.")
+        .left_aligned()
         .on_dark_gray();
     let command_key = Line::from(vec![
             " I ".black().on_white().bold(),
