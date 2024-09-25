@@ -14,13 +14,21 @@ use ratatui::{
     Frame,
 };
 
+enum Mode {
+    Normal,
+    Input(String),
+}
+
 struct Model {
     heap: heap::Heap,
+    mode: Mode,
     quit: bool,
 }
 
 enum Message {
-    Insert,
+    StartInput,
+    AppendChar(char),
+    SubmitInput,
     Quit,
     Nothing,
 }
@@ -29,6 +37,7 @@ impl Model {
     fn new() -> Self {
         Model {
             heap: heap::empty(),
+            mode: Mode::Normal,
             quit: false,
         }
     }
@@ -69,27 +78,42 @@ fn view(model: &Model, frame: &mut Frame) {
     frame.render_widget(command_key, command_key_area);
 }
 
-fn handle_event() -> io::Result<Message> {
+fn handle_event(model: &Model) -> io::Result<Message> {
     let event::Event::Key(key) = event::read()? else {
         return Ok(Message::Nothing);
     };
     if key.kind != KeyEventKind::Press {
         return Ok(Message::Nothing);
     }
-    match key.code {
-        KeyCode::Char('i') => Ok(Message::Insert),
-        KeyCode::Char('q') => Ok(Message::Quit),
-        _ => Ok(Message::Nothing),
+    match model.mode {
+        Mode::Normal => match key.code {
+            KeyCode::Char('i') => Ok(Message::StartInput),
+            KeyCode::Char('q') => Ok(Message::Quit),
+            _ => Ok(Message::Nothing),
+        }
+        Mode::Input(_) => match key.code {
+            KeyCode::Char(c) => Ok(Message::AppendChar(c)),
+            KeyCode::Enter => Ok(Message::SubmitInput),
+            _ => Ok(Message::Nothing),
+        }
     }
 }
 
 fn update(mut model: Model, msg: Message) -> Model {
-    match msg {
-        Message::Insert => {
-            model.heap = heap::prepend(model.heap, "X".to_string());
-        },
-        Message::Quit => model.quit = true,
-        Message::Nothing => (),
+    match model.mode {
+        Mode::Normal => match msg {
+            Message::StartInput => model.mode = Mode::Input(String::new()),
+            Message::Quit => model.quit = true,
+            _ => (),
+        }
+        Mode::Input(ref mut label) => match msg {
+            Message::AppendChar(c) => label.push(c),
+            Message::SubmitInput => {
+                model.heap = heap::prepend(model.heap, label.clone());
+                model.mode = Mode::Normal;
+            }
+            _ => (),
+        }
     }
     model
 }
@@ -98,7 +122,7 @@ fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     let mut model = Model::new();
     while !model.quit {
         terminal.draw(|frame| view(&model, frame))?;
-        let msg = handle_event()?;
+        let msg = handle_event(&model)?;
         model = update(model, msg);
     }
     Ok(())
