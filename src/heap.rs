@@ -1,4 +1,6 @@
-type Heap = Option<Box<Node>>;
+struct Heap {
+    root: Option<Box<Node>>,
+}
 
 /// A node in a left-child right-sibling binary tree
 struct Node {
@@ -8,12 +10,12 @@ struct Node {
     size: usize,
 }
 
-fn new() -> Heap {
-    None
+fn empty() -> Heap {
+    Heap { root: None }
 }
 
 fn heap_size(heap: &Heap) -> usize {
-    match heap {
+    match heap.root {
         Some(ref node) => node.size,
         None => 0,
     }
@@ -30,8 +32,9 @@ fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     Box::new(node)
 }
 
-fn prepend(root: Heap, label: String) -> Heap {
-    Some(new_node(label, None, root))
+fn prepend(heap: Heap, label: String) -> Heap {
+    let root = Some(new_node(label, empty(), heap));
+    Heap { root }
 }
 
 struct PreOrderIter<'a> {
@@ -43,10 +46,10 @@ impl<'a> Iterator for PreOrderIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(node) = self.stack.pop() {
-            if let Some(sibling) = &node.sibling {
+            if let Some(sibling) = &node.sibling.root {
                 self.stack.push(sibling);
             }
-            if let Some(child) = &node.child {
+            if let Some(child) = &node.child.root {
                 self.stack.push(child);
             }
             return Some(&node.label);
@@ -57,7 +60,7 @@ impl<'a> Iterator for PreOrderIter<'a> {
 
 fn iter(heap: &Heap) -> PreOrderIter {
     let mut stack = Vec::new();
-    if let Some(root) = heap {
+    if let Some(root) = &heap.root {
         stack.push(root.as_ref());
     }
     PreOrderIter { stack }
