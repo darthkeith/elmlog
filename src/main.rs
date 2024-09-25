@@ -59,7 +59,11 @@ fn view(model: &Model, frame: &mut Frame) {
     let tree = Text::from_iter(heap::iter(&model.heap))
         .left_aligned()
         .on_black();
-    let status = Line::from(" Top item selected.")
+    let status_msg = match model.mode {
+        Mode::Normal => " Normal Mode".to_string(),
+        Mode::Input(ref label) => format!(" > {label}"),
+    };
+    let status = Line::from(status_msg)
         .left_aligned()
         .on_dark_gray();
     let command_keys = match model.mode {
