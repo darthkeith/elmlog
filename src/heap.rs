@@ -8,6 +8,10 @@ struct Node {
     size: usize,
 }
 
+fn new() -> Heap {
+    None
+}
+
 fn heap_size(heap: &Heap) -> usize {
     match heap {
         Some(ref node) => node.size,
@@ -15,7 +19,7 @@ fn heap_size(heap: &Heap) -> usize {
     }
 }
 
-fn new(label: String, child: Heap, sibling: Heap) -> Box<Node> {
+fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     let size = 1 + heap_size(&child) + heap_size(&sibling);
     let node = Node {
         label,
@@ -27,7 +31,7 @@ fn new(label: String, child: Heap, sibling: Heap) -> Box<Node> {
 }
 
 fn prepend(root: Heap, label: String) -> Heap {
-    Some(new(label, None, root))
+    Some(new_node(label, None, root))
 }
 
 struct PreOrderIter<'a> {
