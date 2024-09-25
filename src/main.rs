@@ -104,20 +104,21 @@ fn handle_event(mode: &Mode) -> io::Result<Message> {
 }
 
 fn update(mut model: Model, msg: Message) -> Model {
-    match model.mode {
-        Mode::Normal => match msg {
-            Message::StartInput => model.mode = Mode::Input(String::new()),
-            Message::Quit => model.quit = true,
-            _ => (),
+    match msg {
+        Message::StartInput => model.mode = Mode::Input(String::new()),
+        Message::AppendChar(c) => {
+            if let Mode::Input(ref mut label) = model.mode {
+                label.push(c);
+            }
         }
-        Mode::Input(ref mut label) => match msg {
-            Message::AppendChar(c) => label.push(c),
-            Message::SubmitInput => {
-                model.heap = heap::prepend(model.heap, label.clone());
+        Message::SubmitInput => {
+            if let Mode::Input(label) = model.mode {
+                model.heap = heap::prepend(model.heap, label);
                 model.mode = Mode::Normal;
             }
-            _ => (),
         }
+        Message::Quit => model.quit = true,
+        Message::Nothing => (),
     }
     model
 }
