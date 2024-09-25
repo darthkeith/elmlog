@@ -78,6 +78,21 @@ fn view(model: &Model, frame: &mut Frame) {
     frame.render_widget(command_key, command_key_area);
 }
 
+fn key_to_message(model: &Model, key: KeyCode) -> Message {
+    match model.mode {
+        Mode::Normal => match key {
+            KeyCode::Char('i') => Message::StartInput,
+            KeyCode::Char('q') => Message::Quit,
+            _ => Message::Nothing,
+        }
+        Mode::Input(_) => match key {
+            KeyCode::Char(c) => Message::AppendChar(c),
+            KeyCode::Enter => Message::SubmitInput,
+            _ => Message::Nothing,
+        }
+    }
+}
+
 fn handle_event(model: &Model) -> io::Result<Message> {
     let event::Event::Key(key) = event::read()? else {
         return Ok(Message::Nothing);
@@ -85,18 +100,7 @@ fn handle_event(model: &Model) -> io::Result<Message> {
     if key.kind != KeyEventKind::Press {
         return Ok(Message::Nothing);
     }
-    match model.mode {
-        Mode::Normal => match key.code {
-            KeyCode::Char('i') => Ok(Message::StartInput),
-            KeyCode::Char('q') => Ok(Message::Quit),
-            _ => Ok(Message::Nothing),
-        }
-        Mode::Input(_) => match key.code {
-            KeyCode::Char(c) => Ok(Message::AppendChar(c)),
-            KeyCode::Enter => Ok(Message::SubmitInput),
-            _ => Ok(Message::Nothing),
-        }
-    }
+    Ok(key_to_message(model, key.code))
 }
 
 fn update(mut model: Model, msg: Message) -> Model {
