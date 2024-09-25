@@ -15,10 +15,12 @@ use ratatui::{
 };
 
 struct Model {
+    heap: heap::Heap,
     quit: bool,
 }
 
 enum Message {
+    Insert,
     Quit,
     Nothing,
 }
@@ -26,12 +28,13 @@ enum Message {
 impl Model {
     fn new() -> Self {
         Model {
+            heap: heap::empty(),
             quit: false,
         }
     }
 }
 
-fn view(_model: &Model, frame: &mut Frame) {
+fn view(model: &Model, frame: &mut Frame) {
     let [top_item_area, tree_area, status_area, command_key_area] =
         Layout::vertical([
             Constraint::Length(3),
@@ -44,15 +47,7 @@ fn view(_model: &Model, frame: &mut Frame) {
         .block(Block::new().borders(Borders::ALL))
         .centered()
         .on_black();
-    let tree = Text::from(vec![
-            Line::from(" 0  Item A"),
-            Line::from(" 1  ├──Item B"),
-            Line::from(" 2  ├──Item C"),
-            Line::from(" 3  │  └──Item D"),
-            Line::from(" 4  └──Item E"),
-            Line::from(" 5     ├──Item F"),
-            Line::from(" 6     └──Item G"),
-        ])
+    let tree = Text::from_iter(heap::iter(&model.heap))
         .left_aligned()
         .on_black();
     let status = Line::from(" Top item selected.")
@@ -82,15 +77,21 @@ fn handle_event() -> io::Result<Message> {
         return Ok(Message::Nothing);
     }
     match key.code {
+        KeyCode::Char('i') => Ok(Message::Insert),
         KeyCode::Char('q') => Ok(Message::Quit),
         _ => Ok(Message::Nothing),
     }
 }
 
-fn update(model: &mut Model, msg: Message) {
-    if let Message::Quit = msg {
-        model.quit = true;
+fn update(mut model: Model, msg: Message) -> Model {
+    match msg {
+        Message::Insert => {
+            model.heap = heap::prepend(model.heap, "X".to_string());
+        },
+        Message::Quit => model.quit = true,
+        Message::Nothing => (),
     }
+    model
 }
 
 fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
@@ -98,7 +99,7 @@ fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     while !model.quit {
         terminal.draw(|frame| view(&model, frame))?;
         let msg = handle_event()?;
-        update(&mut model, msg);
+        model = update(model, msg);
     }
     Ok(())
 }
