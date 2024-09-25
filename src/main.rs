@@ -62,14 +62,21 @@ fn view(model: &Model, frame: &mut Frame) {
     let status = Line::from(" Top item selected.")
         .left_aligned()
         .on_dark_gray();
-    let command_key = Line::from(vec![
+    let command_keys = match model.mode {
+        Mode::Normal => vec![
             " I ".black().on_white().bold(),
             " Insert    ".italic(),
             " D ".black().on_white().bold(),
             " Delete    ".italic(),
             " Q ".black().on_white().bold(),
             " Quit".italic(),
-        ])
+        ],
+        Mode::Input(_) => vec![
+            " Enter ".black().on_white().bold(),
+            " Submit ".italic(),
+        ],
+    };
+    let command_key = Line::from(command_keys)
         .centered()
         .on_black();
     frame.render_widget(top_item, top_item_area);
