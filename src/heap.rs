@@ -1,4 +1,4 @@
-struct Heap {
+pub struct Heap {
     root: Option<Box<Node>>,
 }
 
@@ -10,11 +10,11 @@ struct Node {
     size: usize,
 }
 
-fn empty() -> Heap {
+pub fn empty() -> Heap {
     Heap { root: None }
 }
 
-fn heap_size(heap: &Heap) -> usize {
+pub fn heap_size(heap: &Heap) -> usize {
     match heap.root {
         Some(ref node) => node.size,
         None => 0,
@@ -32,12 +32,12 @@ fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     Box::new(node)
 }
 
-fn prepend(heap: Heap, label: String) -> Heap {
+pub fn prepend(heap: Heap, label: String) -> Heap {
     let root = Some(new_node(label, empty(), heap));
     Heap { root }
 }
 
-struct PreOrderIter<'a> {
+pub struct PreOrderIter<'a> {
     stack: Vec<&'a Node>,
 }
 
@@ -58,7 +58,7 @@ impl<'a> Iterator for PreOrderIter<'a> {
     }
 }
 
-fn iter(heap: &Heap) -> PreOrderIter {
+pub fn iter(heap: &Heap) -> PreOrderIter {
     let mut stack = Vec::new();
     if let Some(root) = &heap.root {
         stack.push(root.as_ref());
