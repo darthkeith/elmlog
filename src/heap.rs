@@ -10,6 +10,13 @@ struct Node {
     size: usize,
 }
 
+/// Represents the number of roots in a heap (none, one, or multiple)
+enum HeapStatus {
+    Empty,
+    SingleRoot,
+    MultiRoot,
+}
+
 pub fn empty() -> Heap {
     Heap { root: None }
 }
