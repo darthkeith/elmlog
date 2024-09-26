@@ -11,9 +11,9 @@ struct Node {
 }
 
 /// Represents the number of roots in a heap (none, one, or multiple)
-pub enum HeapStatus {
+pub enum HeapStatus<'a> {
     Empty,
-    SingleRoot,
+    SingleRoot(&'a str),
     MultiRoot,
 }
 
@@ -77,7 +77,7 @@ pub fn status(heap: &Heap) -> HeapStatus {
     match &heap.root {
         None => HeapStatus::Empty,
         Some(node) => match &node.sibling.root {
-            None => HeapStatus::SingleRoot,
+            None => HeapStatus::SingleRoot(&node.label),
             Some(_) => HeapStatus::MultiRoot,
         }
     }

@@ -59,7 +59,11 @@ fn view(model: &Model, frame: &mut Frame) {
             Constraint::Length(1),
         ])
         .areas(frame.area());
-    let top_item = Paragraph::new("Top Item".bold())
+    let top_item_str = match heap::status(&model.heap) {
+        HeapStatus::SingleRoot(label) => format!(" {label} "),
+        _ => "".to_string(),
+    };
+    let top_item = Paragraph::new(top_item_str.black().on_white().bold())
         .block(Block::new().borders(Borders::ALL))
         .centered()
         .on_black();
@@ -69,7 +73,7 @@ fn view(model: &Model, frame: &mut Frame) {
     let status_msg = match model.mode {
         Mode::Normal => match heap::status(&model.heap) {
             HeapStatus::Empty => " Empty.".to_string(),
-            HeapStatus::SingleRoot => " Top item identified.".to_string(),
+            HeapStatus::SingleRoot(_) => " Top item identified.".to_string(),
             HeapStatus::MultiRoot => " Merge to identify top item.".to_string(),
         }
         Mode::Input(ref label) => format!(" > {label}"),
