@@ -68,7 +68,14 @@ fn view(model: &Model, frame: &mut Frame) {
         .block(Block::new().borders(Borders::ALL))
         .centered()
         .on_black();
-    let tree = Text::from_iter(heap::iter(&model.heap))
+    let idx_len = match heap::heap_size(&model.heap) {
+        0 => 0,
+        n => (n - 1).to_string().len(),
+    };
+    let tree_lines = heap::iter(&model.heap)
+        .enumerate()
+        .map(|(i, label)| format!(" {i:>width$}   {label}", width = idx_len));
+    let tree = Text::from_iter(tree_lines)
         .left_aligned()
         .on_black();
     let status_msg = match model.mode {
