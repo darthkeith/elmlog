@@ -1,4 +1,6 @@
 mod heap;
+
+use heap::HeapStatus;
 use std::io;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{
@@ -65,7 +67,11 @@ fn view(model: &Model, frame: &mut Frame) {
         .left_aligned()
         .on_black();
     let status_msg = match model.mode {
-        Mode::Normal => " Normal Mode".to_string(),
+        Mode::Normal => match heap::status(&model.heap) {
+            HeapStatus::Empty => " Empty.".to_string(),
+            HeapStatus::SingleRoot => " Top item identified.".to_string(),
+            HeapStatus::MultiRoot => " Merge to identify top item.".to_string(),
+        }
         Mode::Input(ref label) => format!(" > {label}"),
     };
     let status = Line::from(status_msg)
