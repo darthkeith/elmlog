@@ -36,6 +36,7 @@ enum Message {
     StartInput,
     EditInput(Edit),
     SubmitInput,
+    Cancel,
     Quit,
     Nothing,
 }
@@ -92,7 +93,9 @@ fn view(model: &Model, frame: &mut Frame) {
         ],
         Mode::Input(_) => vec![
             " Enter ".black().on_white().bold(),
-            " Submit ".italic(),
+            " Submit    ".italic(),
+            " Esc ".black().on_white().bold(),
+            " Cancel ".italic(),
         ],
     };
     let command_key = Line::from(command_keys)
@@ -115,6 +118,7 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
             KeyCode::Char(c) => Message::EditInput(Edit::AppendChar(c)),
             KeyCode::Backspace => Message::EditInput(Edit::PopChar),
             KeyCode::Enter => Message::SubmitInput,
+            KeyCode::Esc => Message::Cancel,
             _ => Message::Nothing,
         }
     }
@@ -147,6 +151,7 @@ fn update(mut model: Model, msg: Message) -> Model {
                 model.mode = Mode::Normal;
             }
         }
+        Message::Cancel => model.mode = Mode::Normal,
         Message::Quit => model.quit = true,
         Message::Nothing => (),
     }
