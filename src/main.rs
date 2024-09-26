@@ -25,9 +25,14 @@ struct Model {
     quit: bool,
 }
 
+enum Edit {
+    AppendChar(char),
+    PopChar,
+}
+
 enum Message {
     StartInput,
-    AppendChar(char),
+    EditInput(Edit),
     SubmitInput,
     Quit,
     Nothing,
@@ -97,7 +102,8 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
             _ => Message::Nothing,
         }
         Mode::Input(_) => match key {
-            KeyCode::Char(c) => Message::AppendChar(c),
+            KeyCode::Char(c) => Message::EditInput(Edit::AppendChar(c)),
+            KeyCode::Backspace => Message::EditInput(Edit::PopChar),
             KeyCode::Enter => Message::SubmitInput,
             _ => Message::Nothing,
         }
@@ -117,9 +123,12 @@ fn handle_event(mode: &Mode) -> io::Result<Message> {
 fn update(mut model: Model, msg: Message) -> Model {
     match msg {
         Message::StartInput => model.mode = Mode::Input(String::new()),
-        Message::AppendChar(c) => {
+        Message::EditInput(edit) => {
             if let Mode::Input(ref mut label) = model.mode {
-                label.push(c);
+                match edit {
+                    Edit::AppendChar(c) => label.push(c),
+                    Edit::PopChar => { label.pop(); }
+                }
             }
         }
         Message::SubmitInput => {
