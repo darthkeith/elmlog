@@ -11,7 +11,7 @@ struct Node {
 }
 
 /// Represents the number of roots in a heap (none, one, or multiple)
-enum HeapStatus {
+pub enum HeapStatus {
     Empty,
     SingleRoot,
     MultiRoot,
@@ -71,5 +71,15 @@ pub fn iter(heap: &Heap) -> PreOrderIter {
         stack.push(root.as_ref());
     }
     PreOrderIter { stack }
+}
+
+pub fn status(heap: &Heap) -> HeapStatus {
+    match &heap.root {
+        None => HeapStatus::Empty,
+        Some(node) => match &node.sibling.root {
+            None => HeapStatus::SingleRoot,
+            Some(_) => HeapStatus::MultiRoot,
+        }
+    }
 }
 
