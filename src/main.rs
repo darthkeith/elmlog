@@ -60,7 +60,7 @@ fn view(model: &Model, frame: &mut Frame) {
             Constraint::Length(1),
         ])
         .areas(frame.area());
-    let top_item_str = match heap::status(&model.heap) {
+    let top_item_str = match model.heap.status() {
         HeapStatus::SingleRoot(label) => format!(" {label} "),
         _ => "".to_string(),
     };
@@ -68,18 +68,18 @@ fn view(model: &Model, frame: &mut Frame) {
         .block(Block::new().borders(Borders::ALL))
         .centered()
         .on_black();
-    let idx_len = match heap::heap_size(&model.heap) {
+    let idx_len = match model.heap.size() {
         0 => 0,
         n => (n - 1).to_string().len(),
     };
-    let tree_lines = heap::iter(&model.heap)
+    let tree_lines = model.heap.iter()
         .enumerate()
         .map(|(i, label)| format!(" {i:>width$}   {label}", width = idx_len));
     let tree = Text::from_iter(tree_lines)
         .left_aligned()
         .on_black();
     let status_msg = match model.mode {
-        Mode::Normal => match heap::status(&model.heap) {
+        Mode::Normal => match model.heap.status() {
             HeapStatus::Empty => " Empty.".to_string(),
             HeapStatus::SingleRoot(_) => " Top item identified.".to_string(),
             HeapStatus::MultiRoot => " Merge to identify top item.".to_string(),
@@ -154,7 +154,7 @@ fn update(mut model: Model, msg: Message) -> Model {
         }
         Message::SubmitInput => {
             if let Mode::Input(label) = model.mode {
-                model.heap = heap::prepend(model.heap, label);
+                model.heap = model.heap.prepend(label);
                 model.mode = Mode::Normal;
             }
         }

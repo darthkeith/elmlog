@@ -21,29 +21,16 @@ struct Node {
 
 /// Represents the number of roots in a heap (zero, one, or multiple).
 ///
-/// When there is one root, a reference to its label is stored.
+/// When there is one root, a reference to its label is included.
 pub enum HeapStatus<'a> {
     Empty,
     SingleRoot(&'a str),
     MultiRoot,
 }
 
-/// Contstruct an empty heap.
-pub fn empty() -> Heap {
-    Heap { root: None }
-}
-
-/// Return the number of nodes in the `heap`.
-pub fn heap_size(heap: &Heap) -> usize {
-    match heap.root {
-        Some(ref node) => node.size,
-        None => 0,
-    }
-}
-
 /// Construct a new node given its `label`, left `child`, and right `sibling`.
 fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
-    let size = 1 + heap_size(&child) + heap_size(&sibling);
+    let size = 1 + child.size() + sibling.size();
     let node = Node {
         label,
         child,
@@ -53,10 +40,45 @@ fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     Box::new(node)
 }
 
-/// Insert a node with given `label` before the first tree in the `heap`.
-pub fn prepend(heap: Heap, label: String) -> Heap {
-    let root = Some(new_node(label, empty(), heap));
-    Heap { root }
+/// Contstruct an empty heap.
+pub fn empty() -> Heap {
+    Heap { root: None }
+}
+
+impl Heap {
+    /// Return the number of nodes in the heap.
+    pub fn size(&self) -> usize {
+        match self.root {
+            Some(ref node) => node.size,
+            None => 0,
+        }
+    }
+
+    /// Insert a node with given `label` before the first tree in the heap.
+    pub fn prepend(self, label: String) -> Heap {
+        let root = Some(new_node(label, empty(), self));
+        Heap { root }
+    }
+
+    /// Return the status of the heap (if there is one root, include its label).
+    pub fn status(&self) -> HeapStatus {
+        match &self.root {
+            None => HeapStatus::Empty,
+            Some(node) => match &node.sibling.root {
+                None => HeapStatus::SingleRoot(&node.label),
+                Some(_) => HeapStatus::MultiRoot,
+            }
+        }
+    }
+
+    /// Return an iterator over the heap's labels in pre-order.
+    pub fn iter(&self) -> PreOrderIter {
+        let mut stack = Vec::new();
+        if let Some(root) = &self.root {
+            stack.push(root.as_ref());
+        }
+        PreOrderIter { stack }
+    }
 }
 
 /// Iterator type for iterating over a heap's labels in pre-order.
@@ -78,26 +100,6 @@ impl<'a> Iterator for PreOrderIter<'a> {
             return Some(&node.label);
         }
         None
-    }
-}
-
-/// Return an iterator over the `heap`'s labels in pre-order.
-pub fn iter(heap: &Heap) -> PreOrderIter {
-    let mut stack = Vec::new();
-    if let Some(root) = &heap.root {
-        stack.push(root.as_ref());
-    }
-    PreOrderIter { stack }
-}
-
-/// Return the status of the `heap` (if there is one root, include its label).
-pub fn status(heap: &Heap) -> HeapStatus {
-    match &heap.root {
-        None => HeapStatus::Empty,
-        Some(node) => match &node.sibling.root {
-            None => HeapStatus::SingleRoot(&node.label),
-            Some(_) => HeapStatus::MultiRoot,
-        }
     }
 }
 
