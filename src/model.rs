@@ -1,4 +1,4 @@
-use crate::heap::{Heap, empty};
+use crate::heap::Heap;
 
 /// Represents the operational modes of the application.
 pub enum Mode {
@@ -17,7 +17,7 @@ impl Model {
     /// Construct a model storing the initial application state.
     pub fn new() -> Self {
         Model {
-            heap: empty(),
+            heap: Heap::empty(),
             mode: Mode::Normal,
             quit: false,
         }

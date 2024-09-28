@@ -40,12 +40,12 @@ fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     Box::new(node)
 }
 
-/// Contstruct an empty heap.
-pub fn empty() -> Heap {
-    Heap { root: None }
-}
-
 impl Heap {
+    /// Contstruct an empty heap.
+    pub fn empty() -> Self {
+        Heap { root: None }
+    }
+
     /// Return the number of nodes in the heap.
     pub fn size(&self) -> usize {
         match self.root {
@@ -56,7 +56,7 @@ impl Heap {
 
     /// Insert a node with given `label` before the first tree in the heap.
     pub fn prepend(self, label: String) -> Heap {
-        let root = Some(new_node(label, empty(), self));
+        let root = Some(new_node(label, Self::empty(), self));
         Heap { root }
     }
 
