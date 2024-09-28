@@ -1,5 +1,5 @@
 use crate::model::{Mode, Model};
-use crate::msg::{Edit, Message};
+use crate::message::{Edit, Message};
 
 // Trim the `input` string and return the result if non-empty.
 fn trim_input(input: String) -> Option<String> {
@@ -12,8 +12,8 @@ fn trim_input(input: String) -> Option<String> {
 }
 
 /// Update the `model` based on the message.
-pub fn update(mut model: Model, msg: Message) -> Model {
-    match msg {
+pub fn update(mut model: Model, message: Message) -> Model {
+    match message {
         Message::StartInput => model.mode = Mode::Input(String::new()),
         Message::EditInput(edit) => {
             if let Mode::Input(ref mut input) = model.mode {

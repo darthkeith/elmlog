@@ -1,6 +1,6 @@
 mod heap;
 mod model;
-mod msg;
+mod message;
 mod update;
 mod view;
 
@@ -9,7 +9,7 @@ use std::io;
 use ratatui::DefaultTerminal;
 
 use crate::model::Model;
-use crate::msg::handle_event;
+use crate::message::handle_event;
 use crate::update::update;
 use crate::view::view;
 
@@ -17,8 +17,8 @@ fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     let mut model = Model::new();
     while !model.quit {
         terminal.draw(|frame| view(&model, frame))?;
-        let msg = handle_event(&model.mode)?;
-        model = update(model, msg);
+        let message = handle_event(&model.mode)?;
+        model = update(model, message);
     }
     Ok(())
 }
