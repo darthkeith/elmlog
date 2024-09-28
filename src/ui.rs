@@ -4,7 +4,6 @@ use ratatui::{
     text::{Line, Text},
     widgets::{
         block::Block,
-        Borders,
         Paragraph,
     },
     Frame,
@@ -20,7 +19,7 @@ fn top_item(model: &Model) -> Paragraph {
         _ => String::new(),
     };
     Paragraph::new(top_item_str.black().on_white().bold())
-        .block(Block::new().borders(Borders::ALL))
+        .block(Block::bordered())
         .centered()
         .on_black()
 }
