@@ -70,20 +70,33 @@ fn handle_event(mode: &Mode) -> io::Result<Message> {
     Ok(key_to_message(mode, key.code))
 }
 
+// Trim the `input` string and return the result if non-empty.
+fn trim_input(input: String) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+// Update the `model` based on the message.
 fn update(mut model: Model, msg: Message) -> Model {
     match msg {
         Message::StartInput => model.mode = Mode::Input(String::new()),
         Message::EditInput(edit) => {
-            if let Mode::Input(ref mut label) = model.mode {
+            if let Mode::Input(ref mut input) = model.mode {
                 match edit {
-                    Edit::AppendChar(c) => label.push(c),
-                    Edit::PopChar => { label.pop(); }
+                    Edit::AppendChar(c) => input.push(c),
+                    Edit::PopChar => { input.pop(); }
                 }
             }
         }
         Message::SubmitInput => {
-            if let Mode::Input(label) = model.mode {
-                model.heap = model.heap.prepend(label);
+            if let Mode::Input(input) = model.mode {
+                if let Some(label) = trim_input(input) {
+                    model.heap = model.heap.prepend(label);
+                }
                 model.mode = Mode::Normal;
             }
         }
