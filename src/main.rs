@@ -1,12 +1,13 @@
 mod heap;
+mod msg;
 mod ui;
 
 use std::io;
 
-use crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::DefaultTerminal;
 
 use crate::ui::view;
+use crate::msg::{handle_event, Edit, Message};
 
 enum Mode {
     Normal,
@@ -19,20 +20,6 @@ struct Model {
     quit: bool,
 }
 
-enum Edit {
-    AppendChar(char),
-    PopChar,
-}
-
-enum Message {
-    StartInput,
-    EditInput(Edit),
-    SubmitInput,
-    Cancel,
-    Quit,
-    Nothing,
-}
-
 impl Model {
     fn new() -> Self {
         Model {
@@ -41,33 +28,6 @@ impl Model {
             quit: false,
         }
     }
-}
-
-fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
-    match mode {
-        Mode::Normal => match key {
-            KeyCode::Char('i') => Message::StartInput,
-            KeyCode::Char('q') => Message::Quit,
-            _ => Message::Nothing,
-        }
-        Mode::Input(_) => match key {
-            KeyCode::Char(c) => Message::EditInput(Edit::AppendChar(c)),
-            KeyCode::Backspace => Message::EditInput(Edit::PopChar),
-            KeyCode::Enter => Message::SubmitInput,
-            KeyCode::Esc => Message::Cancel,
-            _ => Message::Nothing,
-        }
-    }
-}
-
-fn handle_event(mode: &Mode) -> io::Result<Message> {
-    let event::Event::Key(key) = event::read()? else {
-        return Ok(Message::Nothing);
-    };
-    if key.kind != KeyEventKind::Press {
-        return Ok(Message::Nothing);
-    }
-    Ok(key_to_message(mode, key.code))
 }
 
 // Trim the `input` string and return the result if non-empty.
