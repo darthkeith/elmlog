@@ -1,12 +1,12 @@
 mod heap;
 mod msg;
-mod ui;
+mod view;
 
 use std::io;
 
 use ratatui::DefaultTerminal;
 
-use crate::ui::view;
+use crate::view::view;
 use crate::msg::{handle_event, Edit, Message};
 
 enum Mode {
