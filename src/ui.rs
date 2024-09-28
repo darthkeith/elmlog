@@ -13,7 +13,7 @@ use ratatui::{
 use crate::{Mode, Model};
 use crate::heap::HeapStatus;
 
-/// Return the top item widget using the current `model`.
+// Return the top item widget using the current `model`.
 fn top_item(model: &Model) -> Paragraph {
     let top_item_str = match model.heap.status() {
         HeapStatus::SingleRoot(label) => format!(" {label} "),
@@ -25,7 +25,7 @@ fn top_item(model: &Model) -> Paragraph {
         .on_black()
 }
 
-/// Return the forest widget using the current `model`.
+// Return the forest widget using the current `model`.
 fn forest(model: &Model) -> Text {
     let idx_len = match model.heap.size() {
         0 => 0,
@@ -39,7 +39,7 @@ fn forest(model: &Model) -> Text {
         .on_black()
 }
 
-/// Return the status widget using the current `model`.
+// Return the status widget using the current `model`.
 fn status(model: &Model) -> Line {
     let status_msg = match model.mode {
         Mode::Normal => match model.heap.status() {
@@ -54,7 +54,7 @@ fn status(model: &Model) -> Line {
         .on_dark_gray()
 }
 
-/// Return the command key widget using the current `model`.
+// Return the command key widget using the current `model`.
 fn command_key(model: &Model) -> Line {
     let command_keys = match model.mode {
         Mode::Normal => vec![
