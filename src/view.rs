@@ -9,7 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{Mode, Model};
+use crate::model::{Mode, Model};
 use crate::heap::HeapStatus;
 
 // Return the top item widget using the current `model`.

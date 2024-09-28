@@ -1,4 +1,5 @@
 mod heap;
+mod model;
 mod msg;
 mod view;
 
@@ -6,29 +7,9 @@ use std::io;
 
 use ratatui::DefaultTerminal;
 
-use crate::view::view;
+use crate::model::{Mode, Model};
 use crate::msg::{handle_event, Edit, Message};
-
-enum Mode {
-    Normal,
-    Input(String),
-}
-
-struct Model {
-    heap: heap::Heap,
-    mode: Mode,
-    quit: bool,
-}
-
-impl Model {
-    fn new() -> Self {
-        Model {
-            heap: heap::empty(),
-            mode: Mode::Normal,
-            quit: false,
-        }
-    }
-}
+use crate::view::view;
 
 // Trim the `input` string and return the result if non-empty.
 fn trim_input(input: String) -> Option<String> {

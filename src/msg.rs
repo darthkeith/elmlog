@@ -2,7 +2,7 @@ use std::io;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
-use crate::Mode;
+use crate::model::Mode;
 
 /// Represents types of edits made to the user input string.
 pub enum Edit {
