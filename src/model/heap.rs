@@ -7,11 +7,11 @@ pub struct Heap {
     root: Option<Box<Node>>,
 }
 
-/// A node in a left-child right-sibling binary tree containing a string.
-///
-/// In the binary tree, `size` is the number of nodes in the node's subtree.
-/// In the represented heap, `size` is the number of nodes in the node's
-/// subtree plus the number of nodes in all subsequent sibling subtrees.
+// A node in a left-child right-sibling binary tree containing a string.
+//
+// In the binary tree, `size` is the number of nodes in the node's subtree.
+// In the represented heap, `size` is the number of nodes in the node's
+// subtree plus the number of nodes in all subsequent sibling subtrees.
 struct Node {
     label: String,
     child: Heap,
@@ -28,7 +28,7 @@ pub enum HeapStatus<'a> {
     MultiRoot,
 }
 
-/// Construct a new node given its `label`, left `child`, and right `sibling`.
+// Construct a new node given its `label`, left `child`, and right `sibling`.
 fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     let size = 1 + child.size() + sibling.size();
     let node = Node {
