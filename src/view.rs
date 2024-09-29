@@ -9,8 +9,11 @@ use ratatui::{
     Frame,
 };
 
-use crate::model::{Mode, Model};
-use crate::heap::HeapStatus;
+use crate::model::{
+    heap::HeapStatus,
+    Mode,
+    Model,
+};
 
 // Return the top item widget using the current `model`.
 fn top_item(model: &Model) -> Paragraph {

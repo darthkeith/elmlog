@@ -1,4 +1,3 @@
-mod heap;
 mod model;
 mod message;
 mod update;
