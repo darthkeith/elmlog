@@ -14,7 +14,9 @@ pub enum Edit {
 pub enum Message {
     StartInput,
     EditInput(Edit),
-    SubmitInput,
+    StartDelete,
+    AppendDelete(char),
+    Submit,
     Cancel,
     Quit,
     Nothing,
@@ -25,13 +27,20 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
     match mode {
         Mode::Normal => match key {
             KeyCode::Char('i') => Message::StartInput,
+            KeyCode::Char('d') => Message::StartDelete,
             KeyCode::Char('q') => Message::Quit,
             _ => Message::Nothing,
         }
         Mode::Input(_) => match key {
             KeyCode::Char(c) => Message::EditInput(Edit::AppendChar(c)),
             KeyCode::Backspace => Message::EditInput(Edit::PopChar),
-            KeyCode::Enter => Message::SubmitInput,
+            KeyCode::Enter => Message::Submit,
+            KeyCode::Esc => Message::Cancel,
+            _ => Message::Nothing,
+        }
+        Mode::Delete(_) => match key {
+            KeyCode::Char(c) => Message::AppendDelete(c),
+            KeyCode::Enter => Message::Submit,
             KeyCode::Esc => Message::Cancel,
             _ => Message::Nothing,
         }

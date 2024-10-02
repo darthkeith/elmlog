@@ -50,6 +50,7 @@ fn status(model: &Model) -> Line {
             HeapStatus::MultiRoot => " Merge to identify top item.".to_string(),
         }
         Mode::Input(ref label) => format!(" > {label}"),
+        Mode::Delete(ref index) => format!(" Select index: {index}"),
     };
     Line::from(status_msg)
         .left_aligned()
@@ -67,7 +68,7 @@ fn command_key(model: &Model) -> Line {
             " Q ".black().on_white().bold(),
             " Quit".italic(),
         ],
-        Mode::Input(_) => vec![
+        Mode::Input(_) | Mode::Delete(_) => vec![
             " Enter ".black().on_white().bold(),
             " Submit    ".italic(),
             " Esc ".black().on_white().bold(),

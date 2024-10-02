@@ -6,6 +6,7 @@ use self::heap::Heap;
 pub enum Mode {
     Normal,
     Input(String),
+    Delete(usize),
 }
 
 /// Type for storing all application state.
