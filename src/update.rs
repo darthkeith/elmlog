@@ -20,7 +20,7 @@ fn new_index(c: char, index: usize, heap_size: usize) -> usize {
 }
 
 // Trim the `input` string and return the result if non-empty.
-fn trim_input(input: String) -> Option<String> {
+fn trim_input(input: &str) -> Option<String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
         None
@@ -29,46 +29,43 @@ fn trim_input(input: String) -> Option<String> {
     }
 }
 
-/// Update the `model` based on the message.
+/// Update the `model` based on the `message`.
 pub fn update(mut model: Model, message: Message) -> Model {
-    match message {
-        Message::StartInput => model.mode = Mode::Input(String::new()),
-        Message::EditInput(edit) => {
-            if let Mode::Input(ref mut input) = model.mode {
-                match edit {
-                    Edit::AppendChar(c) => input.push(c),
-                    Edit::PopChar => { input.pop(); }
-                }
+    match (message, &mut model.mode) {
+        (Message::StartInput, Mode::Normal) => {
+            model.mode = Mode::Input(String::new());
+        }
+        (Message::EditInput(edit), Mode::Input(input)) => {
+            match edit {
+                Edit::AppendChar(c) => input.push(c),
+                Edit::PopChar => { input.pop(); }
             }
         }
-        Message::StartDelete => {
-            if model.heap.size() != 0 {
+        (Message::StartDelete, Mode::Normal) => {
+            if model.heap.size() > 0 {
                 model.mode = Mode::Delete(0);
             }
         }
-        Message::AppendDelete(c) => {
-            if let Mode::Delete(index) = model.mode {
-                let i = new_index(c, index, model.heap.size());
-                model.mode = Mode::Delete(i);
-            }
+        (Message::AppendDelete(c), Mode::Delete(index)) => {
+            let i = new_index(c, *index, model.heap.size());
+            model.mode = Mode::Delete(i);
         }
-        Message::Submit => {
-            match model.mode {
-                Mode::Normal => (),
-                Mode::Input(input) => {
-                    if let Some(label) = trim_input(input) {
-                        model.heap = model.heap.prepend(label);
-                    }
-                }
-                Mode::Delete(index) => {
-                    model.heap = model.heap.delete(index);
-                }
+        (Message::Submit, Mode::Input(input)) => {
+            if let Some(label) = trim_input(&input) {
+                model.heap = model.heap.prepend(label);
             }
             model.mode = Mode::Normal;
         }
-        Message::Cancel => model.mode = Mode::Normal,
-        Message::Quit => model.quit = true,
-        Message::Nothing => (),
+        (Message::Submit, Mode::Delete(index)) => {
+            model.heap = model.heap.delete(*index);
+            model.mode = Mode::Normal;
+        }
+        (Message::Cancel, Mode::Input(_) | Mode::Delete(_)) => {
+            model.mode = Mode::Normal;
+        }
+        (Message::Quit, Mode::Normal) => model.quit = true,
+        (Message::Nothing, _) => (),
+        _ => panic!("Invalid message in current mode."),
     }
     model
 }
