@@ -66,7 +66,7 @@ fn find_subheap(heap: Heap, index: usize) -> PathToSubheap {
         if i == 0 {
             return PathToSubheap { path, subheap: current_heap };
         }
-        let Node { label, child, sibling, size } = move_root(current_heap)
+        let Node { label, child, sibling, .. } = move_root(current_heap)
             .expect("Invalid index.");
         if i <= child.size() {
             i -= 1;
@@ -132,6 +132,18 @@ impl Heap {
     pub fn prepend(self, label: String) -> Self {
         let root = Some(new_node(label, Self::empty(), self));
         Heap { root }
+    }
+
+    /// Delete the node with the pre-order `index` from the heap.
+    pub fn delete(self, index: usize) -> Self {
+        let PathToSubheap { path, subheap } = find_subheap(self, index);
+        let Node { child, sibling, .. } = move_root(subheap)
+            .expect("Invalid index.");
+        let path_to_subheap = PathToSubheap {
+            path,
+            subheap: concat(child, sibling),
+        };
+        reconstruct_heap(path_to_subheap)
     }
 
     /// Return the status of the heap (if there is one root, include its label).
