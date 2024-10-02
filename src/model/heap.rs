@@ -19,6 +19,18 @@ struct Node {
     size: usize,
 }
 
+// Represents the direction taken through a node in a path through a heap.
+enum Direction {
+    Child { label: String, sibling: Heap },
+    Sibling { label: String, child: Heap },
+}
+
+// Represents a path to a node in a heap.
+struct Path {
+    path: Vec<Direction>,
+    node: Node,
+}
+
 /// Represents the number of roots in a heap (zero, one, or multiple).
 ///
 /// When there is one root, a reference to its label is included.
@@ -40,6 +52,34 @@ fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
     Box::new(node)
 }
 
+// Move the root node out of the `heap` if present.
+fn move_root(heap: Heap) -> Option<Node> {
+    heap.root.map(|boxed| *boxed)
+}
+
+// Return a Path to the node at given pre-order `index` in the `heap`.
+fn path_to_node(heap: Heap, index: usize) -> Path {
+    let mut i = index;
+    let mut path = Vec::new();
+    let mut current_heap = heap;
+    while let Some(node) = move_root(current_heap) {
+        if i == 0 {
+            return Path { path, node };
+        }
+        let Node { label, child, sibling, size } = node;
+        if i <= size {
+            i -= 1;
+            path.push(Direction::Child { label, sibling });
+            current_heap = child;
+        } else {
+            i -= 1 + child.size();
+            path.push(Direction::Sibling { label, child });
+            current_heap = sibling;
+        }
+    }
+    panic!("Invalid index.");
+}
+
 impl Heap {
     /// Contstruct an empty heap.
     pub fn empty() -> Self {
@@ -54,8 +94,8 @@ impl Heap {
         }
     }
 
-    /// Insert a node with given `label` before the first tree in the heap.
-    pub fn prepend(self, label: String) -> Heap {
+    /// Insert a node with the given `label` before the first tree in the heap.
+    pub fn prepend(self, label: String) -> Self {
         let root = Some(new_node(label, Self::empty(), self));
         Heap { root }
     }
