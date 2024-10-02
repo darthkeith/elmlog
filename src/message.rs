@@ -24,26 +24,20 @@ pub enum Message {
 
 // Convert a `key` press into a Message based on the current `mode`.
 fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
-    match mode {
-        Mode::Normal => match key {
-            KeyCode::Char('i') => Message::StartInput,
-            KeyCode::Char('d') => Message::StartDelete,
-            KeyCode::Char('q') => Message::Quit,
-            _ => Message::Nothing,
+    match (mode, key) {
+        (Mode::Normal, KeyCode::Char('i')) => Message::StartInput,
+        (Mode::Normal, KeyCode::Char('d')) => Message::StartDelete,
+        (Mode::Normal, KeyCode::Char('q')) => Message::Quit,
+        (Mode::Input(_), KeyCode::Char(c)) => {
+            Message::EditInput(Edit::AppendChar(c))
         }
-        Mode::Input(_) => match key {
-            KeyCode::Char(c) => Message::EditInput(Edit::AppendChar(c)),
-            KeyCode::Backspace => Message::EditInput(Edit::PopChar),
-            KeyCode::Enter => Message::Submit,
-            KeyCode::Esc => Message::Cancel,
-            _ => Message::Nothing,
+        (Mode::Input(_), KeyCode::Backspace) => {
+            Message::EditInput(Edit::PopChar)
         }
-        Mode::Delete(_) => match key {
-            KeyCode::Char(c) => Message::AppendDelete(c),
-            KeyCode::Enter => Message::Submit,
-            KeyCode::Esc => Message::Cancel,
-            _ => Message::Nothing,
-        }
+        (Mode::Delete(_), KeyCode::Char(c)) => Message::AppendDelete(c),
+        (Mode::Input(_) | Mode::Delete(_), KeyCode::Enter) => Message::Submit,
+        (Mode::Input(_) | Mode::Delete(_), KeyCode::Esc) => Message::Cancel,
+        _ => Message::Nothing,
     }
 }
 
