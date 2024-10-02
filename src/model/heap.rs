@@ -25,10 +25,10 @@ enum Direction {
     Sibling { label: String, child: Heap },
 }
 
-// Represents a path to a node in a heap.
-struct PathToNode {
+// Represents a path to a subheap within a heap.
+struct PathToSubheap {
     path: Vec<Direction>,
-    node: Node,
+    subheap: Heap,
 }
 
 /// Represents the number of roots in a heap (zero, one, or multiple).
@@ -57,17 +57,18 @@ fn move_root(heap: Heap) -> Option<Node> {
     heap.root.map(|boxed| *boxed)
 }
 
-// Return a Path to the node at the pre-order `index` in the `heap`.
-fn find_node(heap: Heap, index: usize) -> PathToNode {
+// Return a path to the subheap at the pre-order `index` in the `heap`.
+fn find_subheap(heap: Heap, index: usize) -> PathToSubheap {
     let mut i = index;
     let mut path = Vec::new();
     let mut current_heap = heap;
-    while let Some(node) = move_root(current_heap) {
+    loop {
         if i == 0 {
-            return PathToNode { path, node };
+            return PathToSubheap { path, subheap: current_heap };
         }
-        let Node { label, child, sibling, size } = node;
-        if i <= size {
+        let Node { label, child, sibling, size } = move_root(current_heap)
+            .expect("Invalid index.");
+        if i <= child.size() {
             i -= 1;
             path.push(Direction::Child { label, sibling });
             current_heap = child;
@@ -77,13 +78,12 @@ fn find_node(heap: Heap, index: usize) -> PathToNode {
             current_heap = sibling;
         }
     }
-    panic!("Invalid index.");
 }
 
-// Reconstruct a heap given a path to a node.
-fn reconstruct_heap(path_to_node: PathToNode) -> Heap {
-    let PathToNode { mut path, node } = path_to_node;
-    let mut current_heap = Heap { root: Some(Box::new(node)) };
+// Reconstruct a heap given a path to a subheap.
+fn reconstruct_heap(path_to_subheap: PathToSubheap) -> Heap {
+    let PathToSubheap { mut path, subheap } = path_to_subheap;
+    let mut current_heap = subheap;
     while let Some(direction) = path.pop() {
         let node = match direction {
             Direction::Child { label, sibling } => {
