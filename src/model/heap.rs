@@ -26,7 +26,7 @@ enum Direction {
 }
 
 // Represents a path to a node in a heap.
-struct Path {
+struct PathToNode {
     path: Vec<Direction>,
     node: Node,
 }
@@ -57,14 +57,14 @@ fn move_root(heap: Heap) -> Option<Node> {
     heap.root.map(|boxed| *boxed)
 }
 
-// Return a Path to the node at given pre-order `index` in the `heap`.
-fn path_to_node(heap: Heap, index: usize) -> Path {
+// Return a Path to the node at the pre-order `index` in the `heap`.
+fn find_node(heap: Heap, index: usize) -> PathToNode {
     let mut i = index;
     let mut path = Vec::new();
     let mut current_heap = heap;
     while let Some(node) = move_root(current_heap) {
         if i == 0 {
-            return Path { path, node };
+            return PathToNode { path, node };
         }
         let Node { label, child, sibling, size } = node;
         if i <= size {
@@ -78,6 +78,24 @@ fn path_to_node(heap: Heap, index: usize) -> Path {
         }
     }
     panic!("Invalid index.");
+}
+
+// Reconstruct a heap given a path to a node.
+fn reconstruct_heap(path_to_node: PathToNode) -> Heap {
+    let PathToNode { mut path, node } = path_to_node;
+    let mut current_heap = Heap { root: Some(Box::new(node)) };
+    while let Some(direction) = path.pop() {
+        let node = match direction {
+            Direction::Child { label, sibling } => {
+                new_node(label, current_heap, sibling)
+            }
+            Direction::Sibling { label, child } => {
+                new_node(label, child, current_heap)
+            }
+        };
+        current_heap = Heap { root: Some(node) };
+    }
+    current_heap
 }
 
 impl Heap {
