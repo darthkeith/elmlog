@@ -98,6 +98,22 @@ fn reconstruct_heap(path_to_subheap: PathToSubheap) -> Heap {
     current_heap
 }
 
+// Concatenate two heaps, making their roots siblings.
+fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
+    if let None = right_heap.root {
+        return left_heap;
+    }
+    let mut path = Vec::new();
+    let mut current_heap = left_heap;
+    while let Some(node) = move_root(current_heap) {
+        let Node { label, child, sibling, .. } = node;
+        path.push(Direction::Sibling{ label, child });
+        current_heap = sibling;
+    }
+    let path_to_subheap = PathToSubheap { path, subheap: right_heap };
+    reconstruct_heap(path_to_subheap)
+}
+
 impl Heap {
     /// Contstruct an empty heap.
     pub fn empty() -> Self {
