@@ -50,6 +50,17 @@ pub fn update(mut model: Model, message: Message) -> Model {
             let i = new_index(c, *index, model.heap.size());
             model.mode = Mode::Delete(i);
         }
+        (Message::DecrementIndex, Mode::Delete(index)) => {
+            if *index > 0 {
+                model.mode = Mode::Delete(*index - 1);
+            }
+        }
+        (Message::IncrementIndex, Mode::Delete(index)) => {
+            let new_index = *index + 1;
+            if new_index < model.heap.size() {
+                model.mode = Mode::Delete(new_index);
+            }
+        }
         (Message::Submit, Mode::Input(input)) => {
             if let Some(label) = trim_input(&input) {
                 model.heap = model.heap.prepend(label);

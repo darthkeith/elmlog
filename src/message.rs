@@ -16,6 +16,8 @@ pub enum Message {
     EditInput(Edit),
     StartDelete,
     AppendDelete(char),
+    DecrementIndex,
+    IncrementIndex,
     Submit,
     Cancel,
     Quit,
@@ -35,6 +37,8 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
             Message::EditInput(Edit::PopChar)
         }
         (Mode::Delete(_), KeyCode::Char(c)) => Message::AppendDelete(c),
+        (Mode::Delete(_), KeyCode::Up) => Message::DecrementIndex,
+        (Mode::Delete(_), KeyCode::Down) => Message::IncrementIndex,
         (Mode::Input(_) | Mode::Delete(_), KeyCode::Enter) => Message::Submit,
         (Mode::Input(_) | Mode::Delete(_), KeyCode::Esc) => Message::Cancel,
         _ => Message::Nothing,
