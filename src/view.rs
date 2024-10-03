@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Layout},
-    style::Stylize,
+    style::{Modifier, Stylize},
     text::{Line, Text},
     widgets::{
         block::Block,
@@ -33,10 +33,26 @@ fn forest(model: &Model) -> Text {
         0 => 0,
         n => (n - 1).to_string().len(),
     };
-    let forest_lines = model.heap.iter()
-        .enumerate()
-        .map(|(i, label)| format!(" {i:>width$}   {label}", width = idx_len));
-    Text::from_iter(forest_lines)
+    let format_line = |(i, label)| {
+        format!(" {i:>width$}   {label}", width = idx_len)
+    };
+    let highlight = |index| {
+        move |(i, label)| {
+            if i == index {
+                format_line((i, label)).add_modifier(Modifier::REVERSED)
+            } else {
+                format_line((i, label)).into()
+            }
+        }
+    };
+    let indexed_labels = model.heap.iter().enumerate();
+    let forest_lines = match model.mode {
+        Mode::Delete(index) => {
+            Text::from_iter(indexed_labels.map(highlight(index)))
+        }
+        _ => Text::from_iter(indexed_labels.map(format_line)),
+    };
+    forest_lines
         .left_aligned()
         .on_black()
 }
