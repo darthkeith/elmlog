@@ -18,6 +18,9 @@ pub enum Message {
     AppendDelete(char),
     DecrementIndex,
     IncrementIndex,
+    StartMerge,
+    SelectFirst,
+    SelectSecond,
     Submit,
     Cancel,
     Quit,
@@ -29,6 +32,7 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
     match (mode, key) {
         (Mode::Normal, KeyCode::Char('i')) => Message::StartInput,
         (Mode::Normal, KeyCode::Char('d')) => Message::StartDelete,
+        (Mode::Normal, KeyCode::Char('m')) => Message::StartMerge,
         (Mode::Normal, KeyCode::Char('q')) => Message::Quit,
         (Mode::Input(_), KeyCode::Char(c)) => {
             Message::EditInput(Edit::AppendChar(c))
@@ -39,6 +43,8 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
         (Mode::Delete(_), KeyCode::Char(c)) => Message::AppendDelete(c),
         (Mode::Delete(_), KeyCode::Up) => Message::DecrementIndex,
         (Mode::Delete(_), KeyCode::Down) => Message::IncrementIndex,
+        (Mode::Merge, KeyCode::Up) => Message::SelectFirst,
+        (Mode::Merge, KeyCode::Down) => Message::SelectSecond,
         (Mode::Input(_) | Mode::Delete(_), KeyCode::Enter) => Message::Submit,
         (Mode::Input(_) | Mode::Delete(_), KeyCode::Esc) => Message::Cancel,
         _ => Message::Nothing,

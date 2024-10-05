@@ -1,4 +1,8 @@
-use crate::model::{Mode, Model};
+use crate::model::{
+    heap::HeapStatus,
+    Mode,
+    Model,
+};
 use crate::message::{Edit, Message};
 
 // Return the new index given the charcter to append and the current heap size.
@@ -60,6 +64,19 @@ pub fn update(mut model: Model, message: Message) -> Model {
             if new_index < model.heap.size() {
                 model.mode = Mode::Delete(new_index);
             }
+        }
+        (Message::StartMerge, Mode::Normal) => {
+            if let HeapStatus::MultiRoot = model.heap.status() {
+                model.mode = Mode::Merge;
+            }
+        }
+        (Message::SelectFirst, Mode::Merge) => {
+            model.heap = model.heap.merge_pair(true);
+            model.mode = Mode::Normal;
+        }
+        (Message::SelectSecond, Mode::Merge) => {
+            model.heap = model.heap.merge_pair(false);
+            model.mode = Mode::Normal;
         }
         (Message::Submit, Mode::Input(input)) => {
             if let Some(label) = trim_input(&input) {

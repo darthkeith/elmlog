@@ -67,6 +67,7 @@ fn status(model: &Model) -> Line {
         }
         Mode::Input(ref label) => format!(" > {label}"),
         Mode::Delete(ref index) => format!(" Select index: {index}"),
+        Mode::Merge => " Select item to promote.".to_string(),
     };
     Line::from(status_msg)
         .left_aligned()
@@ -81,6 +82,8 @@ fn command_key(model: &Model) -> Line {
             " Insert    ".italic(),
             " D ".black().on_white().bold(),
             " Delete    ".italic(),
+            " M ".black().on_white().bold(),
+            " Merge    ".italic(),
             " Q ".black().on_white().bold(),
             " Quit".italic(),
         ],
@@ -89,6 +92,12 @@ fn command_key(model: &Model) -> Line {
             " Submit    ".italic(),
             " Esc ".black().on_white().bold(),
             " Cancel ".italic(),
+        ],
+        Mode::Merge => vec![
+            " Up ".black().on_white().bold(),
+            " First    ".italic(),
+            " Down ".black().on_white().bold(),
+            " Second".italic(),
         ],
     };
     Line::from(command_keys)
