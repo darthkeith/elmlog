@@ -96,6 +96,17 @@ fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
     reconstruct_heap(new_heap)
 }
 
+// Separate the first tree from a heap and return it with the remaining heap.
+fn pop_tree(heap: Heap) -> Option<(Heap, Heap)> {
+    match heap {
+        Heap::Empty => None,
+        Heap::Node { label, child, sibling, .. } => {
+            let tree = Heap::new(label, *child, Heap::Empty);
+            Some((tree, *sibling))
+        }
+    }
+}
+
 impl Heap {
     // Construct a heap given the `label`, `child`, and `sibling` of its root.
     fn new(label: String, child: Self, sibling: Self) -> Self {
