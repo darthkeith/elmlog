@@ -27,6 +27,12 @@ struct PathToSubheap {
     subheap: Heap,
 }
 
+// Represents an attempt to separate the first two trees from a heap.
+enum TwoTrees {
+    Success { tree_1: Heap, tree_2: Heap, rest: Heap},
+    Fail(Heap),
+}
+
 /// Represents the number of roots in a heap (zero, one, or multiple).
 ///
 /// When there is one root, a reference to its label is included.
@@ -96,14 +102,31 @@ fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
     reconstruct_heap(new_heap)
 }
 
-// Separate the first tree from a heap and return it with the remaining heap.
-fn pop_tree(heap: Heap) -> Option<(Heap, Heap)> {
+// Attempt to separate the first two trees from a heap.
+fn pop_two_trees(heap: Heap) -> TwoTrees {
     match heap {
-        Heap::Empty => None,
-        Heap::Node { label, child, sibling, .. } => {
-            let tree = Heap::new(label, *child, Heap::Empty);
-            Some((tree, *sibling))
+        Heap::Node {
+            label: label_1,
+            child: child_1,
+            sibling: sibling_1,
+            ..
+        } => match *sibling_1 {
+            Heap::Node {
+                label: label_2,
+                child: child_2,
+                sibling: sibling_2,
+                ..
+            } => {
+                let tree_1 = Heap::new(label_1, *child_1, Heap::Empty);
+                let tree_2 = Heap::new(label_2, *child_2, Heap::Empty);
+                TwoTrees::Success { tree_1, tree_2, rest: *sibling_2 }
+            }
+            Heap::Empty => {
+                let old_heap = Heap::new(label_1, *child_1, Heap::Empty);
+                TwoTrees::Fail(old_heap)
+            }
         }
+        Heap::Empty => TwoTrees::Fail(Heap::Empty),
     }
 }
 
