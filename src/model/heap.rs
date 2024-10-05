@@ -175,6 +175,24 @@ impl Heap {
         reconstruct_heap(new_heap)
     }
 
+    /// Merge the first two trees, appending the result as the final tree.
+    pub fn merge_pair(self, promote_first: bool) -> Self {
+        match pop_two_trees(self) {
+            TwoTrees::Success { tree_1, tree_2, rest } => {
+                let (parent, child) = match promote_first {
+                    true => (tree_1, tree_2),
+                    false => (tree_2, tree_1),
+                };
+                let Tree { label: parent_label, child: old_child } = parent;
+                let Tree { label: child_label, child: grandchild } = child;
+                let new_child = Heap::new(child_label, grandchild, old_child);
+                let merged = Heap::new(parent_label, new_child, Heap::Empty);
+                concat(rest, merged)
+            }
+            TwoTrees::Fail(heap) => heap
+        }
+    }
+
     /// Return the status of the heap (if there is one root, include its label).
     pub fn status(&self) -> HeapStatus {
         match self {
