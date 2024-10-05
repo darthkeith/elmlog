@@ -15,6 +15,12 @@ pub enum Heap {
     }
 }
 
+// A heap with a single tree.
+struct Tree {
+    label: String,
+    child: Heap,
+}
+
 // Represents the direction taken through a node in a path through a heap.
 enum Direction {
     Child { label: String, sibling: Heap },
@@ -29,7 +35,7 @@ struct PathToSubheap {
 
 // Represents an attempt to separate the first two trees from a heap.
 enum TwoTrees {
-    Success { tree_1: Heap, tree_2: Heap, rest: Heap},
+    Success { tree_1: Tree, tree_2: Tree, rest: Heap},
     Fail(Heap),
 }
 
@@ -117,8 +123,8 @@ fn pop_two_trees(heap: Heap) -> TwoTrees {
                 sibling: sibling_2,
                 ..
             } => {
-                let tree_1 = Heap::new(label_1, *child_1, Heap::Empty);
-                let tree_2 = Heap::new(label_2, *child_2, Heap::Empty);
+                let tree_1 = Tree { label: label_1, child: *child_1 };
+                let tree_2 = Tree { label: label_2, child: *child_2 };
                 TwoTrees::Success { tree_1, tree_2, rest: *sibling_2 }
             }
             Heap::Empty => {
