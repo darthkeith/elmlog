@@ -1,22 +1,18 @@
-/// An ordered forest of multi-way trees containing strings.
+/// A node in a left-child right-sibling binary tree containing a string.
 ///
-/// Each node can have any number of children and siblings (the roots are
-/// siblings of each other). The data structure is implemented as a left-child
-/// right-sibling binary tree.
-pub struct Heap {
-    root: Option<Box<Node>>,
-}
-
-// A node in a left-child right-sibling binary tree containing a string.
-//
-// In the binary tree, `size` is the number of nodes in the node's subtree.
-// In the represented heap, `size` is the number of nodes in the node's
-// subtree plus the number of nodes in all subsequent sibling subtrees.
-struct Node {
-    label: String,
-    child: Heap,
-    sibling: Heap,
-    size: usize,
+/// This represents an ordered forest of multi-way trees, where each node can
+/// have any number of children and siblings (the roots are siblings of each
+/// other).  `size` is the number of nodes in a node's (binary) subtree.
+/// When referring to a forest, "the root" is the root of its left-most tree,
+/// which is also the root node of its binary tree representation.
+pub enum Heap {
+    Empty,
+    Node {
+        label: String,
+        child: Box<Heap>,
+        sibling: Box<Heap>,
+        size: usize,
+    }
 }
 
 // Represents the direction taken through a node in a path through a heap.
@@ -40,44 +36,32 @@ pub enum HeapStatus<'a> {
     MultiRoot,
 }
 
-// Construct a new node given its `label`, left `child`, and right `sibling`.
-fn new_node(label: String, child: Heap, sibling: Heap) -> Box<Node> {
-    let size = 1 + child.size() + sibling.size();
-    let node = Node {
-        label,
-        child,
-        sibling,
-        size,
-    };
-    Box::new(node)
-}
-
-// Move the root node out of the `heap` if present.
-fn move_root(heap: Heap) -> Option<Node> {
-    heap.root.map(|boxed| *boxed)
-}
-
 // Return a path to the subheap at the pre-order `index` in the `heap`.
+//
+// If the index is invalid, a path to an empty sub-heap is returned.
 fn find_subheap(heap: Heap, index: usize) -> PathToSubheap {
     let mut i = index;
     let mut path = Vec::new();
     let mut current_heap = heap;
     loop {
         if i == 0 {
-            return PathToSubheap { path, subheap: current_heap };
+            break;
         }
-        let Node { label, child, sibling, .. } = move_root(current_heap)
-            .expect("Invalid index.");
-        if i <= child.size() {
-            i -= 1;
-            path.push(Direction::Child { label, sibling });
-            current_heap = child;
+        if let Heap::Node { label, child, sibling, .. } = current_heap {
+            if i <= child.size() {
+                i -= 1;
+                path.push(Direction::Child { label, sibling: *sibling });
+                current_heap = *child;
+            } else {
+                i -= 1 + child.size();
+                path.push(Direction::Sibling { label, child: *child });
+                current_heap = *sibling;
+            }
         } else {
-            i -= 1 + child.size();
-            path.push(Direction::Sibling { label, child });
-            current_heap = sibling;
+            break;
         }
     }
+    return PathToSubheap { path, subheap: current_heap };
 }
 
 // Reconstruct a heap given a path to a subheap.
@@ -85,105 +69,107 @@ fn reconstruct_heap(path_to_subheap: PathToSubheap) -> Heap {
     let PathToSubheap { mut path, subheap } = path_to_subheap;
     let mut current_heap = subheap;
     while let Some(direction) = path.pop() {
-        let node = match direction {
+        current_heap = match direction {
             Direction::Child { label, sibling } => {
-                new_node(label, current_heap, sibling)
+                Heap::new(label, current_heap, sibling)
             }
             Direction::Sibling { label, child } => {
-                new_node(label, child, current_heap)
+                Heap::new(label, child, current_heap)
             }
         };
-        current_heap = Heap { root: Some(node) };
     }
     current_heap
 }
 
 // Concatenate two heaps, making their roots siblings.
 fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
-    if let None = right_heap.root {
+    if let Heap::Empty = right_heap {
         return left_heap;
     }
     let mut path = Vec::new();
     let mut current_heap = left_heap;
-    while let Some(node) = move_root(current_heap) {
-        let Node { label, child, sibling, .. } = node;
-        path.push(Direction::Sibling{ label, child });
-        current_heap = sibling;
+    while let Heap::Node { label, child, sibling, .. } = current_heap {
+        path.push(Direction::Sibling{ label, child: *child });
+        current_heap = *sibling;
     }
-    let path_to_subheap = PathToSubheap { path, subheap: right_heap };
-    reconstruct_heap(path_to_subheap)
+    let new_heap = PathToSubheap { path, subheap: right_heap };
+    reconstruct_heap(new_heap)
 }
 
 impl Heap {
-    /// Contstruct an empty heap.
-    pub fn empty() -> Self {
-        Heap { root: None }
+    // Construct a heap given the `label`, `child`, and `sibling` of its root.
+    fn new(label: String, child: Self, sibling: Self) -> Self {
+        let size = 1 + child.size() + sibling.size();
+        Self::Node {
+            label,
+            child: Box::new(child),
+            sibling: Box::new(sibling),
+            size,
+        }
     }
 
     /// Return the number of nodes in the heap.
     pub fn size(&self) -> usize {
-        match self.root {
-            Some(ref node) => node.size,
-            None => 0,
+        match self {
+            Self::Empty => 0,
+            Self::Node { size, .. } => *size,
         }
     }
 
     /// Insert a node with the given `label` before the first tree in the heap.
     pub fn prepend(self, label: String) -> Self {
-        let root = Some(new_node(label, Self::empty(), self));
-        Heap { root }
+        Self::new(label, Self::Empty, self)
     }
 
     /// Delete the node with the pre-order `index` from the heap.
     pub fn delete(self, index: usize) -> Self {
         let PathToSubheap { path, subheap } = find_subheap(self, index);
-        let Node { child, sibling, .. } = move_root(subheap)
-            .expect("Invalid index.");
-        let path_to_subheap = PathToSubheap {
-            path,
-            subheap: concat(child, sibling),
+        let new_subheap = match subheap {
+            Self::Node { child, sibling, .. } => concat(*child, *sibling),
+            Self::Empty => Self::Empty,
         };
-        reconstruct_heap(path_to_subheap)
+        let new_heap = PathToSubheap {
+            path,
+            subheap: new_subheap,
+        };
+        reconstruct_heap(new_heap)
     }
 
     /// Return the status of the heap (if there is one root, include its label).
     pub fn status(&self) -> HeapStatus {
-        match &self.root {
-            None => HeapStatus::Empty,
-            Some(node) => match &node.sibling.root {
-                None => HeapStatus::SingleRoot(&node.label),
-                Some(_) => HeapStatus::MultiRoot,
+        match self {
+            Self::Empty => HeapStatus::Empty,
+            Self::Node { label, sibling, .. } => match **sibling {
+                Self::Empty => HeapStatus::SingleRoot(label),
+                Self::Node { .. } => HeapStatus::MultiRoot,
             }
         }
     }
 
     /// Return an iterator over the heap's labels in pre-order.
     pub fn iter(&self) -> PreOrderIter {
-        let mut stack = Vec::new();
-        if let Some(root) = &self.root {
-            stack.push(root.as_ref());
-        }
-        PreOrderIter { stack }
+        PreOrderIter { stack: vec![self] }
     }
 }
 
 /// Iterator type for iterating over a heap's labels in pre-order.
 pub struct PreOrderIter<'a> {
-    stack: Vec<&'a Node>,
+    stack: Vec<&'a Heap>,
 }
 
 impl<'a> Iterator for PreOrderIter<'a> {
     type Item = &'a str;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(node) = self.stack.pop() {
-            if let Some(sibling) = &node.sibling.root {
-                self.stack.push(sibling);
+        while let Some(heap) = self.stack.pop() {
+            match heap {
+                Heap::Empty => (),
+                Heap::Node { label, child, sibling, .. } => {
+                    self.stack.push(sibling);
+                    self.stack.push(child);
+                    return Some(&label);
+                }
             }
-            if let Some(child) = &node.child.root {
-                self.stack.push(child);
-            }
-            return Some(&node.label);
         }
         None
     }

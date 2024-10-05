@@ -20,7 +20,7 @@ impl Model {
     /// Construct a model storing the initial application state.
     pub fn new() -> Self {
         Model {
-            heap: Heap::empty(),
+            heap: Heap::Empty,
             mode: Mode::Normal,
             quit: false,
         }
