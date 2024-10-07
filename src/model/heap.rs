@@ -39,6 +39,33 @@ enum TwoTrees {
     Fail(Heap),
 }
 
+// Describes whether a node is a root, first child, or non-root right sibling.
+enum NodeType {
+    Root,
+    Child,
+    Sibling,
+}
+
+// Describes whether a node is a last sibling.
+enum IsLast {
+    No,
+    Yes,
+}
+
+// Describes the position of a node in a heap (used for display).
+struct NodePosition {
+    node_type: NodeType,
+    is_last: IsLast,
+}
+
+// Represents a node with additional positional information for display.
+struct Node<'a> {
+    label: &'a str,
+    child: &'a Heap,
+    sibling: &'a Heap,
+    pos: NodePosition,
+}
+
 /// Represents the number of roots in a heap (zero, one, or multiple).
 ///
 /// When there is one root, a reference to its label is included.
@@ -204,30 +231,55 @@ impl Heap {
         }
     }
 
-    /// Return an iterator over the heap's labels in pre-order.
+    // Convert a Heap into a Node if non-empty.
+    fn to_node<'a>(&'a self, node_type: NodeType) -> Option<Node<'a>> {
+        match self {
+            Heap::Empty => None,
+            Heap::Node { label, child, sibling, .. } => {
+                let is_last = match **sibling {
+                    Heap::Empty => IsLast::Yes,
+                    Heap::Node { .. } => IsLast::No,
+                };
+                let pos = NodePosition { node_type, is_last };
+                Some(Node { label, child, sibling, pos })
+            }
+        }
+    }
+
+    /// Return an iterator over node labels in pre-order.
     pub fn iter(&self) -> PreOrderIter {
-        PreOrderIter { stack: vec![self] }
+        let mut stack = Vec::new();
+        if let Some(node) = self.to_node(NodeType::Root) {
+            stack.push(node);
+        }
+        PreOrderIter { stack }
     }
 }
 
-/// Iterator type for iterating over a heap's labels in pre-order.
+/// Iterator type for iterating over node labels in pre-order.
 pub struct PreOrderIter<'a> {
-    stack: Vec<&'a Heap>,
+    stack: Vec<Node<'a>>,
 }
 
 impl<'a> Iterator for PreOrderIter<'a> {
-    type Item = &'a str;
+    // type Item = (&'a str, NodePosition);
+    type Item = &'a str;  // Temporary
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(heap) = self.stack.pop() {
-            match heap {
-                Heap::Empty => (),
-                Heap::Node { label, child, sibling, .. } => {
-                    self.stack.push(sibling);
-                    self.stack.push(child);
-                    return Some(&label);
-                }
+        if let Some(node) = self.stack.pop() {
+            let Node { label, child, sibling, pos } = node;
+            let sibling_type = match pos.node_type {
+                NodeType::Root => NodeType::Root,
+                _ => NodeType::Sibling,
+            };
+            if let Some(node) = sibling.to_node(sibling_type) {
+                self.stack.push(node);
             }
+            if let Some(node) = child.to_node(NodeType::Child) {
+                self.stack.push(node);
+            }
+            // return Some((label, pos));
+            return Some(label);  // Temporary
         }
         None
     }
