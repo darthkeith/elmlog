@@ -6,7 +6,7 @@ use crate::model::{
 use crate::message::{Edit, Message};
 
 // Return the new index given the charcter to append and the current heap size.
-fn new_index(c: char, index: usize, heap_size: usize) -> usize {
+fn find_new_index(c: char, index: usize, heap_size: usize) -> usize {
     if !c.is_ascii_digit() {
         return index;
     }
@@ -45,25 +45,35 @@ pub fn update(mut model: Model, message: Message) -> Model {
                 Edit::PopChar => { input.pop(); }
             }
         }
-        (Message::StartDelete, Mode::Normal) => {
+        (Message::Insert, Mode::Input(input)) => {
+            if let Some(label) = trim_input(&input) {
+                model.heap = model.heap.prepend(label);
+            }
+            model.mode = Mode::Normal;
+        }
+        (Message::StartSelect, Mode::Normal) => {
             if model.heap.size() > 0 {
-                model.mode = Mode::Delete(0);
+                model.mode = Mode::Select(0);
             }
         }
-        (Message::AppendDelete(c), Mode::Delete(index)) => {
-            let i = new_index(c, *index, model.heap.size());
-            model.mode = Mode::Delete(i);
+        (Message::AppendSelect(c), Mode::Select(index)) => {
+            let i = find_new_index(c, *index, model.heap.size());
+            model.mode = Mode::Select(i);
         }
-        (Message::DecrementIndex, Mode::Delete(index)) => {
+        (Message::DecrementIndex, Mode::Select(index)) => {
             if *index > 0 {
-                model.mode = Mode::Delete(*index - 1);
+                model.mode = Mode::Select(*index - 1);
             }
         }
-        (Message::IncrementIndex, Mode::Delete(index)) => {
+        (Message::IncrementIndex, Mode::Select(index)) => {
             let new_index = *index + 1;
             if new_index < model.heap.size() {
-                model.mode = Mode::Delete(new_index);
+                model.mode = Mode::Select(new_index);
             }
+        }
+        (Message::Delete, Mode::Select(index)) => {
+            model.heap = model.heap.delete(*index);
+            model.mode = Mode::Normal;
         }
         (Message::StartMerge, Mode::Normal) => {
             if let HeapStatus::MultiRoot = model.heap.status() {
@@ -78,17 +88,7 @@ pub fn update(mut model: Model, message: Message) -> Model {
             model.heap = model.heap.merge_pair(false);
             model.mode = Mode::Normal;
         }
-        (Message::Submit, Mode::Input(input)) => {
-            if let Some(label) = trim_input(&input) {
-                model.heap = model.heap.prepend(label);
-            }
-            model.mode = Mode::Normal;
-        }
-        (Message::Submit, Mode::Delete(index)) => {
-            model.heap = model.heap.delete(*index);
-            model.mode = Mode::Normal;
-        }
-        (Message::Cancel, Mode::Input(_) | Mode::Delete(_)) => {
+        (Message::Cancel, Mode::Input(_) | Mode::Select(_)) => {
             model.mode = Mode::Normal;
         }
         (Message::Quit, Mode::Normal) => model.quit = true,

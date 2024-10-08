@@ -42,7 +42,7 @@ fn forest(model: &Model) -> Text {
     let mut prefix: Vec<IndentBlock> = Vec::new();
     let mut lines: Vec<Line> = Vec::new();
     let highlight_idx = match model.mode {
-        Mode::Delete(index) => index,
+        Mode::Select(index) => index,
         _ => model.heap.size(),  // No highlight
     };
     for (i, (label, pos)) in model.heap.iter().enumerate() {
@@ -96,25 +96,12 @@ fn status_bar(model: &Model) -> Line {
             }
         }
         Mode::Input(ref label) => format!(" > {label}"),
-        Mode::Delete(ref index) => format!(" Select index: {index}"),
+        Mode::Select(ref index) => format!(" Select index: {index}"),
         Mode::Merge => " Select item to promote.".to_string(),
     };
     Line::from(status_msg)
         .left_aligned()
         .on_dark_gray()
-}
-
-// Return the key-command pairs in normal mode.
-fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
-    let mut pairs = vec![("I", "Insert")];
-    if model.heap.size() > 0 {
-        pairs.push(("D", "Delete"));
-        if let HeapStatus::MultiRoot = model.heap.status() {
-            pairs.push(("M", "Merge"));
-        }
-    }
-    pairs.push(("Q", "Quit"));
-    pairs
 }
 
 // Convert key-command pairs into a command bar.
@@ -131,12 +118,29 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
         .on_black()
 }
 
+// Return the key-command pairs in normal mode.
+fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
+    let mut pairs = vec![("I", "Insert")];
+    if model.heap.size() > 0 {
+        pairs.push(("S", "Select"));
+        if let HeapStatus::MultiRoot = model.heap.status() {
+            pairs.push(("M", "Merge"));
+        }
+    }
+    pairs.push(("Q", "Quit"));
+    pairs
+}
+
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
     let pairs = match model.mode {
         Mode::Normal => normal_mode_commands(model),
-        Mode::Input(_) | Mode::Delete(_) => vec![
+        Mode::Input(_) => vec![
             ("Enter", "Submit"),
+            ("Esc", "Cancel"),
+        ],
+        Mode::Select(_) => vec![
+            ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
         Mode::Merge => vec![
