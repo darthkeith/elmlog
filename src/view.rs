@@ -101,6 +101,19 @@ fn status_bar(model: &Model) -> Line {
         .on_dark_gray()
 }
 
+// Return the key-command pairs in normal mode.
+fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
+    let mut pairs = vec![("I", "Insert")];
+    if model.heap.size() > 0 {
+        pairs.push(("D", "Delete"));
+        if let HeapStatus::MultiRoot = model.heap.status() {
+            pairs.push(("M", "Merge"));
+        }
+    }
+    pairs.push(("Q", "Quit"));
+    pairs
+}
+
 // Convert key-command pairs into a command bar.
 fn make_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
     let mut text_spans = Vec::new();
@@ -117,13 +130,8 @@ fn make_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
 
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
-    make_command_bar(match model.mode {
-        Mode::Normal => vec![
-            ("I", "Insert"),
-            ("D", "Delete"),
-            ("M", "Merge"),
-            ("Q", "Quit"),
-        ],
+    let pairs = match model.mode {
+        Mode::Normal => normal_mode_commands(model),
         Mode::Input(_) | Mode::Delete(_) => vec![
             ("Enter", "Submit"),
             ("Esc", "Cancel"),
@@ -132,7 +140,8 @@ fn command_bar(model: &Model) -> Line {
             ("Up", "First"),
             ("Down", "Second"),
         ],
-    })
+    };
+    make_command_bar(pairs)
 }
 
 /// Render the UI on the `frame` using the current `model`.
