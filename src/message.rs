@@ -51,6 +51,7 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
         Mode::Merge => match key {
             KeyCode::Up => Message::SelectFirst,
             KeyCode::Down => Message::SelectSecond,
+            KeyCode::Esc => Message::Cancel,
             _ => Message::Nothing,
         }
     }

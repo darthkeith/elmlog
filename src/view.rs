@@ -146,6 +146,7 @@ fn command_bar(model: &Model) -> Line {
         Mode::Merge => vec![
             ("Up", "First"),
             ("Down", "Second"),
+            ("Esc", "Cancel"),
         ],
     };
     to_command_bar(pairs)

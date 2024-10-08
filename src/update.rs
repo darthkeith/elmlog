@@ -88,7 +88,7 @@ pub fn update(mut model: Model, message: Message) -> Model {
             model.heap = model.heap.merge_pair(false);
             model.mode = Mode::Normal;
         }
-        (Message::Cancel, Mode::Input(_) | Mode::Select(_)) => {
+        (Message::Cancel, Mode::Input(_) | Mode::Select(_) | Mode::Merge) => {
             model.mode = Mode::Normal;
         }
         (Message::Quit, Mode::Normal) => model.quit = true,
