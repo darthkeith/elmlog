@@ -10,10 +10,16 @@ use ratatui::{
 };
 
 use crate::model::{
-    heap::HeapStatus,
+    heap::{HeapStatus, NodePosition, NodeType},
     Mode,
     Model,
 };
+
+// Represents a text block used for tree drawing.
+enum IndentBlock {
+    Spacer,
+    VertBar,
+}
 
 // Return the top item widget using the current `model`.
 fn top_item(model: &Model) -> Paragraph {
@@ -33,26 +39,47 @@ fn forest(model: &Model) -> Text {
         0 => 0,
         n => (n - 1).to_string().len(),
     };
-    let format_line = |(i, label)| {
-        format!(" {i:>width$}   {label}", width = idx_len)
+    let mut prefix: Vec<IndentBlock> = Vec::new();
+    let mut lines: Vec<Line> = Vec::new();
+    let highlight_idx = match model.mode {
+        Mode::Delete(index) => index,
+        _ => model.heap.size(),  // No highlight
     };
-    let highlight = |index| {
-        move |(i, label)| {
-            if i == index {
-                format_line((i, label)).add_modifier(Modifier::REVERSED)
+    for (i, (label, pos)) in model.heap.iter().enumerate() {
+        let NodePosition { node_type, is_last } = pos;
+        let mut line = format!(" {i:>width$}   ", width = idx_len);
+        if let NodeType::Root = node_type {
+            prefix.clear();
+            line.push_str(label);
+        } else {
+            if let NodeType::Sibling = node_type {
+                while let Some(IndentBlock::Spacer) = prefix.pop() {}
+            }
+            for block in &prefix {
+                line.push_str(match block {
+                    IndentBlock::Spacer => "   ",
+                    IndentBlock::VertBar => " │ ",
+                });
+            }
+            if is_last {
+                line.push_str(" └─");
+                line.push_str(label);
+                prefix.push(IndentBlock::Spacer);
             } else {
-                format_line((i, label)).into()
+                line.push_str(" ├─");
+                line.push_str(label);
+                prefix.push(IndentBlock::VertBar);
             }
         }
-    };
-    let indexed_labels = model.heap.iter().enumerate();
-    let forest_lines = match model.mode {
-        Mode::Delete(index) => {
-            Text::from_iter(indexed_labels.map(highlight(index)))
-        }
-        _ => Text::from_iter(indexed_labels.map(format_line)),
-    };
-    forest_lines
+        lines.push(
+            if i == highlight_idx {
+                line.add_modifier(Modifier::REVERSED).into()
+            } else {
+                line.into()
+            }
+        );
+    }
+    Text::from(lines)
         .left_aligned()
         .on_black()
 }

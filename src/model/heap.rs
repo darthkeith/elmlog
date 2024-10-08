@@ -39,23 +39,17 @@ enum TwoTrees {
     Fail(Heap),
 }
 
-// Describes whether a node is a root, first child, or non-root right sibling.
-enum NodeType {
+/// Describes whether a node is a root, first child, or non-root right sibling.
+pub enum NodeType {
     Root,
     Child,
     Sibling,
 }
 
-// Describes whether a node is a last sibling.
-enum IsLast {
-    No,
-    Yes,
-}
-
-// Describes the position of a node in a heap (used for display).
-struct NodePosition {
-    node_type: NodeType,
-    is_last: IsLast,
+/// Describes the position of a node in a heap (used for display).
+pub struct NodePosition {
+    pub node_type: NodeType,
+    pub is_last: bool,
 }
 
 // Represents a node with additional positional information for display.
@@ -237,8 +231,8 @@ impl Heap {
             Heap::Empty => None,
             Heap::Node { label, child, sibling, .. } => {
                 let is_last = match **sibling {
-                    Heap::Empty => IsLast::Yes,
-                    Heap::Node { .. } => IsLast::No,
+                    Heap::Empty => true,
+                    Heap::Node { .. } => false,
                 };
                 let pos = NodePosition { node_type, is_last };
                 Some(Node { label, child, sibling, pos })
@@ -262,8 +256,7 @@ pub struct PreOrderIter<'a> {
 }
 
 impl<'a> Iterator for PreOrderIter<'a> {
-    // type Item = (&'a str, NodePosition);
-    type Item = &'a str;  // Temporary
+    type Item = (&'a str, NodePosition);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(node) = self.stack.pop() {
@@ -278,8 +271,7 @@ impl<'a> Iterator for PreOrderIter<'a> {
             if let Some(node) = child.to_node(NodeType::Child) {
                 self.stack.push(node);
             }
-            // return Some((label, pos));
-            return Some(label);  // Temporary
+            return Some((label, pos));
         }
         None
     }
