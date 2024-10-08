@@ -4,16 +4,11 @@ use crossterm::event::{self, KeyCode, KeyEventKind};
 
 use crate::model::Mode;
 
-/// Represents types of edits made to the user input string.
-pub enum Edit {
-    AppendChar(char),
-    PopChar,
-}
-
 /// Type indicating changes to be made to the model.
 pub enum Message {
     StartInput,
-    EditInput(Edit),
+    InputAppend(char),
+    InputPopChar,
     Insert,
     StartSelect,
     AppendSelect(char),
@@ -39,12 +34,8 @@ fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
             _ => Message::Nothing,
         }
         Mode::Input(_) => match key {
-            KeyCode::Char(c) => {
-                Message::EditInput(Edit::AppendChar(c))
-            }
-            KeyCode::Backspace => {
-                Message::EditInput(Edit::PopChar)
-            }
+            KeyCode::Char(c) => Message::InputAppend(c),
+            KeyCode::Backspace => Message::InputPopChar,
             KeyCode::Enter => Message::Insert,
             KeyCode::Esc => Message::Cancel,
             _ => Message::Nothing,

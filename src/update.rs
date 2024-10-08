@@ -3,7 +3,7 @@ use crate::model::{
     Mode,
     Model,
 };
-use crate::message::{Edit, Message};
+use crate::message::Message;
 
 // Return the new index given the charcter to append and the current heap size.
 fn find_new_index(c: char, index: usize, heap_size: usize) -> usize {
@@ -39,11 +39,11 @@ pub fn update(mut model: Model, message: Message) -> Model {
         (Message::StartInput, Mode::Normal) => {
             model.mode = Mode::Input(String::new());
         }
-        (Message::EditInput(edit), Mode::Input(input)) => {
-            match edit {
-                Edit::AppendChar(c) => input.push(c),
-                Edit::PopChar => { input.pop(); }
-            }
+        (Message::InputAppend(c), Mode::Input(input)) => {
+            input.push(c);
+        }
+        (Message::InputPopChar, Mode::Input(input)) => {
+            input.pop();
         }
         (Message::Insert, Mode::Input(input)) => {
             if let Some(label) = trim_input(&input) {
