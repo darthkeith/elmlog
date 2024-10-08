@@ -89,8 +89,11 @@ fn status_bar(model: &Model) -> Line {
     let status_msg = match model.mode {
         Mode::Normal => match model.heap.status() {
             HeapStatus::Empty => " Empty.".to_string(),
-            HeapStatus::SingleRoot(_) => " Top item identified.".to_string(),
-            HeapStatus::MultiRoot => " Merge to identify top item.".to_string(),
+            HeapStatus::SingleRoot(_) => " Item selected.".to_string(),
+            HeapStatus::MultiRoot => {
+                let n = model.heap.root_count();
+                format!(" {n} items to compare.")
+            }
         }
         Mode::Input(ref label) => format!(" > {label}"),
         Mode::Delete(ref index) => format!(" Select index: {index}"),
@@ -115,7 +118,7 @@ fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
 }
 
 // Convert key-command pairs into a command bar.
-fn make_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
+fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
     let mut text_spans = Vec::new();
     for (key, command) in pairs {
         text_spans.push(format!(" {key} ").black().on_white().bold());
@@ -141,7 +144,7 @@ fn command_bar(model: &Model) -> Line {
             ("Down", "Second"),
         ],
     };
-    make_command_bar(pairs)
+    to_command_bar(pairs)
 }
 
 /// Render the UI on the `frame` using the current `model`.

@@ -177,6 +177,17 @@ impl Heap {
         }
     }
 
+    /// Return the number of roots in the heap.
+    pub fn root_count(&self) -> usize {
+        let mut heap = self;
+        let mut count = 0;
+        while let Heap::Node { sibling, .. } = heap {
+            count += 1;
+            heap = &*sibling;
+        }
+        count
+    }
+
     /// Insert a node with the given `label` before the first tree in the heap.
     pub fn prepend(self, label: String) -> Self {
         Self::new(label, Self::Empty, self)
