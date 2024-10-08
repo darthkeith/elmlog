@@ -30,26 +30,38 @@ pub enum Message {
 
 // Convert a `key` press into a Message based on the current `mode`.
 fn key_to_message(mode: &Mode, key: KeyCode) -> Message {
-    match (mode, key) {
-        (Mode::Normal, KeyCode::Char('i')) => Message::StartInput,
-        (Mode::Normal, KeyCode::Char('s')) => Message::StartSelect,
-        (Mode::Normal, KeyCode::Char('m')) => Message::StartMerge,
-        (Mode::Normal, KeyCode::Char('q')) => Message::Quit,
-        (Mode::Input(_), KeyCode::Char(c)) => {
-            Message::EditInput(Edit::AppendChar(c))
+    match mode {
+        Mode::Normal => match key {
+            KeyCode::Char('i') => Message::StartInput,
+            KeyCode::Char('s') => Message::StartSelect,
+            KeyCode::Char('m') => Message::StartMerge,
+            KeyCode::Char('q') => Message::Quit,
+            _ => Message::Nothing,
         }
-        (Mode::Input(_), KeyCode::Backspace) => {
-            Message::EditInput(Edit::PopChar)
+        Mode::Input(_) => match key {
+            KeyCode::Char(c) => {
+                Message::EditInput(Edit::AppendChar(c))
+            }
+            KeyCode::Backspace => {
+                Message::EditInput(Edit::PopChar)
+            }
+            KeyCode::Enter => Message::Insert,
+            KeyCode::Esc => Message::Cancel,
+            _ => Message::Nothing,
         }
-        (Mode::Input(_), KeyCode::Enter) => Message::Insert,
-        (Mode::Select(_), KeyCode::Char('d')) => Message::Delete,
-        (Mode::Select(_), KeyCode::Char(c)) => Message::AppendSelect(c),
-        (Mode::Select(_), KeyCode::Up) => Message::DecrementIndex,
-        (Mode::Select(_), KeyCode::Down) => Message::IncrementIndex,
-        (Mode::Merge, KeyCode::Up) => Message::SelectFirst,
-        (Mode::Merge, KeyCode::Down) => Message::SelectSecond,
-        (Mode::Input(_) | Mode::Select(_), KeyCode::Esc) => Message::Cancel,
-        _ => Message::Nothing,
+        Mode::Select(_) => match key {
+            KeyCode::Char('d') => Message::Delete,
+            KeyCode::Char(c) => Message::AppendSelect(c),
+            KeyCode::Up => Message::DecrementIndex,
+            KeyCode::Down => Message::IncrementIndex,
+            KeyCode::Esc => Message::Cancel,
+            _ => Message::Nothing,
+        }
+        Mode::Merge => match key {
+            KeyCode::Up => Message::SelectFirst,
+            KeyCode::Down => Message::SelectSecond,
+            _ => Message::Nothing,
+        }
     }
 }
 
