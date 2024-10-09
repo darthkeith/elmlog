@@ -35,7 +35,6 @@ fn trim_input(input: &str) -> Option<String> {
 
 /// Return the next model based on the `message` and the `heap`.
 pub fn update(message: Message, mut heap: Heap) -> Model {
-    let quit = matches!(message, Message::Quit);
     let mode = match message {
         Message::StartInput => Mode::Input(String::new()),
         Message::InputAppend(mut input, c) => {
@@ -91,6 +90,6 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
         Message::Continue(mode) => mode,
         Message::Quit => Mode::Normal,
     };
-    Model { heap, mode, quit }
+    Model { heap, mode }
 }
 

@@ -14,7 +14,6 @@ pub enum Mode {
 pub struct Model {
     pub heap: Heap,
     pub mode: Mode,
-    pub quit: bool,
 }
 
 impl Model {
@@ -23,7 +22,6 @@ impl Model {
         Model {
             heap: Heap::Empty,
             mode: Mode::Normal,
-            quit: false,
         }
     }
 }

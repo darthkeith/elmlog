@@ -8,15 +8,16 @@ use std::io;
 use ratatui::DefaultTerminal;
 
 use crate::model::Model;
-use crate::message::handle_event;
+use crate::message::{Message, handle_event};
 use crate::update::update;
 use crate::view::view;
 
 fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     let mut model = Model::new();
-    while !model.quit {
+    loop {
         terminal.draw(|frame| view(&model, frame))?;
         let message = handle_event(model.mode)?;
+        if let Message::Quit = message { break; }
         model = update(message, model.heap);
     }
     Ok(())
