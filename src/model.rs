@@ -7,7 +7,7 @@ pub enum Mode {
     Normal,
     Input(String),
     Select(usize),
-    Merge,
+    Compare,
 }
 
 /// Type for storing all application state.

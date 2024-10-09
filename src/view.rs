@@ -97,7 +97,7 @@ fn status_bar(model: &Model) -> Line {
         }
         Mode::Input(ref label) => format!(" > {label}"),
         Mode::Select(ref index) => format!(" Select index: {index}"),
-        Mode::Merge => " Select item to promote.".to_string(),
+        Mode::Compare => " Select item to promote.".to_string(),
     };
     Line::from(status_msg)
         .left_aligned()
@@ -124,7 +124,7 @@ fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
     if model.heap.size() > 0 {
         pairs.push(("S", "Select"));
         if let HeapStatus::MultiRoot = model.heap.status() {
-            pairs.push(("M", "Merge"));
+            pairs.push(("C", "Compare"));
         }
     }
     pairs.push(("Q", "Quit"));
@@ -143,7 +143,7 @@ fn command_bar(model: &Model) -> Line {
             ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
-        Mode::Merge => vec![
+        Mode::Compare => vec![
             ("Up", "First"),
             ("Down", "Second"),
             ("Esc", "Cancel"),

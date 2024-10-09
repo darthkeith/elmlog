@@ -15,8 +15,8 @@ pub enum Message {
     SelectDecrement(usize),
     SelectIncrement(usize),
     Delete(usize),
-    StartMerge,
-    Merge(bool),
+    StartCompare,
+    Compare(bool),
     Continue(Mode),
     Quit,
 }
@@ -27,7 +27,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Normal => match key {
             KeyCode::Char('i') => Message::StartInput,
             KeyCode::Char('s') => Message::StartSelect,
-            KeyCode::Char('m') => Message::StartMerge,
+            KeyCode::Char('c') => Message::StartCompare,
             KeyCode::Char('q') => Message::Quit,
             _ => Message::Continue(Mode::Normal),
         }
@@ -46,11 +46,11 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
             KeyCode::Esc => Message::Continue(Mode::Normal),
             _ => Message::Continue(Mode::Select(index)),
         }
-        Mode::Merge => match key {
-            KeyCode::Up => Message::Merge(true),
-            KeyCode::Down => Message::Merge(false),
+        Mode::Compare => match key {
+            KeyCode::Up => Message::Compare(true),
+            KeyCode::Down => Message::Compare(false),
             KeyCode::Esc => Message::Continue(Mode::Normal),
-            _ => Message::Continue(Mode::Merge),
+            _ => Message::Continue(Mode::Compare),
         }
     }
 }

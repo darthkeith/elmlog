@@ -77,13 +77,13 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
             heap = heap.delete(index);
             Mode::Normal
         }
-        Message::StartMerge => {
+        Message::StartCompare => {
             match heap.status() {
-                HeapStatus::MultiRoot => Mode::Merge,
+                HeapStatus::MultiRoot => Mode::Compare,
                 _ => Mode::Normal,
             }
         }
-        Message::Merge(promote_first) => {
+        Message::Compare(promote_first) => {
             heap = heap.merge_pair(promote_first);
             Mode::Normal
         }
