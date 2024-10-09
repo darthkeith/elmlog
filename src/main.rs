@@ -16,8 +16,8 @@ fn main_loop(mut terminal: DefaultTerminal) -> io::Result<()> {
     let mut model = Model::new();
     while !model.quit {
         terminal.draw(|frame| view(&model, frame))?;
-        let message = handle_event(&model.mode)?;
-        model = update(model, message);
+        let message = handle_event(model.mode)?;
+        model = update(message, model.heap);
     }
     Ok(())
 }

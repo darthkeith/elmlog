@@ -1,12 +1,12 @@
+use crate::message::Message;
 use crate::model::{
-    heap::HeapStatus,
+    heap::{Heap, HeapStatus},
     Mode,
     Model,
 };
-use crate::message::Message;
 
-// Return the new index given the charcter to append and the current heap size.
-fn find_new_index(c: char, index: usize, heap_size: usize) -> usize {
+// Append a digit to `index` if valid, otherwise return a fallback value.
+fn find_new_index(index: usize, c: char, heap_size: usize) -> usize {
     if !c.is_ascii_digit() {
         return index;
     }
@@ -33,68 +33,64 @@ fn trim_input(input: &str) -> Option<String> {
     }
 }
 
-/// Update the `model` based on the `message`.
-pub fn update(mut model: Model, message: Message) -> Model {
-    match (message, &mut model.mode) {
-        (Message::StartInput, Mode::Normal) => {
-            model.mode = Mode::Input(String::new());
-        }
-        (Message::InputAppend(c), Mode::Input(input)) => {
+/// Return the next model based on the `message` and the `heap`.
+pub fn update(message: Message, mut heap: Heap) -> Model {
+    let quit = matches!(message, Message::Quit);
+    let mode = match message {
+        Message::StartInput => Mode::Input(String::new()),
+        Message::InputAppend(mut input, c) => {
             input.push(c);
+            Mode::Input(input)
         }
-        (Message::InputPopChar, Mode::Input(input)) => {
+        Message::InputPopChar(mut input) => {
             input.pop();
+            Mode::Input(input)
         }
-        (Message::Insert, Mode::Input(input)) => {
+        Message::Insert(input) => {
             if let Some(label) = trim_input(&input) {
-                model.heap = model.heap.prepend(label);
+                heap = heap.prepend(label);
             }
-            model.mode = Mode::Normal;
+            Mode::Normal
         }
-        (Message::StartSelect, Mode::Normal) => {
-            if model.heap.size() > 0 {
-                model.mode = Mode::Select(0);
-            }
-        }
-        (Message::AppendSelect(c), Mode::Select(index)) => {
-            let i = find_new_index(c, *index, model.heap.size());
-            model.mode = Mode::Select(i);
-        }
-        (Message::DecrementIndex, Mode::Select(index)) => {
-            if *index > 0 {
-                model.mode = Mode::Select(*index - 1);
+        Message::StartSelect => {
+            match heap.size() > 0 {
+                true => Mode::Select(0),
+                false => Mode::Normal
             }
         }
-        (Message::IncrementIndex, Mode::Select(index)) => {
-            let new_index = *index + 1;
-            if new_index < model.heap.size() {
-                model.mode = Mode::Select(new_index);
+        Message::SelectAppend(index, c) => {
+            let i = find_new_index(index, c, heap.size());
+            Mode::Select(i)
+        }
+        Message::SelectDecrement(index) => {
+            match index > 0 {
+                true => Mode::Select(index - 1),
+                false => Mode::Select(index),
             }
         }
-        (Message::Delete, Mode::Select(index)) => {
-            model.heap = model.heap.delete(*index);
-            model.mode = Mode::Normal;
-        }
-        (Message::StartMerge, Mode::Normal) => {
-            if let HeapStatus::MultiRoot = model.heap.status() {
-                model.mode = Mode::Merge;
+        Message::SelectIncrement(index) => {
+            match index + 1 < heap.size() {
+                true => Mode::Select(index + 1),
+                false => Mode::Select(index)
             }
         }
-        (Message::SelectFirst, Mode::Merge) => {
-            model.heap = model.heap.merge_pair(true);
-            model.mode = Mode::Normal;
+        Message::Delete(index) => {
+            heap = heap.delete(index);
+            Mode::Normal
         }
-        (Message::SelectSecond, Mode::Merge) => {
-            model.heap = model.heap.merge_pair(false);
-            model.mode = Mode::Normal;
+        Message::StartMerge => {
+            match heap.status() {
+                HeapStatus::MultiRoot => Mode::Merge,
+                _ => Mode::Normal,
+            }
         }
-        (Message::Cancel, Mode::Input(_) | Mode::Select(_) | Mode::Merge) => {
-            model.mode = Mode::Normal;
+        Message::Merge(promote_first) => {
+            heap = heap.merge_pair(promote_first);
+            Mode::Normal
         }
-        (Message::Quit, Mode::Normal) => model.quit = true,
-        (Message::Nothing, _) => (),
-        _ => panic!("Invalid message in current mode."),
-    }
-    model
+        Message::Continue(mode) => mode,
+        Message::Quit => Mode::Normal,
+    };
+    Model { heap, mode, quit }
 }
 
