@@ -1,6 +1,4 @@
-pub mod heap;
-
-use self::heap::Heap;
+use crate::heap::Heap;
 
 /// Represents the operational modes of the application.
 pub enum Mode {

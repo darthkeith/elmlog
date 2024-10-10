@@ -1,9 +1,6 @@
+use crate::heap::{Heap, HeapStatus};
+use crate::model::{Mode, Model};
 use crate::message::Message;
-use crate::model::{
-    heap::{Heap, HeapStatus},
-    Mode,
-    Model,
-};
 
 // Append a digit to `index` if valid, otherwise return a fallback value.
 fn find_new_index(index: usize, c: char, heap_size: usize) -> usize {

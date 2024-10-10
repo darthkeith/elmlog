@@ -9,11 +9,8 @@ use ratatui::{
     Frame,
 };
 
-use crate::model::{
-    heap::{HeapStatus, NodePosition, NodeType},
-    Mode,
-    Model,
-};
+use crate::heap::{HeapStatus, NodePosition, NodeType};
+use crate::model::{Mode, Model};
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
