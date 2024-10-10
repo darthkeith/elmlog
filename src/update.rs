@@ -1,5 +1,5 @@
 use crate::heap::{Heap, HeapStatus};
-use crate::model::{Mode, Model};
+use crate::model::{Choice, Mode, Model, Selected};
 use crate::message::Message;
 
 // Append a digit to `index` if valid, otherwise return a fallback value.
@@ -76,11 +76,28 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
         }
         Message::StartCompare => {
             match heap.status() {
-                HeapStatus::MultiRoot => Mode::Compare,
+                HeapStatus::MultiRoot(item1, item2) => Mode::Compare(
+                    Choice {
+                        item1: item1.to_string(),
+                        item2: item2.to_string(),
+                        selected: Selected::First,
+                    }
+                ),
                 _ => Mode::Normal,
             }
         }
-        Message::Compare(promote_first) => {
+        Message::Toggle(Choice { item1, item2, selected }) => {
+            let toggled = match selected {
+                Selected::First => Selected::Second,
+                Selected::Second => Selected::First,
+            };
+            Mode::Compare(Choice { item1, item2, selected: toggled })
+        }
+        Message::Compare(Choice { selected, .. }) => {
+            let promote_first = match selected {
+                Selected::First => true,
+                Selected::Second => false,
+            };
             heap = heap.merge_pair(promote_first);
             Mode::Normal
         }

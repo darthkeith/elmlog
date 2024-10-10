@@ -2,7 +2,7 @@ use std::io;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
-use crate::model::Mode;
+use crate::model::{Mode, Choice};
 
 /// Type indicating changes to be made to the model.
 pub enum Message {
@@ -16,7 +16,8 @@ pub enum Message {
     SelectIncrement(usize),
     Delete(usize),
     StartCompare,
-    Compare(bool),
+    Toggle(Choice),
+    Compare(Choice),
     Continue(Mode),
     Quit,
 }
@@ -46,11 +47,11 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
             KeyCode::Esc => Message::Continue(Mode::Normal),
             _ => Message::Continue(Mode::Select(index)),
         }
-        Mode::Compare => match key {
-            KeyCode::Up => Message::Compare(true),
-            KeyCode::Down => Message::Compare(false),
+        Mode::Compare(choice) => match key {
+            KeyCode::Tab => Message::Toggle(choice),
+            KeyCode::Enter => Message::Compare(choice),
             KeyCode::Esc => Message::Continue(Mode::Normal),
-            _ => Message::Continue(Mode::Compare),
+            _ => Message::Continue(Mode::Compare(choice)),
         }
     }
 }

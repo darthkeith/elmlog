@@ -66,7 +66,7 @@ struct Node<'a> {
 pub enum HeapStatus<'a> {
     Empty,
     SingleRoot(&'a str),
-    MultiRoot,
+    MultiRoot(&'a str, &'a str),
 }
 
 // Return a path to the subheap at the pre-order `index` in the `heap`.
@@ -229,9 +229,11 @@ impl Heap {
     pub fn status(&self) -> HeapStatus {
         match self {
             Self::Empty => HeapStatus::Empty,
-            Self::Node { label, sibling, .. } => match **sibling {
+            Self::Node { label, sibling, .. } => match &**sibling {
                 Self::Empty => HeapStatus::SingleRoot(label),
-                Self::Node { .. } => HeapStatus::MultiRoot,
+                Self::Node { label: label2, .. } => {
+                    HeapStatus::MultiRoot(label, label2)
+                }
             }
         }
     }

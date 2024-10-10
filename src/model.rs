@@ -1,14 +1,27 @@
 use crate::heap::Heap;
 
+/// Indicates which of two items is selected.
+pub enum Selected {
+    First,
+    Second,
+}
+
+/// Represents a choice between two items.
+pub struct Choice {
+    pub item1: String,
+    pub item2: String,
+    pub selected: Selected,
+}
+
 /// Represents the operational modes of the application.
 pub enum Mode {
     Normal,
     Input(String),
     Select(usize),
-    Compare,
+    Compare(Choice)
 }
 
-/// Type for storing all application state.
+/// Contains all application state.
 pub struct Model {
     pub heap: Heap,
     pub mode: Mode,

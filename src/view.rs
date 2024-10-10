@@ -10,7 +10,7 @@ use ratatui::{
 };
 
 use crate::heap::{HeapStatus, NodePosition, NodeType};
-use crate::model::{Mode, Model};
+use crate::model::{Choice, Mode, Model, Selected};
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
@@ -18,13 +18,33 @@ enum IndentBlock {
     VertBar,
 }
 
-// Return the top item widget using the current `model`.
-fn top_item(model: &Model) -> Paragraph {
-    let top_item_str = match model.heap.status() {
+// Return the compare widget given a choice between two items.
+fn compare<'a>(choice: &Choice) -> Text<'a> {
+    let Choice { item1, item2, selected } = choice;
+    let line1: Line = format!(" {item1}").into();
+    let line2: Line = format!(" {item2}").into();
+    let lines = match selected {
+        Selected::First => vec![
+            line1.add_modifier(Modifier::REVERSED),
+            line2,
+        ],
+        Selected::Second => vec![
+            line1,
+            line2.add_modifier(Modifier::REVERSED),
+        ],
+    };
+    Text::from(lines)
+        .left_aligned()
+        .on_black()
+}
+
+// Return the item widget based on the current `model`.
+fn item(model: &Model) -> Paragraph {
+    let item_str = match model.heap.status() {
         HeapStatus::SingleRoot(label) => format!(" {label} "),
         _ => String::new(),
     };
-    Paragraph::new(top_item_str.black().on_white().bold())
+    Paragraph::new(item_str.black().on_white().bold())
         .block(Block::bordered())
         .centered()
         .on_black()
@@ -81,20 +101,20 @@ fn forest(model: &Model) -> Text {
         .on_black()
 }
 
-// Return the status bar widget using the current `model`.
+// Return the status bar widget based on the current `model`.
 fn status_bar(model: &Model) -> Line {
     let status_msg = match model.mode {
         Mode::Normal => match model.heap.status() {
             HeapStatus::Empty => " Empty.".to_string(),
             HeapStatus::SingleRoot(_) => " Item selected.".to_string(),
-            HeapStatus::MultiRoot => {
+            HeapStatus::MultiRoot(..) => {
                 let n = model.heap.root_count();
                 format!(" {n} items to compare.")
             }
         }
         Mode::Input(ref label) => format!(" > {label}"),
         Mode::Select(ref index) => format!(" Select index: {index}"),
-        Mode::Compare => " Select item to promote.".to_string(),
+        Mode::Compare(..) => " Select item to promote.".to_string(),
     };
     Line::from(status_msg)
         .left_aligned()
@@ -120,7 +140,7 @@ fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
     let mut pairs = vec![("I", "Insert")];
     if model.heap.size() > 0 {
         pairs.push(("S", "Select"));
-        if let HeapStatus::MultiRoot = model.heap.status() {
+        if let HeapStatus::MultiRoot(..) = model.heap.status() {
             pairs.push(("C", "Compare"));
         }
     }
@@ -140,27 +160,36 @@ fn command_bar(model: &Model) -> Line {
             ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
-        Mode::Compare => vec![
-            ("Up", "First"),
-            ("Down", "Second"),
+        Mode::Compare(..) => vec![
+            ("Tab", "Toggle"),
+            ("Enter", "Confirm"),
             ("Esc", "Cancel"),
         ],
     };
     to_command_bar(pairs)
 }
 
-/// Render the UI on the `frame` using the current `model`.
+/// Render the UI on the `frame` based on the current `model`.
 pub fn view(model: &Model, frame: &mut Frame) {
-    let [top_item_area, forest_area, status_bar_area, command_bar_area] =
+    let [top_area, status_bar_area, command_bar_area] =
         Layout::vertical([
-            Constraint::Length(3),
             Constraint::Min(0),
             Constraint::Length(1),
             Constraint::Length(1),
         ])
         .areas(frame.area());
-    frame.render_widget(top_item(model), top_item_area);
-    frame.render_widget(forest(model), forest_area);
+    if let Mode::Compare(choice) = &model.mode {
+        frame.render_widget(compare(choice), top_area);
+    } else {
+        let [item_area, forest_area] =
+            Layout::vertical([
+                Constraint::Length(3),
+                Constraint::Min(0),
+            ])
+            .areas(top_area);
+        frame.render_widget(item(model), item_area);
+        frame.render_widget(forest(model), forest_area);
+    }
     frame.render_widget(status_bar(model), status_bar_area);
     frame.render_widget(command_bar(model), command_bar_area);
 }
