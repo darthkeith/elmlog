@@ -62,10 +62,10 @@ struct Node<'a> {
 
 /// Represents the number of roots in a heap (zero, one, or multiple).
 ///
-/// When there is one root, a reference to its label is included.
+/// If multiple, include references to the first two labels.
 pub enum HeapStatus<'a> {
     Empty,
-    SingleRoot(&'a str),
+    SingleRoot,
     MultiRoot(&'a str, &'a str),
 }
 
@@ -230,7 +230,7 @@ impl Heap {
         match self {
             Self::Empty => HeapStatus::Empty,
             Self::Node { label, sibling, .. } => match &**sibling {
-                Self::Empty => HeapStatus::SingleRoot(label),
+                Self::Empty => HeapStatus::SingleRoot,
                 Self::Node { label: label2, .. } => {
                     HeapStatus::MultiRoot(label, label2)
                 }

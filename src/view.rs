@@ -2,10 +2,6 @@ use ratatui::{
     layout::{Constraint, Layout},
     style::{Modifier, Stylize},
     text::{Line, Text},
-    widgets::{
-        block::Block,
-        Paragraph,
-    },
     Frame,
 };
 
@@ -35,18 +31,6 @@ fn compare<'a>(choice: &Choice) -> Text<'a> {
     };
     Text::from(lines)
         .left_aligned()
-        .on_black()
-}
-
-// Return the item widget based on the current `model`.
-fn item(model: &Model) -> Paragraph {
-    let item_str = match model.heap.status() {
-        HeapStatus::SingleRoot(label) => format!(" {label} "),
-        _ => String::new(),
-    };
-    Paragraph::new(item_str.black().on_white().bold())
-        .block(Block::bordered())
-        .centered()
         .on_black()
 }
 
@@ -106,7 +90,7 @@ fn status_bar(model: &Model) -> Line {
     let status_msg = match model.mode {
         Mode::Normal => match model.heap.status() {
             HeapStatus::Empty => " Empty.".to_string(),
-            HeapStatus::SingleRoot(_) => " Item selected.".to_string(),
+            HeapStatus::SingleRoot => " Item selected.".to_string(),
             HeapStatus::MultiRoot(..) => {
                 let n = model.heap.root_count();
                 format!(" {n} items to compare.")
@@ -171,7 +155,7 @@ fn command_bar(model: &Model) -> Line {
 
 /// Render the UI on the `frame` based on the current `model`.
 pub fn view(model: &Model, frame: &mut Frame) {
-    let [top_area, status_bar_area, command_bar_area] =
+    let [main_area, status_bar_area, command_bar_area] =
         Layout::vertical([
             Constraint::Min(0),
             Constraint::Length(1),
@@ -179,16 +163,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
         ])
         .areas(frame.area());
     if let Mode::Compare(choice) = &model.mode {
-        frame.render_widget(compare(choice), top_area);
+        frame.render_widget(compare(choice), main_area);
     } else {
-        let [item_area, forest_area] =
-            Layout::vertical([
-                Constraint::Length(3),
-                Constraint::Min(0),
-            ])
-            .areas(top_area);
-        frame.render_widget(item(model), item_area);
-        frame.render_widget(forest(model), forest_area);
+        frame.render_widget(forest(model), main_area);
     }
     frame.render_widget(status_bar(model), status_bar_area);
     frame.render_widget(command_bar(model), command_bar_area);
