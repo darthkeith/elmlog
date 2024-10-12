@@ -263,7 +263,7 @@ impl Heap {
     }
 }
 
-/// Iterator type for iterating over node labels in pre-order.
+/// Iterator type returning node labels/positions in pre-order.
 pub struct PreOrderIter<'a> {
     stack: Vec<Node<'a>>,
 }
@@ -272,21 +272,18 @@ impl<'a> Iterator for PreOrderIter<'a> {
     type Item = (&'a str, NodePosition);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(node) = self.stack.pop() {
-            let Node { label, child, sibling, pos } = node;
-            let sibling_type = match pos.node_type {
-                NodeType::Root => NodeType::Root,
-                _ => NodeType::Sibling,
-            };
-            if let Some(node) = sibling.to_node(sibling_type) {
-                self.stack.push(node);
-            }
-            if let Some(node) = child.to_node(NodeType::Child) {
-                self.stack.push(node);
-            }
-            return Some((label, pos));
+        let Node { label, child, sibling, pos } = self.stack.pop()?;
+        let sibling_type = match pos.node_type {
+            NodeType::Root => NodeType::Root,
+            _ => NodeType::Sibling,
+        };
+        if let Some(node) = sibling.to_node(sibling_type) {
+            self.stack.push(node);
         }
-        None
+        if let Some(node) = child.to_node(NodeType::Child) {
+            self.stack.push(node);
+        }
+        return Some((label, pos));
     }
 }
 

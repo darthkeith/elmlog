@@ -5,13 +5,90 @@ use ratatui::{
     Frame,
 };
 
-use crate::heap::{HeapStatus, NodePosition, NodeType};
+use crate::heap::{HeapStatus, NodePosition, NodeType, PreOrderIter};
 use crate::model::{Choice, Mode, Model, Selected};
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
     Spacer,
     VertBar,
+}
+
+// Iterator type returning the strings used to display the forest.
+struct ForestIter<'a> {
+    prefix: Vec<IndentBlock>,
+    label_iter: PreOrderIter<'a>,
+}
+
+impl<'a> ForestIter<'a> {
+    fn new(model: &'a Model) -> Self {
+        ForestIter {
+            prefix: Vec::new(),
+            label_iter: model.heap.iter(),
+        }
+    }
+}
+
+impl<'a> Iterator for ForestIter<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (label, pos) = self.label_iter.next()?;
+        let NodePosition { node_type, is_last } = pos;
+        if let NodeType::Root = node_type {
+            self.prefix.clear();
+            return Some(label.into());
+        }
+        let mut line = String::new();
+        if let NodeType::Sibling = node_type {
+            while let Some(IndentBlock::Spacer) = self.prefix.pop() {}
+        }
+        for block in &self.prefix {
+            line.push_str(match block {
+                IndentBlock::Spacer => "   ",
+                IndentBlock::VertBar => " │ ",
+            });
+        }
+        if is_last {
+            line.push_str(" └─");
+            self.prefix.push(IndentBlock::Spacer);
+        } else {
+            line.push_str(" ├─");
+            self.prefix.push(IndentBlock::VertBar);
+        }
+        line.push_str(label);
+        Some(line)
+    }
+}
+
+// Return the forest widget using the current `model`.
+fn forest(model: &Model) -> Text {
+    let lines = ForestIter::new(model)
+        .map(|s| Line::from(s));
+    Text::from_iter(lines)
+        .left_aligned()
+        .on_black()
+}
+
+// Return the forest widget with indicies, highlighting the selected item.
+fn indexed_forest(model: &Model, selected: usize) -> Text {
+    let idx_len = match model.heap.size() {
+        0 => 0,
+        n => (n - 1).to_string().len(),
+    };
+    let lines = ForestIter::new(model)
+        .enumerate()
+        .map(|(i, s)| {
+            let line = format!("{i:>width$}   {s}", width = idx_len);
+            if i == selected {
+                line.add_modifier(Modifier::REVERSED).into()
+            } else {
+                Line::from(line)
+            }
+        });
+    Text::from_iter(lines)
+        .left_aligned()
+        .on_black()
 }
 
 // Return the compare widget given a choice between two items.
@@ -29,57 +106,6 @@ fn compare<'a>(choice: &Choice) -> Text<'a> {
             line2.add_modifier(Modifier::REVERSED),
         ],
     };
-    Text::from(lines)
-        .left_aligned()
-        .on_black()
-}
-
-// Return the forest widget using the current `model`.
-fn forest(model: &Model) -> Text {
-    let idx_len = match model.heap.size() {
-        0 => 0,
-        n => (n - 1).to_string().len(),
-    };
-    let mut prefix: Vec<IndentBlock> = Vec::new();
-    let mut lines: Vec<Line> = Vec::new();
-    let highlight_idx = match model.mode {
-        Mode::Select(index) => index,
-        _ => model.heap.size(),  // No highlight
-    };
-    for (i, (label, pos)) in model.heap.iter().enumerate() {
-        let NodePosition { node_type, is_last } = pos;
-        let mut line = format!(" {i:>width$}   ", width = idx_len);
-        if let NodeType::Root = node_type {
-            prefix.clear();
-            line.push_str(label);
-        } else {
-            if let NodeType::Sibling = node_type {
-                while let Some(IndentBlock::Spacer) = prefix.pop() {}
-            }
-            for block in &prefix {
-                line.push_str(match block {
-                    IndentBlock::Spacer => "   ",
-                    IndentBlock::VertBar => " │ ",
-                });
-            }
-            if is_last {
-                line.push_str(" └─");
-                line.push_str(label);
-                prefix.push(IndentBlock::Spacer);
-            } else {
-                line.push_str(" ├─");
-                line.push_str(label);
-                prefix.push(IndentBlock::VertBar);
-            }
-        }
-        lines.push(
-            if i == highlight_idx {
-                line.add_modifier(Modifier::REVERSED).into()
-            } else {
-                line.into()
-            }
-        );
-    }
     Text::from(lines)
         .left_aligned()
         .on_black()
@@ -162,10 +188,16 @@ pub fn view(model: &Model, frame: &mut Frame) {
             Constraint::Length(1),
         ])
         .areas(frame.area());
-    if let Mode::Compare(choice) = &model.mode {
-        frame.render_widget(compare(choice), main_area);
-    } else {
-        frame.render_widget(forest(model), main_area);
+    match &model.mode {
+        Mode::Normal | Mode::Input(_) => {
+            frame.render_widget(forest(model), main_area);
+        }
+        Mode::Select(index) => {
+            frame.render_widget(indexed_forest(model, *index), main_area);
+        }
+        Mode::Compare(choice) => {
+            frame.render_widget(compare(choice), main_area);
+        }
     }
     frame.render_widget(status_bar(model), status_bar_area);
     frame.render_widget(command_bar(model), command_bar_area);
