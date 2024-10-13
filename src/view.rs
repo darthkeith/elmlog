@@ -106,7 +106,9 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
 
 // Return the text input widget given the `input` string.
 fn text_input(input: &str) -> Paragraph {
-    let text = format!("> {input}").into();
+    let text = format!(" > {input} ")
+        .on_dark_gray()
+        .into();
     style_text(text)
 }
 
