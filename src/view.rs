@@ -130,11 +130,11 @@ fn status_bar(model: &Model) -> Line {
             HeapStatus::SingleRoot => " Item selected.".to_string(),
             HeapStatus::MultiRoot(..) => {
                 let n = model.heap.root_count();
-                format!(" {n} items to compare.")
+                format!(" Items to compare: {n}")
             }
         }
         Mode::Input(ref label) => format!(" > {label}"),
-        Mode::Select(ref index) => format!(" Select index: {index}"),
+        Mode::Select(ref index) => format!(" Selected index: {index}"),
         Mode::Compare(..) => " Select item to promote.".to_string(),
     };
     Line::from(status_msg)
