@@ -2,6 +2,12 @@ use ratatui::{
     layout::{Constraint, Layout},
     style::{Modifier, Stylize},
     text::{Line, Text},
+    widgets::{
+        block::Padding,
+        Block,
+        Borders,
+        Paragraph
+    },
     Frame,
 };
 
@@ -61,17 +67,26 @@ impl<'a> Iterator for ForestIter<'a> {
     }
 }
 
-// Return the forest widget using the current `model`.
-fn forest(model: &Model) -> Text {
-    let lines = ForestIter::new(model)
-        .map(|s| Line::from(s));
-    Text::from_iter(lines)
+// Style text for the main area.
+fn style_text(text: Text) -> Paragraph {
+    let block = Block::new()
+        .borders(Borders::NONE)
+        .padding(Padding::uniform(1));
+    Paragraph::new(text)
+        .block(block)
         .left_aligned()
         .on_black()
 }
 
+// Return the forest widget using the current `model`.
+fn forest(model: &Model) -> Paragraph {
+    let lines = ForestIter::new(model)
+        .map(|s| Line::from(s));
+    style_text(Text::from_iter(lines))
+}
+
 // Return the forest widget with indicies, highlighting the selected item.
-fn indexed_forest(model: &Model, selected: usize) -> Text {
+fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
     let idx_len = match model.heap.size() {
         0 => 0,
         n => (n - 1).to_string().len(),
@@ -79,23 +94,21 @@ fn indexed_forest(model: &Model, selected: usize) -> Text {
     let lines = ForestIter::new(model)
         .enumerate()
         .map(|(i, s)| {
-            let line = format!("{i:>width$}   {s}", width = idx_len);
+            let line = format!(" {i:>width$}   {s} ", width = idx_len);
             if i == selected {
                 line.add_modifier(Modifier::REVERSED).into()
             } else {
                 Line::from(line)
             }
         });
-    Text::from_iter(lines)
-        .left_aligned()
-        .on_black()
+    style_text(Text::from_iter(lines))
 }
 
 // Return the compare widget given a choice between two items.
-fn compare<'a>(choice: &Choice) -> Text<'a> {
+fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
     let Choice { item1, item2, selected } = choice;
-    let line1: Line = format!(" {item1}").into();
-    let line2: Line = format!(" {item2}").into();
+    let line1 = Line::from(format!(" {item1} "));
+    let line2 = Line::from(format!(" {item2} "));
     let lines = match selected {
         Selected::First => vec![
             line1.add_modifier(Modifier::REVERSED),
@@ -106,9 +119,7 @@ fn compare<'a>(choice: &Choice) -> Text<'a> {
             line2.add_modifier(Modifier::REVERSED),
         ],
     };
-    Text::from(lines)
-        .left_aligned()
-        .on_black()
+    style_text(Text::from(lines))
 }
 
 // Return the status bar widget based on the current `model`.
