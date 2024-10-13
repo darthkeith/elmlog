@@ -124,20 +124,25 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
 
 // Return the status bar widget based on the current `model`.
 fn status_bar(model: &Model) -> Line {
-    let status_msg = match model.mode {
+    let mut message = vec![" ".into()];
+    match &model.mode {
         Mode::Normal => match model.heap.status() {
-            HeapStatus::Empty => " Empty.".to_string(),
-            HeapStatus::SingleRoot => " Item selected.".to_string(),
+            HeapStatus::Empty => message.push("Empty.".into()),
+            HeapStatus::SingleRoot => message.push("Item selected.".into()),
             HeapStatus::MultiRoot(..) => {
+                message.push("Items to compare: ".into());
                 let n = model.heap.root_count();
-                format!(" Items to compare: {n}")
+                message.push(format!("{n}").bold());
             }
         }
-        Mode::Input(ref label) => format!(" > {label}"),
-        Mode::Select(ref index) => format!(" Selected index: {index}"),
-        Mode::Compare(..) => " Select item to promote.".to_string(),
+        Mode::Input(label) => message.push(format!("> {label}").into()),
+        Mode::Select(index) => {
+            message.push("Selected index: ".into());
+            message.push(format!("{index}").bold());
+        }
+        Mode::Compare(..) => message.push("Select item to promote.".into()),
     };
-    Line::from(status_msg)
+    Line::from(message)
         .left_aligned()
         .on_dark_gray()
 }
