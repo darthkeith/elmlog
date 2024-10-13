@@ -104,6 +104,12 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
     style_text(Text::from_iter(lines))
 }
 
+// Return the text input widget given the `input` string.
+fn text_input(input: &str) -> Paragraph {
+    let text = format!("> {input}").into();
+    style_text(text)
+}
+
 // Return the compare widget given a choice between two items.
 fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
     let Choice { item1, item2, selected } = choice;
@@ -132,15 +138,15 @@ fn status_bar(model: &Model) -> Line {
             HeapStatus::MultiRoot(..) => {
                 message.push("Items to compare: ".into());
                 let n = model.heap.root_count();
-                message.push(format!("{n}").bold());
+                message.push(n.to_string().bold());
             }
         }
-        Mode::Input(label) => message.push(format!("> {label}").into()),
+        Mode::Input(_) => message.push("Enter new item.".into()),
         Mode::Select(index) => {
             message.push("Selected index: ".into());
-            message.push(format!("{index}").bold());
+            message.push(index.to_string().bold());
         }
-        Mode::Compare(..) => message.push("Select item to promote.".into()),
+        Mode::Compare(_) => message.push("Select item to promote.".into()),
     };
     Line::from(message)
         .left_aligned()
@@ -186,7 +192,7 @@ fn command_bar(model: &Model) -> Line {
             ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
-        Mode::Compare(..) => vec![
+        Mode::Compare(_) => vec![
             ("Tab", "Toggle"),
             ("Enter", "Confirm"),
             ("Esc", "Cancel"),
@@ -205,8 +211,11 @@ pub fn view(model: &Model, frame: &mut Frame) {
         ])
         .areas(frame.area());
     match &model.mode {
-        Mode::Normal | Mode::Input(_) => {
+        Mode::Normal => {
             frame.render_widget(forest(model), main_area);
+        }
+        Mode::Input(input) => {
+            frame.render_widget(text_input(input), main_area);
         }
         Mode::Select(index) => {
             frame.render_widget(indexed_forest(model, *index), main_area);
