@@ -41,9 +41,9 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         }
         Mode::Select(index) => match key {
             KeyCode::Char('d') => Message::Delete(index),
+            KeyCode::Up | KeyCode::Backspace => Message::SelectDecrement(index),
+            KeyCode::Down | KeyCode::Char(' ') => Message::SelectIncrement(index),
             KeyCode::Char(c) => Message::SelectAppend(index, c),
-            KeyCode::Up => Message::SelectDecrement(index),
-            KeyCode::Down => Message::SelectIncrement(index),
             KeyCode::Esc => Message::Continue(Mode::Normal),
             _ => Message::Continue(Mode::Select(index)),
         }

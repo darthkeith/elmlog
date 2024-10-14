@@ -191,6 +191,9 @@ fn command_bar(model: &Model) -> Line {
             ("Esc", "Cancel"),
         ],
         Mode::Select(_) => vec![
+            ("0-9", "Jump"),
+            ("Space │ ↓", "Down"),
+            ("Bksp │ ↑", "Up"),
             ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
