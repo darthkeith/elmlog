@@ -35,7 +35,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Input(input) => match key {
             KeyCode::Char(c) => Message::InputAppend(input, c),
             KeyCode::Backspace => Message::InputPopChar(input),
-            KeyCode::Enter => Message::Insert(input),
+            KeyCode::Enter if !input.is_empty() => Message::Insert(input),
             KeyCode::Esc => Message::Continue(Mode::Normal),
             _ => Message::Continue(Mode::Input(input)),
         }
