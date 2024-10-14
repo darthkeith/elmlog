@@ -18,7 +18,8 @@ pub enum Mode {
     Normal,
     Input(String),
     Select(usize),
-    Compare(Choice)
+    Selected(usize),
+    Compare(Choice),
 }
 
 /// Contains all application state.

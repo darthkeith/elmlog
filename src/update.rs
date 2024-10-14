@@ -3,7 +3,7 @@ use crate::model::{Choice, Mode, Model, Selected};
 use crate::message::Message;
 
 // Append a digit to `index` if valid, otherwise return a fallback value.
-fn find_new_index(index: usize, c: char, heap_size: usize) -> usize {
+fn append_index(index: usize, c: char, heap_size: usize) -> usize {
     if !c.is_ascii_digit() {
         return index;
     }
@@ -57,7 +57,7 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
             }
         }
         Message::SelectAppend(index, c) => {
-            let i = find_new_index(index, c, heap.size());
+            let i = append_index(index, c, heap.size());
             Mode::Select(i)
         }
         Message::SelectDecrement(index) => {
@@ -72,6 +72,7 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
                 false => Mode::Select(index)
             }
         }
+        Message::Select(index) => Mode::Selected(index),
         Message::Delete(index) => {
             heap = heap.delete(index);
             Mode::Normal

@@ -164,6 +164,7 @@ fn status_bar(model: &Model) -> Line {
             message.push("Selected index: ".into());
             message.push(index.to_string().bold());
         }
+        Mode::Selected(_) => message.push("Enter command.".into()),
         Mode::Compare(_) => message.push("Select item to promote.".into()),
     };
     Line::from(message)
@@ -199,10 +200,10 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
     let mut pairs = Vec::new();
     if size > 1 {
         pairs.push(("0-9", "Jump"));
-        pairs.push(("Space │ ↓", "Down"));
         pairs.push(("Bksp │ ↑", "Up"));
+        pairs.push(("Space │ ↓", "Down"));
     }
-    pairs.push(("D", "Delete"));
+    pairs.push(("Enter", "Confirm"));
     pairs.push(("Esc", "Cancel"));
     pairs
 }
@@ -227,6 +228,10 @@ fn command_bar(model: &Model) -> Line {
         Mode::Normal => normal_mode_commands(model),
         Mode::Input(input) => input_mode_commands(input.is_empty()),
         Mode::Select(_) => select_mode_commands(model.heap.size()),
+        Mode::Selected(_) => vec![
+            ("D", "Delete"),
+            ("Esc", "Cancel"),
+        ],
         Mode::Compare(_) => vec![
             ("Tab", "Toggle"),
             ("Enter", "Confirm"),
@@ -252,7 +257,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Input(input) => {
             frame.render_widget(text_input(input), main_area);
         }
-        Mode::Select(index) => {
+        Mode::Select(index) | Mode::Selected(index) => {
             frame.render_widget(indexed_forest(model, *index), main_area);
         }
         Mode::Compare(choice) => {

@@ -14,6 +14,7 @@ pub enum Message {
     SelectAppend(usize, char),
     SelectDecrement(usize),
     SelectIncrement(usize),
+    Select(usize),
     Delete(usize),
     StartCompare,
     Toggle(Choice),
@@ -40,12 +41,17 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
             _ => Message::Continue(Mode::Input(input)),
         }
         Mode::Select(index) => match key {
-            KeyCode::Char('d') => Message::Delete(index),
             KeyCode::Up | KeyCode::Backspace => Message::SelectDecrement(index),
             KeyCode::Down | KeyCode::Char(' ') => Message::SelectIncrement(index),
             KeyCode::Char(c) => Message::SelectAppend(index, c),
+            KeyCode::Enter => Message::Select(index),
             KeyCode::Esc => Message::Continue(Mode::Normal),
             _ => Message::Continue(Mode::Select(index)),
+        }
+        Mode::Selected(index) => match key {
+            KeyCode::Char('d') => Message::Delete(index),
+            KeyCode::Esc => Message::Continue(Mode::Normal),
+            _ => Message::Continue(Mode::Selected(index)),
         }
         Mode::Compare(choice) => match key {
             KeyCode::Tab => Message::Toggle(choice),
