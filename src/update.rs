@@ -35,7 +35,9 @@ pub fn update(message: Message, mut heap: Heap) -> Model {
     let mode = match message {
         Message::StartInput => Mode::Input(String::new()),
         Message::InputAppend(mut input, c) => {
-            input.push(c);
+            if !(input.is_empty() && c == ' ') {
+                input.push(c);
+            }
             Mode::Input(input)
         }
         Message::InputPopChar(mut input) => {
