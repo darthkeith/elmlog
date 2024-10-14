@@ -169,7 +169,7 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
         .on_black()
 }
 
-// Return the key-command pairs in normal mode.
+// Return the normal mode key-command pairs.
 fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
     let mut pairs = vec![("I", "Insert")];
     if model.heap.size() > 0 {
@@ -182,6 +182,19 @@ fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
     pairs
 }
 
+// Return the select mode key-command pairs.
+fn select_mode_commands(model: &Model) -> Vec<(&str, &str)> {
+    let mut pairs = Vec::new();
+    if model.heap.size() > 1 {
+        pairs.push(("0-9", "Jump"));
+        pairs.push(("Space │ ↓", "Down"));
+        pairs.push(("Bksp │ ↑", "Up"));
+    }
+    pairs.push(("D", "Delete"));
+    pairs.push(("Esc", "Cancel"));
+    pairs
+}
+
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
     let pairs = match model.mode {
@@ -190,13 +203,7 @@ fn command_bar(model: &Model) -> Line {
             ("Enter", "Submit"),
             ("Esc", "Cancel"),
         ],
-        Mode::Select(_) => vec![
-            ("0-9", "Jump"),
-            ("Space │ ↓", "Down"),
-            ("Bksp │ ↑", "Up"),
-            ("D", "Delete"),
-            ("Esc", "Cancel"),
-        ],
+        Mode::Select(_) => select_mode_commands(model),
         Mode::Compare(_) => vec![
             ("Tab", "Toggle"),
             ("Enter", "Confirm"),
