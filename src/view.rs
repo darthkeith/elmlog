@@ -83,7 +83,19 @@ fn style_text(text: Text) -> Paragraph {
 fn forest(model: &Model) -> Paragraph {
     let lines = ForestIter::new(model)
         .map(|s| Line::from(s));
-    style_text(Text::from_iter(lines))
+    let text = if let HeapStatus::SingleRoot = model.heap.status() {
+        let lines2 = lines.enumerate()
+            .map(|(i, line)| {
+                match i {
+                    0 => line.add_modifier(Modifier::BOLD),
+                    _ => line,
+                }
+            });
+        Text::from_iter(lines2)
+    } else {
+        Text::from_iter(lines)
+    };
+    style_text(text)
 }
 
 // Return the forest widget with indicies, highlighting the selected item.
