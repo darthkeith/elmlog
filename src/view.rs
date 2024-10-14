@@ -119,7 +119,9 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
 
 // Return the text input widget given the `input` string.
 fn text_input(input: &str) -> Paragraph {
-    let text = format!(" ❯ {input}█")
+    let content = format!("❯ {input}").into();
+    let cursor = "█".add_modifier(Modifier::SLOW_BLINK);
+    let text = Line::from(vec![content, cursor])
         .on_dark_gray()
         .into();
     style_text(text)
