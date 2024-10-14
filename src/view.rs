@@ -6,7 +6,8 @@ use ratatui::{
         block::Padding,
         Block,
         Borders,
-        Paragraph
+        Paragraph,
+        Wrap,
     },
     Frame,
 };
@@ -110,6 +111,7 @@ fn text_input(input: &str) -> Paragraph {
         .on_dark_gray()
         .into();
     style_text(text)
+        .wrap(Wrap { trim: false })
 }
 
 // Return the compare widget given a choice between two items.
