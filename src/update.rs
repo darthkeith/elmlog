@@ -1,5 +1,12 @@
 use crate::heap::{Heap, HeapStatus};
-use crate::model::{Choice, Mode, Model, Selected};
+use crate::model::{
+    Choice,
+    InputAction,
+    InputState,
+    Mode,
+    Model,
+    Selected,
+};
 use crate::message::{
     Message,
     NormalMsg,
@@ -40,7 +47,13 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
 // Return the next Model based on a message sent in Normal mode.
 fn update_normal(msg: NormalMsg, heap: Heap) -> Model {
     let mode = match msg {
-        NormalMsg::StartInput => Mode::Input(String::new()),
+        NormalMsg::StartInput => {
+            let state = InputState {
+                input: String::new(),
+                action: InputAction::Insert,
+            };
+            Mode::Input(state)
+        }
         NormalMsg::StartSelect => {
             match heap.size() > 0 {
                 true => Mode::Select(0),
@@ -65,21 +78,28 @@ fn update_normal(msg: NormalMsg, heap: Heap) -> Model {
 }
 
 // Return the next Model based on a message sent in Input mode.
-fn update_input(msg: InputMsg, mut input: String, mut heap: Heap) -> Model {
+fn update_input(msg: InputMsg, mut state: InputState, mut heap: Heap) -> Model {
     let mode = match msg {
         InputMsg::Append(c) => {
-            if !(input.is_empty() && c == ' ') {
-                input.push(c);
+            if !(state.input.is_empty() && c == ' ') {
+                state.input.push(c);
             }
-            Mode::Input(input)
+            Mode::Input(state)
         }
         InputMsg::PopChar => {
-            input.pop();
-            Mode::Input(input)
+            state.input.pop();
+            Mode::Input(state)
         }
         InputMsg::Submit => {
-            if let Some(label) = trim_input(&input) {
-                heap = heap.prepend(label);
+            if let Some(label) = trim_input(&state.input) {
+                match state.action {
+                    InputAction::Insert => {
+                        heap = heap.prepend(label);
+                    }
+                    InputAction::Edit(index) => {
+                        heap.set_label(index, label);
+                    }
+                }
             }
             Mode::Normal
         }
@@ -112,13 +132,21 @@ fn update_select(msg: SelectMsg, index: usize, heap: Heap) -> Model {
 }
 
 // Return the next Model based on a message sent in Selected mode.
-fn update_selected(msg: SelectedMsg, index: usize, heap: Heap) -> Model {
-    match msg {
-        SelectedMsg::Delete => Model {
-            heap: heap.delete(index),
-            mode: Mode::Normal,
-        },
-    }
+fn update_selected(msg: SelectedMsg, index: usize, mut heap: Heap) -> Model {
+    let mode = match msg {
+        SelectedMsg::Edit => {
+            let state = InputState {
+                input: heap.label_at(index).to_string(),
+                action: InputAction::Edit(index),
+            };
+            Mode::Input(state)
+        }
+        SelectedMsg::Delete => {
+            heap = heap.delete(index);
+            Mode::Normal
+        }
+    };
+    Model { heap, mode }
 }
 
 // Return the next Model based on a message sent in Compare mode.
@@ -145,7 +173,7 @@ fn update_compare(msg: CompareMsg, choice: Choice, mut heap: Heap) -> Model {
 pub fn update(message: Message, heap: Heap) -> Model {
     match message {
         Message::Normal(msg) => update_normal(msg, heap),
-        Message::Input(msg, input) => update_input(msg, input, heap),
+        Message::Input(msg, state) => update_input(msg, state, heap),
         Message::Select(msg, index) => update_select(msg, index, heap),
         Message::Selected(msg, index) => update_selected(msg, index, heap),
         Message::Compare(msg, choice) => update_compare(msg, choice, heap),

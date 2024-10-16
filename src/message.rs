@@ -2,7 +2,7 @@ use std::io;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
-use crate::model::{Mode, Choice};
+use crate::model::{Choice, InputState, Mode};
 
 // A message sent in Normal mode.
 pub enum NormalMsg {
@@ -29,6 +29,7 @@ pub enum SelectMsg {
 
 // A message sent in Selected mode.
 pub enum SelectedMsg {
+    Edit,
     Delete,
 }
 
@@ -41,7 +42,7 @@ pub enum CompareMsg {
 // Represents changes to be made to the model, grouped by mode.
 pub enum Message {
     Normal(NormalMsg),
-    Input(InputMsg, String),
+    Input(InputMsg, InputState),
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Compare(CompareMsg, Choice),
@@ -69,14 +70,14 @@ fn to_normal_msg(key: KeyCode) -> Message {
 }
 
 // Map a `key` to a Message in Input mode.
-fn to_input_msg(key: KeyCode, input: String) -> Message {
+fn to_input_msg(key: KeyCode, state: InputState) -> Message {
     let input_msg = match key {
         KeyCode::Char(c) => InputMsg::Append(c),
         KeyCode::Backspace => InputMsg::PopChar,
-        KeyCode::Enter if !input.is_empty() => InputMsg::Submit,
-        _ => return default(key, Mode::Input(input)),
+        KeyCode::Enter if !state.input.is_empty() => InputMsg::Submit,
+        _ => return default(key, Mode::Input(state)),
     };
-    Message::Input(input_msg, input)
+    Message::Input(input_msg, state)
 }
 
 // Map a `key` to a Message in Select mode.
@@ -94,6 +95,7 @@ fn to_select_msg(key: KeyCode, index: usize) -> Message {
 // Map a `key` to a Message in Selected mode.
 fn to_selected_msg(key: KeyCode, index: usize) -> Message {
     let selected_msg = match key {
+        KeyCode::Char('e') => SelectedMsg::Edit,
         KeyCode::Char('d') => SelectedMsg::Delete,
         _ => return default(key, Mode::Selected(index)),
     };

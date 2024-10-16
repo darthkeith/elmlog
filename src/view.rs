@@ -12,8 +12,19 @@ use ratatui::{
     Frame,
 };
 
-use crate::heap::{HeapStatus, NodePosition, NodeType, PreOrderIter};
-use crate::model::{Choice, Mode, Model, Selected};
+use crate::heap::{
+    HeapStatus,
+    NodePosition,
+    NodeType,
+    PreOrderIter,
+};
+use crate::model::{
+    Choice,
+    InputAction,
+    Mode,
+    Model,
+    Selected,
+};
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
@@ -159,7 +170,10 @@ fn status_bar(model: &Model) -> Line {
                 status.push(n.to_string().bold());
             }
         }
-        Mode::Input(_) => status.push("Enter new item.".into()),
+        Mode::Input(state) => match state.action {
+            InputAction::Insert => status.push("Enter new item.".into()),
+            InputAction::Edit(_) => status.push("Edit item.".into()),
+        }
         Mode::Select(index) => {
             status.push("Selected index: ".into());
             status.push(index.to_string().bold());
@@ -226,9 +240,10 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
 fn command_bar(model: &Model) -> Line {
     let pairs = match &model.mode {
         Mode::Normal => normal_mode_commands(model),
-        Mode::Input(input) => input_mode_commands(input.is_empty()),
+        Mode::Input(state) => input_mode_commands(state.input.is_empty()),
         Mode::Select(_) => select_mode_commands(model.heap.size()),
         Mode::Selected(_) => vec![
+            ("E", "Edit"),
             ("D", "Delete"),
             ("Esc", "Cancel"),
         ],
@@ -254,8 +269,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Normal => {
             frame.render_widget(forest(model), main_area);
         }
-        Mode::Input(input) => {
-            frame.render_widget(text_input(input), main_area);
+        Mode::Input(state) => {
+            frame.render_widget(text_input(&state.input), main_area);
         }
         Mode::Select(index) | Mode::Selected(index) => {
             frame.render_widget(indexed_forest(model, *index), main_area);

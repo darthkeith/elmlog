@@ -69,32 +69,52 @@ pub enum HeapStatus<'a> {
     MultiRoot(&'a str, &'a str),
 }
 
-// Return a path to the subheap at the pre-order `index` in the `heap`.
+// Return a reference to the label at the given pre-order `index` in the heap.
+fn find_label(root: &mut Heap, index: usize) -> Option<&mut String> {
+    let mut heap = root;
+    let mut i = index;
+    while i > 0 {
+        if let  Heap::Node { child, sibling, .. } = heap {
+            if i <= child.size() {
+                i -= 1;
+                heap = &mut **child;
+            } else {
+                i -= 1 + child.size();
+                heap = &mut **sibling;
+            }
+        } else {
+            return None;
+        }
+    }
+    match heap {
+        Heap::Node { label, .. } => Some(label),
+        Heap::Empty => None,
+    }
+}
+
+// Return a path to the subheap at the pre-order `index` in the heap.
 //
 // If the index is invalid, a path to an empty sub-heap is returned.
-fn find_subheap(heap: Heap, index: usize) -> PathToSubheap {
+fn find_subheap(root: Heap, index: usize) -> PathToSubheap {
+    let mut heap = root;
     let mut i = index;
     let mut path = Vec::new();
-    let mut current_heap = heap;
-    loop {
-        if i == 0 {
-            break;
-        }
-        if let Heap::Node { label, child, sibling, .. } = current_heap {
+    while i > 0 {
+        if let Heap::Node { label, child, sibling, .. } = heap {
             if i <= child.size() {
                 i -= 1;
                 path.push(Direction::Child { label, sibling: *sibling });
-                current_heap = *child;
+                heap = *child;
             } else {
                 i -= 1 + child.size();
                 path.push(Direction::Sibling { label, child: *child });
-                current_heap = *sibling;
+                heap = *sibling;
             }
         } else {
             break;
         }
     }
-    return PathToSubheap { path, subheap: current_heap };
+    return PathToSubheap { path, subheap: heap };
 }
 
 // Reconstruct a heap given a path to a subheap.
@@ -223,6 +243,19 @@ impl Heap {
             }
             TwoTrees::Fail(heap) => heap
         }
+    }
+
+    /// Return a reference to the label at the given pre-order `index`.
+    pub fn label_at(&mut self, index: usize) -> &str {
+        find_label(self, index)
+            .expect("Invalid index")
+    }
+
+    /// Set the label at the given `index` to the `new_label`.
+    pub fn set_label(&mut self, index: usize, new_label: String) {
+        let label = find_label(self, index)
+            .expect("Invalid index");
+        *label = new_label;
     }
 
     /// Return the status of the heap (if there is one root, include its label).
