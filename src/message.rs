@@ -105,7 +105,7 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
 // Map a `key` to a Message in Compare mode.
 fn to_compare_msg(key: KeyCode, choice: Choice) -> Message {
     let compare_msg = match key {
-        KeyCode::Tab => CompareMsg::Toggle,
+        KeyCode::Char(' ') => CompareMsg::Toggle,
         KeyCode::Enter => CompareMsg::Confirm,
         _ => return default(key, Mode::Compare(choice)),
     };

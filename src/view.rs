@@ -248,7 +248,7 @@ fn command_bar(model: &Model) -> Line {
             ("Esc", "Cancel"),
         ],
         Mode::Compare(_) => vec![
-            ("Tab", "Toggle"),
+            ("Space", "Toggle"),
             ("Enter", "Confirm"),
             ("Esc", "Cancel"),
         ],
