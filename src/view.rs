@@ -148,26 +148,26 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
 
 // Return the status bar widget based on the current `model`.
 fn status_bar(model: &Model) -> Line {
-    let mut message = vec![" ".into()];
+    let mut status = vec![" ".into()];
     match &model.mode {
         Mode::Normal => match model.heap.status() {
-            HeapStatus::Empty => message.push("Empty.".into()),
-            HeapStatus::SingleRoot => message.push("Item selected.".into()),
+            HeapStatus::Empty => status.push("Empty.".into()),
+            HeapStatus::SingleRoot => status.push("Item selected.".into()),
             HeapStatus::MultiRoot(..) => {
-                message.push("Items to compare: ".into());
+                status.push("Items to compare: ".into());
                 let n = model.heap.root_count();
-                message.push(n.to_string().bold());
+                status.push(n.to_string().bold());
             }
         }
-        Mode::Input(_) => message.push("Enter new item.".into()),
+        Mode::Input(_) => status.push("Enter new item.".into()),
         Mode::Select(index) => {
-            message.push("Selected index: ".into());
-            message.push(index.to_string().bold());
+            status.push("Selected index: ".into());
+            status.push(index.to_string().bold());
         }
-        Mode::Selected(_) => message.push("Enter command.".into()),
-        Mode::Compare(_) => message.push("Select item to promote.".into()),
+        Mode::Selected(_) => status.push("Enter command.".into()),
+        Mode::Compare(_) => status.push("Select item to promote.".into()),
     };
-    Line::from(message)
+    Line::from(status)
         .left_aligned()
         .on_dark_gray()
 }
