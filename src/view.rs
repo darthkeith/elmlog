@@ -63,14 +63,14 @@ impl<'a> Iterator for ForestIter<'a> {
         for block in &self.prefix {
             line.push_str(match block {
                 IndentBlock::Spacer => "   ",
-                IndentBlock::VertBar => " │ ",
+                IndentBlock::VertBar => "│  ",
             });
         }
         if is_last {
-            line.push_str(" └─");
+            line.push_str("└──");
             self.prefix.push(IndentBlock::Spacer);
         } else {
-            line.push_str(" ├─");
+            line.push_str("├──");
             self.prefix.push(IndentBlock::VertBar);
         }
         line.push_str(label);
