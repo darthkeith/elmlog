@@ -12,17 +12,11 @@ pub struct InputState {
     pub action: InputAction,
 }
 
-/// Indicates which of two items is selected.
-pub enum Selected {
-    First,
-    Second,
-}
-
 /// A choice between two items.
 pub struct Choice {
     pub item1: String,
     pub item2: String,
-    pub selected: Selected,
+    pub first_selected: bool,
 }
 
 /// Operational modes of the application.

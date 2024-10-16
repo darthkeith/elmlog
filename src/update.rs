@@ -5,7 +5,6 @@ use crate::model::{
     InputState,
     Mode,
     Model,
-    Selected,
 };
 use crate::message::{
     Message,
@@ -66,7 +65,7 @@ fn update_normal(msg: NormalMsg, heap: Heap) -> Model {
                     Choice {
                         item1: item1.to_string(),
                         item2: item2.to_string(),
-                        selected: Selected::First,
+                        first_selected: true,
                     }
                 ),
                 _ => Mode::Normal,
@@ -151,18 +150,14 @@ fn update_selected(msg: SelectedMsg, index: usize, mut heap: Heap) -> Model {
 
 // Return the next Model based on a message sent in Compare mode.
 fn update_compare(msg: CompareMsg, choice: Choice, mut heap: Heap) -> Model {
-    let Choice { item1, item2, selected } = choice;
+    let Choice { item1, item2, first_selected } = choice;
     let mode = match msg {
         CompareMsg::Toggle => {
-            let toggled = match selected {
-                Selected::First => Selected::Second,
-                Selected::Second => Selected::First,
-            };
-            Mode::Compare(Choice { item1, item2, selected: toggled })
+            let toggled = !first_selected;
+            Mode::Compare(Choice { item1, item2, first_selected: toggled })
         }
         CompareMsg::Confirm => {
-            let promote_first = matches!(selected, Selected::First);
-            heap = heap.merge_pair(promote_first);
+            heap = heap.merge_pair(first_selected);
             Mode::Normal
         }
     };

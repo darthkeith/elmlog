@@ -23,7 +23,6 @@ use crate::model::{
     InputAction,
     Mode,
     Model,
-    Selected,
 };
 
 // Represents a text block used for tree drawing.
@@ -141,15 +140,15 @@ fn text_input(input: &str) -> Paragraph {
 
 // Return the compare widget given a choice between two items.
 fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
-    let Choice { item1, item2, selected } = choice;
+    let Choice { item1, item2, first_selected } = choice;
     let line1 = Line::from(format!(" {item1} "));
     let line2 = Line::from(format!(" {item2} "));
-    let lines = match selected {
-        Selected::First => vec![
+    let lines = match first_selected {
+        true => vec![
             line1.add_modifier(Modifier::REVERSED),
             line2,
         ],
-        Selected::Second => vec![
+        false => vec![
             line1,
             line2.add_modifier(Modifier::REVERSED),
         ],
