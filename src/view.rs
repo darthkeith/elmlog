@@ -200,12 +200,10 @@ fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
 
 // Return the input mode key-command pairs.
 fn input_mode_commands(empty: bool) -> Vec<(&'static str, &'static str)> {
-    let mut pairs = Vec::new();
-    if !empty {
-        pairs.push(("Enter", "Submit"));
+    match empty {
+        true => Vec::new(),
+        false => vec![("Enter", "Submit")],
     }
-    pairs.push(("Esc", "Cancel"));
-    pairs
 }
 
 // Return the select mode key-command pairs.
@@ -217,7 +215,6 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
         pairs.push(("Space │ ↓", "Down"));
     }
     pairs.push(("Enter", "Confirm"));
-    pairs.push(("Esc", "Cancel"));
     pairs
 }
 
@@ -237,21 +234,22 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
 
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
-    let pairs = match &model.mode {
+    let mut pairs = match &model.mode {
         Mode::Normal => normal_mode_commands(model),
         Mode::Input(state) => input_mode_commands(state.input.is_empty()),
         Mode::Select(_) => select_mode_commands(model.heap.size()),
         Mode::Selected(_) => vec![
             ("E", "Edit"),
             ("D", "Delete"),
-            ("Esc", "Cancel"),
         ],
         Mode::Compare(_) => vec![
             ("Space", "Toggle"),
             ("Enter", "Confirm"),
-            ("Esc", "Cancel"),
         ],
     };
+    if !matches!(model.mode, Mode::Normal) {
+        pairs.push(("Esc", "Cancel"));
+    }
     to_command_bar(pairs)
 }
 
