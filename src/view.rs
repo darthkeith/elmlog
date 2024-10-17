@@ -1,6 +1,8 @@
+mod style;
+
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Modifier, Stylize},
+    style::{Styled, Stylize},
     text::{Line, Text},
     widgets::{
         block::Padding,
@@ -86,7 +88,7 @@ fn style_text(text: Text) -> Paragraph {
     Paragraph::new(text)
         .block(block)
         .left_aligned()
-        .on_black()
+        .set_style(style::DEFAULT)
 }
 
 // Return the forest widget using the current `model`.
@@ -97,7 +99,7 @@ fn forest(model: &Model) -> Paragraph {
         let lines2 = lines.enumerate()
             .map(|(i, line)| {
                 match i {
-                    0 => line.add_modifier(Modifier::BOLD),
+                    0 => line.bold(),
                     _ => line,
                 }
             });
@@ -119,7 +121,7 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
         .map(|(i, s)| {
             let line = format!(" {i:>width$}   {s} ", width = idx_len);
             if i == selected {
-                line.add_modifier(Modifier::REVERSED).into()
+                line.set_style(style::HIGHLIGHT).into()
             } else {
                 Line::from(line)
             }
@@ -130,9 +132,9 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
 // Return the text input widget given the `input` string.
 fn text_input(input: &str) -> Paragraph {
     let content = format!("❯ {input}").into();
-    let cursor = "█".add_modifier(Modifier::SLOW_BLINK);
+    let cursor = "█".set_style(style::CURSOR);
     let text = Line::from(vec![content, cursor])
-        .on_dark_gray()
+        .set_style(style::ACCENT)
         .into();
     style_text(text)
         .wrap(Wrap { trim: false })
@@ -145,12 +147,12 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
     let line2 = Line::from(format!(" {item2} "));
     let lines = match first_selected {
         true => vec![
-            line1.add_modifier(Modifier::REVERSED),
+            line1.set_style(style::HIGHLIGHT),
             line2,
         ],
         false => vec![
             line1,
-            line2.add_modifier(Modifier::REVERSED),
+            line2.set_style(style::HIGHLIGHT),
         ],
     };
     style_text(Text::from(lines))
@@ -182,7 +184,7 @@ fn status_bar(model: &Model) -> Line {
     };
     Line::from(status)
         .left_aligned()
-        .on_dark_gray()
+        .set_style(style::ACCENT)
 }
 
 // Return the normal mode key-command pairs.
@@ -222,14 +224,14 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
 fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
     let mut text_spans = Vec::new();
     for (key, command) in pairs {
-        text_spans.push(format!(" {key} ").black().on_white().bold());
-        text_spans.push(format!(" {command}").italic());
+        text_spans.push(format!(" {key} ").set_style(style::CMD_KEY));
+        text_spans.push(format!(" {command}").set_style(style::CMD_NAME));
         text_spans.push("    ".into());
     }
     text_spans.pop();  // Remove extra spacer at end
     Line::from(text_spans)
         .centered()
-        .on_black()
+        .set_style(style::DEFAULT)
 }
 
 // Return the command bar widget based on the current `model`.
