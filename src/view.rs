@@ -134,7 +134,7 @@ fn text_input(input: &str) -> Paragraph {
     let content = format!("❯ {input}").into();
     let cursor = "█".set_style(style::CURSOR);
     let text = Line::from(vec![content, cursor])
-        .set_style(style::ACCENT)
+        .set_style(style::DEFAULT)
         .into();
     style_text(text)
         .wrap(Wrap { trim: false })
