@@ -3,7 +3,7 @@ mod style;
 use ratatui::{
     layout::{Constraint, Layout},
     style::{Styled, Stylize},
-    text::{Line, Text},
+    text::{Line, Span, Text},
     widgets::{
         block::Padding,
         Block,
@@ -49,34 +49,33 @@ impl<'a> ForestIter<'a> {
 }
 
 impl<'a> Iterator for ForestIter<'a> {
-    type Item = String;
+    type Item = (String, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (label, pos) = self.label_iter.next()?;
         let NodePosition { node_type, is_last } = pos;
+        let mut tree_row = String::new();
         if let NodeType::Root = node_type {
             self.prefix.clear();
-            return Some(label.into());
+            return Some((tree_row, label));
         }
-        let mut line = String::new();
         if let NodeType::Sibling = node_type {
             while let Some(IndentBlock::Spacer) = self.prefix.pop() {}
         }
         for block in &self.prefix {
-            line.push_str(match block {
+            tree_row.push_str(match block {
                 IndentBlock::Spacer => "   ",
                 IndentBlock::VertBar => "│  ",
             });
         }
         if is_last {
-            line.push_str("└──");
+            tree_row.push_str("└──");
             self.prefix.push(IndentBlock::Spacer);
         } else {
-            line.push_str("├──");
+            tree_row.push_str("├──");
             self.prefix.push(IndentBlock::VertBar);
         }
-        line.push_str(label);
-        Some(line)
+        Some((tree_row, label))
     }
 }
 
@@ -93,8 +92,14 @@ fn style_text(text: Text) -> Paragraph {
 
 // Return the forest widget using the current `model`.
 fn forest(model: &Model) -> Paragraph {
+    let to_line = |(tree_row, label)| {
+        Line::from(vec![
+            Span::styled(tree_row, style::TREE),
+            Span::styled(format!("{label} "), style::DEFAULT),
+        ])
+    };
     let lines = ForestIter::new(model)
-        .map(|s| Line::from(s));
+        .map(to_line);
     let text = if let HeapStatus::SingleRoot = model.heap.status() {
         let lines2 = lines.enumerate()
             .map(|(i, line)| {
@@ -118,13 +123,17 @@ fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
     };
     let lines = ForestIter::new(model)
         .enumerate()
-        .map(|(i, s)| {
-            let line = format!(" {i:>width$}   {s} ", width = idx_len);
-            if i == selected {
-                line.set_style(style::HIGHLIGHT).into()
-            } else {
-                Line::from(line)
-            }
+        .map(|(i, (tree_row, label))| {
+            let idx = format!(" {i:>width$}   ", width = idx_len);
+            let (tree_style, text_style) = match i == selected {
+                true => (style::TREE_HL, style::DEFAULT_HL),
+                false => (style::TREE, style::DEFAULT),
+            };
+            Line::from(vec!(
+                Span::styled(idx, text_style),
+                Span::styled(tree_row, tree_style),
+                Span::styled(format!("{label} "), text_style),
+            ))
         });
     style_text(Text::from_iter(lines))
 }
@@ -147,12 +156,12 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
     let line2 = Line::from(format!(" {item2} "));
     let lines = match first_selected {
         true => vec![
-            line1.set_style(style::HIGHLIGHT),
+            line1.set_style(style::DEFAULT_HL),
             line2,
         ],
         false => vec![
             line1,
-            line2.set_style(style::HIGHLIGHT),
+            line2.set_style(style::DEFAULT_HL),
         ],
     };
     style_text(Text::from(lines))
