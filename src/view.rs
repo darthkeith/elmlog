@@ -222,8 +222,8 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
     let mut pairs = Vec::new();
     if size > 1 {
         pairs.push(("0-9", "Jump"));
-        pairs.push(("Bksp │ ↑", "Up"));
-        pairs.push(("Space │ ↓", "Down"));
+        pairs.push(("K │ ↑", "Up"));
+        pairs.push(("J │ ↓", "Down"));
     }
     pairs.push(("Enter", "Confirm"));
     pairs

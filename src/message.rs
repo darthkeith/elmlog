@@ -83,9 +83,13 @@ fn to_input_msg(key: KeyCode, state: InputState) -> Message {
 // Map a `key` to a Message in Select mode.
 fn to_select_msg(key: KeyCode, index: usize) -> Message {
     let select_msg = match key {
-        KeyCode::Up | KeyCode::Backspace => SelectMsg::Decrement,
-        KeyCode::Down | KeyCode::Char(' ') => SelectMsg::Increment,
-        KeyCode::Char(c) => SelectMsg::Append(c),
+        KeyCode::Char(c) => match c {
+            'k' => SelectMsg::Decrement,
+            'j' => SelectMsg::Increment,
+            _ => SelectMsg::Append(c),
+        }
+        KeyCode::Up => SelectMsg::Decrement,
+        KeyCode::Down => SelectMsg::Increment,
         KeyCode::Enter => SelectMsg::Confirm,
         _ => return default(key, Mode::Select(index)),
     };
