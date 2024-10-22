@@ -33,10 +33,18 @@ enum IndentBlock {
     VertBar,
 }
 
+// Indicates what style to apply to a label.
+enum LabelType {
+    SingleRoot,
+    Root,
+    Child,
+}
+
 // Iterator type returning the strings used to display the forest.
 struct ForestIter<'a> {
     prefix: Vec<IndentBlock>,
     label_iter: PreOrderIter<'a>,
+    single_root: bool,
 }
 
 impl<'a> ForestIter<'a> {
@@ -44,12 +52,13 @@ impl<'a> ForestIter<'a> {
         ForestIter {
             prefix: Vec::new(),
             label_iter: model.heap.iter(),
+            single_root: matches!(model.heap.status(), HeapStatus::SingleRoot),
         }
     }
 }
 
 impl<'a> Iterator for ForestIter<'a> {
-    type Item = (String, &'a str);
+    type Item = (String, &'a str, LabelType);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (label, pos) = self.label_iter.next()?;
@@ -57,7 +66,11 @@ impl<'a> Iterator for ForestIter<'a> {
         let mut tree_row = String::new();
         if let NodeType::Root = node_type {
             self.prefix.clear();
-            return Some((tree_row, label));
+            let label_type = match self.single_root {
+                true => LabelType::SingleRoot,
+                false => LabelType::Root,
+            };
+            return Some((tree_row, label, label_type));
         }
         if let NodeType::Sibling = node_type {
             while let Some(IndentBlock::Spacer) = self.prefix.pop() {}
@@ -75,7 +88,7 @@ impl<'a> Iterator for ForestIter<'a> {
             tree_row.push_str("├──");
             self.prefix.push(IndentBlock::VertBar);
         }
-        Some((tree_row, label))
+        Some((tree_row, label, LabelType::Child))
     }
 }
 
@@ -92,47 +105,50 @@ fn style_text(text: Text) -> Paragraph {
 
 // Return the forest widget using the current `model`.
 fn forest(model: &Model) -> Paragraph {
-    let to_line = |(tree_row, label)| {
-        Line::from(vec![
-            Span::styled(tree_row, style::TREE),
-            Span::styled(format!("{label} "), style::DEFAULT),
-        ])
-    };
     let lines = ForestIter::new(model)
-        .map(to_line);
-    let text = if let HeapStatus::SingleRoot = model.heap.status() {
-        let lines2 = lines.enumerate()
-            .map(|(i, line)| {
-                match i {
-                    0 => line.bold(),
-                    _ => line,
-                }
-            });
-        Text::from_iter(lines2)
-    } else {
-        Text::from_iter(lines)
-    };
-    style_text(text)
+        .map(|(tree_row, label, label_type)| {
+            let label_style = match label_type {
+                LabelType::SingleRoot => style::SINGLE_ROOT,
+                LabelType::Root => style::ROOT,
+                LabelType::Child => style::DEFAULT,
+            };
+            Line::from(vec![
+                Span::styled(tree_row, style::TREE),
+                Span::styled(format!("{label} "), label_style),
+            ])
+        });
+    style_text(Text::from_iter(lines))
 }
 
 // Return the forest widget with indicies, highlighting the selected item.
 fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
-    let idx_len = match model.heap.size() {
+    let index_len = match model.heap.size() {
         0 => 0,
         n => (n - 1).to_string().len(),
     };
     let lines = ForestIter::new(model)
         .enumerate()
-        .map(|(i, (tree_row, label))| {
-            let idx = format!(" {i:>width$}   ", width = idx_len);
-            let (tree_style, text_style) = match i == selected {
-                true => (style::TREE_HL, style::DEFAULT_HL),
-                false => (style::TREE, style::DEFAULT),
+        .map(|(i, (tree_row, label, label_type))| {
+            let (tree_style, label_style) = if i == selected {(
+                style::TREE_HL,
+                match label_type {
+                    LabelType::SingleRoot => style::SINGLE_ROOT_HL,
+                    LabelType::Root => style::ROOT_HL,
+                    LabelType::Child => style::DEFAULT_HL,
+                })
+            } else {(
+                style::TREE,
+                match label_type {
+                    LabelType::SingleRoot => style::SINGLE_ROOT,
+                    LabelType::Root => style::ROOT,
+                    LabelType::Child => style::DEFAULT,
+                })
             };
+            let index = format!(" {i:>width$}   ", width = index_len);
             Line::from(vec!(
-                Span::styled(idx, text_style),
+                Span::styled(index, label_style),
                 Span::styled(tree_row, tree_style),
-                Span::styled(format!("{label} "), text_style),
+                Span::styled(format!("{label} "), label_style),
             ))
         });
     style_text(Text::from_iter(lines))
