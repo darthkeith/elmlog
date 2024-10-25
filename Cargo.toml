@@ -1,5 +1,5 @@
 [package]
-name = "prioritizer"
+name = "sieve-selector"
 version = "0.1.0-alpha"
 edition = "2021"
 
