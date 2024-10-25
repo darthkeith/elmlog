@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 /// A node in a left-child right-sibling binary tree containing a string.
 ///
 /// This represents an ordered forest of multi-way trees, where each node can
@@ -5,6 +7,7 @@
 /// other).  `size` is the number of nodes in a node's (binary) subtree.
 /// When referring to a forest, "the root" is the root of its left-most tree,
 /// which is also the root node of its binary tree representation.
+#[derive(Serialize, Deserialize)]
 pub enum Heap {
     Empty,
     Node {

@@ -34,13 +34,3 @@ pub struct Model {
     pub mode: Mode,
 }
 
-impl Model {
-    /// Construct a model storing the initial application state.
-    pub fn new() -> Self {
-        Model {
-            heap: Heap::Empty,
-            mode: Mode::Normal,
-        }
-    }
-}
-
