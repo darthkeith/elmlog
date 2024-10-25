@@ -1,0 +1,15 @@
+# Changelog
+
+## [0.1.0-alpha] - 2024-10-25
+
+### Added
+- Save and load binary data to/from fixed local file.
+- General commands:
+  - **Insert**: Add a new item.
+  - **Select**: Select an item to apply a targeted command to.
+  - **Compare**: Choose one item of a pair to promote over the other.
+  - **Quit**: Quit after automatically saving.
+- Targeted commands:
+  - **Edit**: Modify item text.
+  - **Delete**: Delete an item.
+
