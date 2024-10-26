@@ -5,11 +5,12 @@ mod update;
 mod view;
 
 use std::{
-    fs::{self, File},
-    io::Result,
+    fs::{File, OpenOptions},
+    io::{Read, Result, Seek, SeekFrom},
     path::Path,
 };
 
+use fs2::FileExt;
 use ratatui::DefaultTerminal;
 
 use crate::{
@@ -22,36 +23,44 @@ use crate::{
 
 const APP_DATA_FILE: &str = ".app_data";
 
-// Construct a Heap from the saved data file if it exists.
-fn init_heap() -> Heap {
-    if !Path::new(APP_DATA_FILE).exists() {
-        return Heap::Empty;
+// Return the initialized heap with its associated data file.
+fn init() -> Result<(Heap, File)> {
+    let file_path = Path::new(APP_DATA_FILE);
+    let file_exists = file_path.exists();
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(file_path)?;
+    file.try_lock_exclusive()
+        .expect("Application data file is currently locked");
+    if !file_exists {
+        return Ok((Heap::Empty, file));
     }
-    let buffer = fs::read(APP_DATA_FILE)
-        .expect("Failed to read application data file.");
-    bincode::deserialize(&buffer)
-        .expect("Failed to deserialize data.")
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let heap = bincode::deserialize(&buffer)
+        .expect("Failed to deserialize data");
+    Ok((heap, file))
 }
 
-// Save the Heap to the data file.
-fn save_heap(heap: Heap) {
-    let file = File::create(APP_DATA_FILE)
-        .expect("Failed to create application data file.");
-    bincode::serialize_into(file, &heap)
-        .expect("Failed to serialise data.");
+// Save the `heap` to the data `file`.
+fn save_heap(heap: Heap, mut file: File) -> Result<()> {
+    file.set_len(0)?;
+    file.seek(SeekFrom::Start(0))?;
+    bincode::serialize_into(&file, &heap)
+        .expect("Failed to serialise data");
+    file.unlock()
 }
 
 fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
-    let mut model = Model {
-        heap: init_heap(),
-        mode: Mode::Normal,
-    };
+    let (heap, file) = init()?;
+    let mut model = Model { heap, mode: Mode::Normal };
     loop {
         terminal.draw(|frame| view(&model, frame))?;
         let message = handle_event(model.mode)?;
         if let Message::Normal(NormalMsg::Quit) = message {
-            save_heap(model.heap);
-            return Ok(());
+            return save_heap(model.heap, file);
         }
         model = update(message, model.heap);
     }
