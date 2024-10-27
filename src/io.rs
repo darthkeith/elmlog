@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Result},
-    path::Path,
+    path::PathBuf,
 };
 
 use fs2::FileExt;
@@ -10,11 +10,16 @@ use crate::{
     heap::Heap,
 };
 
-const APP_DATA_FILE: &str = ".app_data";
+const APP_DIR: &str = "sieve-selector";
+const DATA_FILE: &str = "data.bin";
 
-/// Return the Path to the application data file.
-pub fn data_file_path() -> &'static Path {
-    Path::new(APP_DATA_FILE)
+/// Return application data file path, creating any missing directories.
+pub fn data_file_path() -> Result<PathBuf> {
+    let data_dir = dirs::data_dir()
+        .expect("Failed to locate data directory");
+    let path = data_dir.join(APP_DIR);
+    fs::create_dir_all(&path)?;
+    Ok(path.join(DATA_FILE))
 }
 
 fn lock(file: &File) {
@@ -23,7 +28,7 @@ fn lock(file: &File) {
 }
 
 /// Return the initialized heap with its associated data file.
-pub fn init(file_path: &Path) -> Result<(Heap, File)> {
+pub fn init(file_path: &PathBuf) -> Result<(Heap, File)> {
     let file_not_found = !file_path.exists();
     if file_not_found {
         File::create(file_path)?;
@@ -42,7 +47,7 @@ pub fn init(file_path: &Path) -> Result<(Heap, File)> {
     Ok((heap, file))
 }
 
-fn set_writable(file_path: &Path, writable: bool) -> Result<()> {
+fn set_writable(file_path: &PathBuf, writable: bool) -> Result<()> {
     let file = File::open(file_path)?;
     let metadata = file.metadata()?;
     let mut permissions = metadata.permissions();
@@ -50,8 +55,8 @@ fn set_writable(file_path: &Path, writable: bool) -> Result<()> {
     fs::set_permissions(file_path, permissions)
 }
 
-/// Save the `heap` to the file with given Path.
-pub fn save(heap: Heap, file_path: &Path) -> Result<()> {
+/// Save the `heap` to the file with given path.
+pub fn save(heap: Heap, file_path: &PathBuf) -> Result<()> {
     set_writable(file_path, true)?;
     let file = OpenOptions::new()
         .write(true)

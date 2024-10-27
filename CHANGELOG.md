@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.0-alpha] - 2024-10-27
+
+### Changed
+- Store data file in OS data directory.
+
+### Security
+- Lock data file while app is running, preventing overwriting saved data.
+- Set data file to read-only.
+
 ## [0.1.0-alpha] - 2024-10-25
 
 ### Added
