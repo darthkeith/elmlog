@@ -193,7 +193,7 @@ fn status_bar(model: &Model) -> Line {
             HeapStatus::MultiRoot(..) => {
                 status.push("Items to compare: ".into());
                 let n = model.heap.root_count();
-                status.push(n.to_string().bold());
+                status.push(n.to_string().set_style(style::NUMBER));
             }
         }
         Mode::Input(state) => match state.action {

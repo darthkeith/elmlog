@@ -18,6 +18,8 @@ const GREEN_DARK: Color = Color::Rgb(88, 89, 0);
 pub const DEFAULT: Style = Style::new().fg(FG).bg(BG);
 pub const DEFAULT_HL: Style = Style::new().fg(BG_DARK).bg(FG);
 pub const ACCENT: Style = Style::new().fg(FG).bg(BG2);
+pub const NUMBER: Style = Style::new().fg(ORANGE).bg(BG2)
+    .add_modifier(Modifier::BOLD);
 pub const TREE: Style = Style::new().fg(GRAY).bg(BG);
 pub const TREE_HL: Style = Style::new().fg(GRAY).bg(FG);
 pub const SINGLE_ROOT: Style = Style::new().fg(GREEN).bg(BG)
