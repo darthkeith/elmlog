@@ -11,23 +11,20 @@ use ratatui::DefaultTerminal;
 
 use crate::{
     message::{Message, NormalMsg, handle_event},
-    model::{Mode, Model},
+    model::Model,
     update::update,
     view::view,
 };
 
 fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
-    let file_path = io::data_file_path()?;
-    let (heap, file) = io::init(&file_path)?;
-    let mut model = Model { heap, mode: Mode::Normal };
+    let mut model = Model::init();
     loop {
         terminal.draw(|frame| view(&model, frame))?;
         let message = handle_event(model.mode)?;
         if let Message::Normal(NormalMsg::Quit) = message {
-            std::mem::drop(file);
-            return io::save(model.heap, &file_path);
+            return io::save(model.state);
         }
-        model = update(message, model.heap);
+        model = update(message, model.state);
     }
 }
 

@@ -1,22 +1,25 @@
-use crate::heap::{Heap, HeapStatus};
-use crate::model::{
-    Choice,
-    InputAction,
-    InputState,
-    Mode,
-    Model,
-};
-use crate::message::{
-    Message,
-    NormalMsg,
-    InputMsg,
-    SelectMsg,
-    SelectedMsg,
-    CompareMsg,
+use crate::{
+    heap::HeapStatus,
+    message::{
+        CompareMsg,
+        InputMsg,
+        Message,
+        NormalMsg,
+        SelectedMsg,
+        SelectMsg,
+    },
+    model::{
+        Choice,
+        InputAction,
+        InputState,
+        Mode,
+        Model,
+        SessionState,
+    },
 };
 
 // Trim the `input` string and return the result if non-empty.
-fn trim_input(input: &str) -> Option<String> {
+fn trim_input(input: String) -> Option<String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
         None
@@ -44,23 +47,23 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
 }
 
 // Return the next Model based on a message sent in Normal mode.
-fn update_normal(msg: NormalMsg, heap: Heap) -> Model {
+fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
     let mode = match msg {
         NormalMsg::StartInput => {
-            let state = InputState {
+            let input_state = InputState {
                 input: String::new(),
                 action: InputAction::Insert,
             };
-            Mode::Input(state)
+            Mode::Input(input_state)
         }
         NormalMsg::StartSelect => {
-            match heap.size() > 0 {
+            match state.heap.size() > 0 {
                 true => Mode::Select(0),
-                false => Mode::Normal
+                false => Mode::Normal,
             }
         }
         NormalMsg::StartCompare => {
-            match heap.status() {
+            match state.heap.status() {
                 HeapStatus::MultiRoot(item1, item2) => Mode::Compare(
                     Choice {
                         item1: item1.to_string(),
@@ -73,44 +76,49 @@ fn update_normal(msg: NormalMsg, heap: Heap) -> Model {
         }
         NormalMsg::Quit => Mode::Normal,
     };
-    Model { heap, mode }
+    Model { state, mode }
 }
 
 // Return the next Model based on a message sent in Input mode.
-fn update_input(msg: InputMsg, mut state: InputState, mut heap: Heap) -> Model {
+fn update_input(
+    msg: InputMsg,
+    mut input_state: InputState,
+    mut state: SessionState,
+) -> Model {
     let mode = match msg {
         InputMsg::Append(c) => {
-            if !(state.input.is_empty() && c == ' ') {
-                state.input.push(c);
+            if !(input_state.input.is_empty() && c == ' ') {
+                input_state.input.push(c);
             }
-            Mode::Input(state)
+            Mode::Input(input_state)
         }
         InputMsg::PopChar => {
-            state.input.pop();
-            Mode::Input(state)
+            input_state.input.pop();
+            Mode::Input(input_state)
         }
         InputMsg::Submit => {
-            if let Some(label) = trim_input(&state.input) {
-                match state.action {
+            let InputState { input, action } = input_state;
+            if let Some(label) = trim_input(input) {
+                match action {
                     InputAction::Insert => {
-                        heap = heap.prepend(label);
+                        state.heap = state.heap.prepend(label);
                     }
                     InputAction::Edit(index) => {
-                        heap.set_label(index, label);
+                        state.heap.set_label(index, label);
                     }
                 }
             }
             Mode::Normal
         }
     };
-    Model { heap, mode }
+    Model { state, mode }
 }
 
 // Return the next Model based on a message sent in Select mode.
-fn update_select(msg: SelectMsg, index: usize, heap: Heap) -> Model {
+fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Model {
     let mode = match msg {
         SelectMsg::Append(c) => {
-            let i = append_index(index, c, heap.size());
+            let i = append_index(index, c, state.heap.size());
             Mode::Select(i)
         }
         SelectMsg::Decrement => {
@@ -120,36 +128,44 @@ fn update_select(msg: SelectMsg, index: usize, heap: Heap) -> Model {
             }
         }
         SelectMsg::Increment => {
-            match index + 1 < heap.size() {
+            match index + 1 < state.heap.size() {
                 true => Mode::Select(index + 1),
-                false => Mode::Select(index)
+                false => Mode::Select(index),
             }
         }
         SelectMsg::Confirm => Mode::Selected(index),
     };
-    Model { heap, mode }
+    Model { state, mode }
 }
 
 // Return the next Model based on a message sent in Selected mode.
-fn update_selected(msg: SelectedMsg, index: usize, mut heap: Heap) -> Model {
+fn update_selected(
+    msg: SelectedMsg,
+    index: usize,
+    mut state: SessionState,
+) -> Model {
     let mode = match msg {
         SelectedMsg::Edit => {
-            let state = InputState {
-                input: heap.label_at(index).to_string(),
+            let input_state = InputState {
+                input: state.heap.label_at(index).to_string(),
                 action: InputAction::Edit(index),
             };
-            Mode::Input(state)
+            Mode::Input(input_state)
         }
         SelectedMsg::Delete => {
-            heap = heap.delete(index);
+            state.heap = state.heap.delete(index);
             Mode::Normal
         }
     };
-    Model { heap, mode }
+    Model { state, mode }
 }
 
 // Return the next Model based on a message sent in Compare mode.
-fn update_compare(msg: CompareMsg, choice: Choice, mut heap: Heap) -> Model {
+fn update_compare(
+    msg: CompareMsg,
+    choice: Choice,
+    mut state: SessionState,
+) -> Model {
     let Choice { item1, item2, first_selected } = choice;
     let mode = match msg {
         CompareMsg::Toggle => {
@@ -157,22 +173,22 @@ fn update_compare(msg: CompareMsg, choice: Choice, mut heap: Heap) -> Model {
             Mode::Compare(Choice { item1, item2, first_selected: toggled })
         }
         CompareMsg::Confirm => {
-            heap = heap.merge_pair(first_selected);
+            state.heap = state.heap.merge_pair(first_selected);
             Mode::Normal
         }
     };
-    Model { heap, mode }
+    Model { state, mode }
 }
 
-/// Return the next Model based on the `message` and the `heap`.
-pub fn update(message: Message, heap: Heap) -> Model {
+/// Return the next Model based on the `message` and the session `state`.
+pub fn update(message: Message, state: SessionState) -> Model {
     match message {
-        Message::Normal(msg) => update_normal(msg, heap),
-        Message::Input(msg, state) => update_input(msg, state, heap),
-        Message::Select(msg, index) => update_select(msg, index, heap),
-        Message::Selected(msg, index) => update_selected(msg, index, heap),
-        Message::Compare(msg, choice) => update_compare(msg, choice, heap),
-        Message::Continue(mode) => Model { heap, mode },
+        Message::Normal(msg) => update_normal(msg, state),
+        Message::Input(msg, input_state) => update_input(msg, input_state, state),
+        Message::Select(msg, index) => update_select(msg, index, state),
+        Message::Selected(msg, index) => update_selected(msg, index, state),
+        Message::Compare(msg, choice) => update_compare(msg, choice, state),
+        Message::Continue(mode) => Model { state, mode },
     }
 }
 

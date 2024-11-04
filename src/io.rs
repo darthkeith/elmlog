@@ -8,63 +8,94 @@ use fs2::FileExt;
 
 use crate::{
     heap::Heap,
+    model::SessionState,
 };
 
 const APP_DIR: &str = "sieve-selector";
 const DATA_FILE: &str = "data.bin";
 
-/// Return application data file path, creating any missing directories.
-pub fn data_file_path() -> Result<PathBuf> {
-    let data_dir = dirs::data_dir()
-        .expect("Failed to locate data directory");
-    let path = data_dir.join(APP_DIR);
-    fs::create_dir_all(&path)?;
-    Ok(path.join(DATA_FILE))
+/// A file locked for exclusive data access.
+///
+/// The File is stored in the `_file` field only to keep the lock active.
+pub struct OpenDataFile {
+    path: PathBuf,
+    _file: File,
 }
 
+// Return the application data file path, creating any missing directories.
+fn data_file_path() -> PathBuf {
+    let data_dir = dirs::data_dir()
+        .expect("Failed to identify data directory");
+    let path = data_dir.join(APP_DIR);
+    fs::create_dir_all(&path)
+        .expect("Failed to create data directory");
+    path.join(DATA_FILE)
+}
+
+// Lock the `file` for exclusive data access.
 fn lock(file: &File) {
     file.try_lock_exclusive()
-        .expect("Application data file is currently locked");
+        .expect("File is currently locked");
 }
 
-/// Return the initialized heap with its associated data file.
-pub fn init(file_path: &PathBuf) -> Result<(Heap, File)> {
-    let file_not_found = !file_path.exists();
-    if file_not_found {
-        File::create(file_path)?;
-    }
-    let mut file = OpenOptions::new()
-        .read(true)
-        .open(file_path)?;
-    lock(&file);
-    if file_not_found {
-        return Ok((Heap::Empty, file));
-    }
+// Load a Heap from a serialized data `file`.
+fn load_heap(mut file: &File) -> Heap {
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    let heap = bincode::deserialize(&buffer)
-        .expect("Failed to deserialize data");
-    Ok((heap, file))
+    file.read_to_end(&mut buffer)
+        .expect("Failed to read file");
+    bincode::deserialize(&buffer)
+        .expect("Failed to deserialize data")
 }
 
-fn set_writable(file_path: &PathBuf, writable: bool) -> Result<()> {
+/// Initialize the session state.
+pub fn init_state() -> SessionState {
+    let path = data_file_path();
+    let file_found = path.exists();
+    if !file_found {
+        File::create(&path)
+            .expect("Failed to create file");
+    }
+    let file = OpenOptions::new()
+        .read(true)
+        .open(&path)
+        .expect("Failed to open file");
+    lock(&file);
+    let heap = match file_found {
+        true => load_heap(&file),
+        false => Heap::Empty,
+    };
+    let open_file = OpenDataFile { path, _file: file };
+    SessionState { heap, open_file }
+}
+
+// Return the Heap and data file path from the session state, dropping the
+// locked File to unlock it.
+fn unlock_state(state: SessionState) -> (Heap, PathBuf) {
+    let SessionState { heap, open_file } = state;
+    let OpenDataFile { path, _file: _ } = open_file;
+    (heap, path)
+}
+
+// Set whether the file's permissions are read only or not.
+fn set_read_only(file_path: &PathBuf, read_only: bool) -> Result<()> {
     let file = File::open(file_path)?;
     let metadata = file.metadata()?;
     let mut permissions = metadata.permissions();
-    permissions.set_readonly(!writable);
+    permissions.set_readonly(read_only);
     fs::set_permissions(file_path, permissions)
 }
 
-/// Save the `heap` to the file with given path.
-pub fn save(heap: Heap, file_path: &PathBuf) -> Result<()> {
-    set_writable(file_path, true)?;
+/// Save the current session `state`.
+pub fn save(state: SessionState) -> Result<()> {
+    let (heap, path) = unlock_state(state);
+    set_read_only(&path, false)?;
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(file_path)?;
+        .open(&path)?;
     lock(&file);
     bincode::serialize_into(&file, &heap)
         .expect("Failed to serialize data");
-    set_writable(file_path, false)
+    set_read_only(&path, true)
 }
 

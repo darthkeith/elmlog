@@ -1,4 +1,7 @@
-use crate::heap::Heap;
+use crate::{
+    heap::Heap,
+    io::{self, OpenDataFile},
+};
 
 /// Action to be performed with the user input string.
 pub enum InputAction {
@@ -28,9 +31,25 @@ pub enum Mode {
     Compare(Choice),
 }
 
+/// State that is persistent across modes within a given session.
+pub struct SessionState {
+    pub heap: Heap,
+    pub open_file: OpenDataFile,
+}
+
 /// State of the entire application.
 pub struct Model {
-    pub heap: Heap,
+    pub state: SessionState,
     pub mode: Mode,
+}
+
+impl Model {
+    /// Return the initial Model.
+    pub fn init() -> Self {
+        Model {
+            state: io::init_state(),
+            mode: Mode::Normal,
+        }
+    }
 }
 

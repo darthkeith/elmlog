@@ -14,17 +14,21 @@ use ratatui::{
     Frame,
 };
 
-use crate::heap::{
-    HeapStatus,
-    NodePosition,
-    NodeType,
-    PreOrderIter,
-};
-use crate::model::{
-    Choice,
-    InputAction,
-    Mode,
-    Model,
+use crate::{
+    heap::{
+        Heap,
+        HeapStatus,
+        NodePosition,
+        NodeType,
+        PreOrderIter,
+    },
+    model::{
+        Choice,
+        InputAction,
+        Mode,
+        Model,
+        SessionState,
+    },
 };
 
 // Represents a text block used for tree drawing.
@@ -48,11 +52,11 @@ struct ForestIter<'a> {
 }
 
 impl<'a> ForestIter<'a> {
-    fn new(model: &'a Model) -> Self {
+    fn new(heap: &'a Heap) -> Self {
         ForestIter {
             prefix: Vec::new(),
-            label_iter: model.heap.iter(),
-            single_root: matches!(model.heap.status(), HeapStatus::SingleRoot),
+            label_iter: heap.iter(),
+            single_root: matches!(heap.status(), HeapStatus::SingleRoot),
         }
     }
 }
@@ -103,9 +107,9 @@ fn style_text(text: Text) -> Paragraph {
         .set_style(style::DEFAULT)
 }
 
-// Return the forest widget using the current `model`.
-fn forest(model: &Model) -> Paragraph {
-    let lines = ForestIter::new(model)
+// Return the forest widget based on the current `heap`.
+fn forest(heap: &Heap) -> Paragraph {
+    let lines = ForestIter::new(heap)
         .map(|(tree_row, label, label_type)| {
             let label_style = match label_type {
                 LabelType::SingleRoot => style::SINGLE_ROOT,
@@ -121,12 +125,12 @@ fn forest(model: &Model) -> Paragraph {
 }
 
 // Return the forest widget with indicies, highlighting the selected item.
-fn indexed_forest(model: &Model, selected: usize) -> Paragraph {
-    let index_len = match model.heap.size() {
+fn indexed_forest(heap: &Heap, selected: usize) -> Paragraph {
+    let index_len = match heap.size() {
         0 => 0,
         n => (n - 1).to_string().len(),
     };
-    let lines = ForestIter::new(model)
+    let lines = ForestIter::new(heap)
         .enumerate()
         .map(|(i, (tree_row, label, label_type))| {
             let (tree_style, label_style) = if i == selected {(
@@ -187,12 +191,12 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
 fn status_bar(model: &Model) -> Line {
     let mut status = vec![" ".into()];
     match &model.mode {
-        Mode::Normal => match model.heap.status() {
+        Mode::Normal => match model.state.heap.status() {
             HeapStatus::Empty => status.push("Empty.".into()),
             HeapStatus::SingleRoot => status.push("Item selected.".into()),
             HeapStatus::MultiRoot(..) => {
                 status.push("Items to compare: ".into());
-                let n = model.heap.root_count();
+                let n = model.state.heap.root_count();
                 status.push(n.to_string().set_style(style::NUMBER));
             }
         }
@@ -213,11 +217,11 @@ fn status_bar(model: &Model) -> Line {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(model: &Model) -> Vec<(&str, &str)> {
+fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
     let mut pairs = vec![("I", "Insert")];
-    if model.heap.size() > 0 {
+    if heap.size() > 0 {
         pairs.push(("S", "Select"));
-        if let HeapStatus::MultiRoot(..) = model.heap.status() {
+        if let HeapStatus::MultiRoot(..) = heap.status() {
             pairs.push(("C", "Compare"));
         }
     }
@@ -262,9 +266,11 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
     let mut pairs = match &model.mode {
-        Mode::Normal => normal_mode_commands(model),
-        Mode::Input(state) => input_mode_commands(state.input.is_empty()),
-        Mode::Select(_) => select_mode_commands(model.heap.size()),
+        Mode::Normal => normal_mode_commands(&model.state.heap),
+        Mode::Input(input_state) => {
+            input_mode_commands(input_state.input.is_empty())
+        }
+        Mode::Select(_) => select_mode_commands(model.state.heap.size()),
         Mode::Selected(_) => vec![
             ("E", "Edit"),
             ("D", "Delete"),
@@ -289,15 +295,17 @@ pub fn view(model: &Model, frame: &mut Frame) {
             Constraint::Length(1),
         ])
         .areas(frame.area());
-    match &model.mode {
+    let Model { state, mode } = model;
+    let SessionState { heap, .. } = state;
+    match mode {
         Mode::Normal => {
-            frame.render_widget(forest(model), main_area);
+            frame.render_widget(forest(heap), main_area);
         }
-        Mode::Input(state) => {
-            frame.render_widget(text_input(&state.input), main_area);
+        Mode::Input(input_state) => {
+            frame.render_widget(text_input(&input_state.input), main_area);
         }
         Mode::Select(index) | Mode::Selected(index) => {
-            frame.render_widget(indexed_forest(model, *index), main_area);
+            frame.render_widget(indexed_forest(heap, *index), main_area);
         }
         Mode::Compare(choice) => {
             frame.render_widget(compare(choice), main_area);
