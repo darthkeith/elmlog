@@ -74,7 +74,7 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
                 _ => Mode::Normal,
             }
         }
-        NormalMsg::Quit => Mode::Normal,
+        NormalMsg::Quit => Mode::Save(true),
     };
     Model { state, mode }
 }
@@ -188,6 +188,8 @@ pub fn update(message: Message, state: SessionState) -> Model {
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
+        Message::ToggleSave(save) => Model { state, mode: Mode::Save(!save) },
+        Message::Quit(_) => Model { state, mode: Mode::Normal },
         Message::Continue(mode) => Model { state, mode },
     }
 }

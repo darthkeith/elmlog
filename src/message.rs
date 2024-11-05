@@ -46,6 +46,8 @@ pub enum Message {
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Compare(CompareMsg, Choice),
+    ToggleSave(bool),
+    Quit(bool),
     Continue(Mode),
 }
 
@@ -116,6 +118,15 @@ fn to_compare_msg(key: KeyCode, choice: Choice) -> Message {
     Message::Compare(compare_msg, choice)
 }
 
+// Map a `key` to a Message in Save mode.
+fn to_save_msg(key: KeyCode, save: bool) -> Message {
+    match key {
+        KeyCode::Char(' ') => Message::ToggleSave(save),
+        KeyCode::Enter => Message::Quit(save),
+        _ => return default(key, Mode::Save(save)),
+    }
+}
+
 // Map a pressed `key` to a Message based on the current `mode`.
 fn key_to_message(mode: Mode, key: KeyCode) -> Message {
     match mode {
@@ -124,6 +135,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
         Mode::Compare(choice) => to_compare_msg(key, choice),
+        Mode::Save(save) => to_save_msg(key, save),
     }
 }
 

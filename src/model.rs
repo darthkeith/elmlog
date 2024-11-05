@@ -29,6 +29,7 @@ pub enum Mode {
     Select(usize),
     Selected(usize),
     Compare(Choice),
+    Save(bool),
 }
 
 /// State that is persistent across modes within a given session.

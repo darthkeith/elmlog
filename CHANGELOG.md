@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0-alpha] - 2024-11-04
+
+### Added
+- Prompt the user to choose whether to save changes before quitting.
+
 ## [1.0.0-alpha] - 2024-10-27
 
 ### Changed

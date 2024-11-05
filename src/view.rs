@@ -187,6 +187,23 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
     style_text(Text::from(lines))
 }
 
+// Return the save query widget.
+fn save_query(save: bool) -> Paragraph<'static> {
+    let line1 = Line::from(format!(" Save "));
+    let line2 = Line::from(format!(" Discard Changes "));
+    let lines = match save {
+        true => vec![
+            line1.set_style(style::DEFAULT_HL),
+            line2,
+        ],
+        false => vec![
+            line1,
+            line2.set_style(style::DEFAULT_HL),
+        ],
+    };
+    style_text(Text::from(lines))
+}
+
 // Return the status bar widget based on the current `model`.
 fn status_bar(model: &Model) -> Line {
     let mut status = vec![" ".into()];
@@ -210,6 +227,7 @@ fn status_bar(model: &Model) -> Line {
         }
         Mode::Selected(_) => status.push("Enter command.".into()),
         Mode::Compare(_) => status.push("Select item to promote.".into()),
+        Mode::Save(_) => status.push("Save changes before quitting?".into()),
     };
     Line::from(status)
         .left_aligned()
@@ -275,7 +293,7 @@ fn command_bar(model: &Model) -> Line {
             ("E", "Edit"),
             ("D", "Delete"),
         ],
-        Mode::Compare(_) => vec![
+        Mode::Compare(_) | Mode::Save(_) => vec![
             ("Space", "Toggle"),
             ("Enter", "Confirm"),
         ],
@@ -309,6 +327,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
         }
         Mode::Compare(choice) => {
             frame.render_widget(compare(choice), main_area);
+        }
+        Mode::Save(save) => {
+            frame.render_widget(save_query(*save), main_area);
         }
     }
     frame.render_widget(status_bar(model), status_bar_area);
