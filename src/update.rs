@@ -1,5 +1,6 @@
 use crate::{
     heap::HeapStatus,
+    io,
     message::{
         CompareMsg,
         InputMsg,
@@ -74,7 +75,6 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
                 _ => Mode::Normal,
             }
         }
-        NormalMsg::Quit => Mode::Save(true),
     };
     Model { state, mode }
 }
@@ -184,16 +184,26 @@ fn update_compare(
 }
 
 /// Return the next Model based on the `message` and the session `state`.
-pub fn update(message: Message, state: SessionState) -> Model {
-    match message {
+pub fn update(message: Message, state: SessionState) -> Option<Model> {
+    let model = match message {
         Message::Normal(msg) => update_normal(msg, state),
         Message::Input(msg, input_state) => update_input(msg, input_state, state),
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
+        Message::StartQuit => match state.changed {
+            true => Model { state, mode: Mode::Save(true) },
+            false => return None,
+        },
         Message::ToggleSave(save) => Model { state, mode: Mode::Save(!save) },
-        Message::Quit(_) => Model { state, mode: Mode::Normal },
+        Message::Quit(save) => {
+            if save {
+                io::save(state);
+            }
+            return None;
+        }
         Message::Continue(mode) => Model { state, mode },
-    }
+    };
+    Some(model)
 }
 

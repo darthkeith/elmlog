@@ -10,7 +10,7 @@ use std::io::Result;
 use ratatui::DefaultTerminal;
 
 use crate::{
-    message::{Message, NormalMsg, handle_event},
+    message::handle_event,
     model::Model,
     update::update,
     view::view,
@@ -21,19 +21,10 @@ fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
     loop {
         terminal.draw(|frame| view(&model, frame))?;
         let message = handle_event(model.mode)?;
-        match message {
-            Message::Normal(NormalMsg::Quit) if !model.state.changed => {
-                return Ok(());
-            }
-            Message::Quit(save) => {
-                if save {
-                    io::save(model.state);
-                }
-                return Ok(());
-            }
-            _ => (),
+        model = match update(message, model.state) {
+            Some(m) => m,
+            None => return Ok(()),
         }
-        model = update(message, model.state);
     }
 }
 

@@ -9,7 +9,6 @@ pub enum NormalMsg {
     StartInput,
     StartSelect,
     StartCompare,
-    Quit,
 }
 
 // A message sent in Input mode.
@@ -46,6 +45,7 @@ pub enum Message {
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Compare(CompareMsg, Choice),
+    StartQuit,
     ToggleSave(bool),
     Quit(bool),
     Continue(Mode),
@@ -65,7 +65,7 @@ fn to_normal_msg(key: KeyCode) -> Message {
         KeyCode::Char('i') => NormalMsg::StartInput,
         KeyCode::Char('s') => NormalMsg::StartSelect,
         KeyCode::Char('c') => NormalMsg::StartCompare,
-        KeyCode::Char('q') => NormalMsg::Quit,
+        KeyCode::Char('q') => return Message::StartQuit,
         _ => return Message::Continue(Mode::Normal),
     };
     Message::Normal(normal_msg)
