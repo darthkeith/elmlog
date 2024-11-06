@@ -108,6 +108,7 @@ fn update_input(
                     }
                 }
             }
+            state.changed = true;
             Mode::Normal
         }
     };
@@ -154,6 +155,7 @@ fn update_selected(
         }
         SelectedMsg::Delete => {
             state.heap = state.heap.delete(index);
+            state.changed = true;
             Mode::Normal
         }
     };
@@ -174,6 +176,7 @@ fn update_compare(
         }
         CompareMsg::Confirm => {
             state.heap = state.heap.merge_pair(first_selected);
+            state.changed = true;
             Mode::Normal
         }
     };

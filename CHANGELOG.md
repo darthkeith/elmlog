@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0-alpha] - 2024-11-05
+
+### Added
+- Skip save query if no changes were made.
+
 ## [1.1.0-alpha] - 2024-11-04
 
 ### Added

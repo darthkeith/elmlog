@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::{Read, Result},
+    io::Read,
     path::PathBuf,
 };
 
@@ -65,37 +65,41 @@ pub fn init_state() -> SessionState {
         false => Heap::Empty,
     };
     let open_file = OpenDataFile { path, _file: file };
-    SessionState { heap, open_file }
+    SessionState { heap, open_file, changed: false }
 }
 
 // Return the Heap and data file path from the session state, dropping the
 // locked File to unlock it.
 fn unlock_state(state: SessionState) -> (Heap, PathBuf) {
-    let SessionState { heap, open_file } = state;
+    let SessionState { heap, open_file, .. } = state;
     let OpenDataFile { path, _file: _ } = open_file;
     (heap, path)
 }
 
 // Set whether the file's permissions are read only or not.
-fn set_read_only(file_path: &PathBuf, read_only: bool) -> Result<()> {
-    let file = File::open(file_path)?;
-    let metadata = file.metadata()?;
+fn set_read_only(file_path: &PathBuf, read_only: bool) {
+    let file = File::open(file_path)
+        .expect("Failed to open file");
+    let metadata = file.metadata()
+        .expect("Failed to extract metadata");
     let mut permissions = metadata.permissions();
     permissions.set_readonly(read_only);
     fs::set_permissions(file_path, permissions)
+        .expect("Failed to set file permissions");
 }
 
 /// Save the current session `state`.
-pub fn save(state: SessionState) -> Result<()> {
+pub fn save(state: SessionState) {
     let (heap, path) = unlock_state(state);
-    set_read_only(&path, false)?;
+    set_read_only(&path, false);
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(&path)?;
+        .open(&path)
+        .expect("Failed to write to file");
     lock(&file);
     bincode::serialize_into(&file, &heap)
         .expect("Failed to serialize data");
-    set_read_only(&path, true)
+    set_read_only(&path, true);
 }
 

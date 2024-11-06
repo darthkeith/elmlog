@@ -36,6 +36,7 @@ pub enum Mode {
 pub struct SessionState {
     pub heap: Heap,
     pub open_file: OpenDataFile,
+    pub changed: bool,
 }
 
 /// State of the entire application.
