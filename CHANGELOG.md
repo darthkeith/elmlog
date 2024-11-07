@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0-alpha] - 2024-11-07
+
+### Changed
+- Hide indices after an item has been selected.
+
 ## [1.2.0-alpha] - 2024-11-05
 
 ### Added

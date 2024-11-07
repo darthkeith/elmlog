@@ -2,7 +2,7 @@ mod style;
 
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Styled, Stylize},
+    style::{Style, Styled, Stylize},
     text::{Line, Span, Text},
     widgets::{
         block::Padding,
@@ -96,8 +96,8 @@ impl<'a> Iterator for ForestIter<'a> {
     }
 }
 
-// Style text for the main area.
-fn style_text(text: Text) -> Paragraph {
+// Style the main area content.
+fn style_main(text: Text) -> Paragraph {
     let block = Block::new()
         .borders(Borders::NONE)
         .padding(Padding::uniform(1));
@@ -107,25 +107,38 @@ fn style_text(text: Text) -> Paragraph {
         .set_style(style::DEFAULT)
 }
 
-// Return the forest widget based on the current `heap`.
-fn forest(heap: &Heap) -> Paragraph {
+// Return the style to apply to a label of given type with optional highlight.
+fn get_label_style(label_type: LabelType, highlight: bool) -> Style {
+    if highlight {
+        match label_type {
+            LabelType::SingleRoot => style::SINGLE_ROOT_HL,
+            LabelType::Root => style::ROOT_HL,
+            LabelType::Child => style::DEFAULT_HL,
+        }
+    } else {
+        match label_type {
+            LabelType::SingleRoot => style::SINGLE_ROOT,
+            LabelType::Root => style::ROOT,
+            LabelType::Child => style::DEFAULT,
+        }
+    }
+}
+
+// Return the forest widget in normal mode.
+fn forest_normal(heap: &Heap) -> Paragraph {
     let lines = ForestIter::new(heap)
         .map(|(tree_row, label, label_type)| {
-            let label_style = match label_type {
-                LabelType::SingleRoot => style::SINGLE_ROOT,
-                LabelType::Root => style::ROOT,
-                LabelType::Child => style::DEFAULT,
-            };
+            let label_style = get_label_style(label_type, false);
             Line::from(vec![
                 Span::styled(tree_row, style::TREE),
                 Span::styled(format!("{label} "), label_style),
             ])
         });
-    style_text(Text::from_iter(lines))
+    style_main(Text::from_iter(lines))
 }
 
-// Return the forest widget with indicies, highlighting the selected item.
-fn indexed_forest(heap: &Heap, selected: usize) -> Paragraph {
+// Return the forest widget in select mode.
+fn forest_select(heap: &Heap, current_idx: usize) -> Paragraph {
     let index_len = match heap.size() {
         0 => 0,
         n => (n - 1).to_string().len(),
@@ -133,29 +146,39 @@ fn indexed_forest(heap: &Heap, selected: usize) -> Paragraph {
     let lines = ForestIter::new(heap)
         .enumerate()
         .map(|(i, (tree_row, label, label_type))| {
-            let (tree_style, label_style) = if i == selected {(
-                style::TREE_HL,
-                match label_type {
-                    LabelType::SingleRoot => style::SINGLE_ROOT_HL,
-                    LabelType::Root => style::ROOT_HL,
-                    LabelType::Child => style::DEFAULT_HL,
-                })
-            } else {(
-                style::TREE,
-                match label_type {
-                    LabelType::SingleRoot => style::SINGLE_ROOT,
-                    LabelType::Root => style::ROOT,
-                    LabelType::Child => style::DEFAULT,
-                })
+            let fmt_index = format!(" {i:>width$}   ", width = index_len);
+            let highlight = i == current_idx;
+            let label_style = get_label_style(label_type, highlight);
+            let tree_style = match highlight {
+                true => style::TREE_HL,
+                false => style::TREE,
             };
-            let index = format!(" {i:>width$}   ", width = index_len);
-            Line::from(vec!(
-                Span::styled(index, label_style),
+            Line::from(vec![
+                Span::styled(fmt_index, label_style),
                 Span::styled(tree_row, tree_style),
                 Span::styled(format!("{label} "), label_style),
-            ))
+            ])
         });
-    style_text(Text::from_iter(lines))
+    style_main(Text::from_iter(lines))
+}
+
+// Return the forest widget in selected mode.
+fn forest_selected(heap: &Heap, current_idx: usize) -> Paragraph {
+    let lines = ForestIter::new(heap)
+        .enumerate()
+        .map(|(i, (tree_row, label, label_type))| {
+            let highlight = i == current_idx;
+            let fmt_label = match highlight {
+                true => format!(" {label} "),
+                false => format!("{label} "),
+            };
+            let label_style = get_label_style(label_type, highlight);
+            Line::from(vec![
+                Span::styled(tree_row, style::TREE),
+                Span::styled(fmt_label, label_style),
+            ])
+        });
+    style_main(Text::from_iter(lines))
 }
 
 // Return the text input widget given the `input` string.
@@ -165,7 +188,7 @@ fn text_input(input: &str) -> Paragraph {
     let text = Line::from(vec![content, cursor])
         .set_style(style::DEFAULT)
         .into();
-    style_text(text)
+    style_main(text)
         .wrap(Wrap { trim: false })
 }
 
@@ -184,7 +207,7 @@ fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
             line2.set_style(style::DEFAULT_HL),
         ],
     };
-    style_text(Text::from(lines))
+    style_main(Text::from(lines))
 }
 
 // Return the save query widget.
@@ -201,7 +224,7 @@ fn save_query(save: bool) -> Paragraph<'static> {
             line2.set_style(style::DEFAULT_HL),
         ],
     };
-    style_text(Text::from(lines))
+    style_main(Text::from(lines))
 }
 
 // Return the status bar widget based on the current `model`.
@@ -317,13 +340,16 @@ pub fn view(model: &Model, frame: &mut Frame) {
     let SessionState { heap, .. } = state;
     match mode {
         Mode::Normal => {
-            frame.render_widget(forest(heap), main_area);
+            frame.render_widget(forest_normal(heap), main_area);
         }
         Mode::Input(input_state) => {
             frame.render_widget(text_input(&input_state.input), main_area);
         }
-        Mode::Select(index) | Mode::Selected(index) => {
-            frame.render_widget(indexed_forest(heap, *index), main_area);
+        Mode::Select(index) => {
+            frame.render_widget(forest_select(heap, *index), main_area);
+        }
+        Mode::Selected(index) => {
+            frame.render_widget(forest_selected(heap, *index), main_area);
         }
         Mode::Compare(choice) => {
             frame.render_widget(compare(choice), main_area);
