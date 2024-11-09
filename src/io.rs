@@ -65,6 +65,7 @@ pub fn init_state() -> SessionState {
     if !file_found {
         File::create(&path)
             .expect("Failed to create file");
+        set_read_only(&path, true);
     }
     let file = OpenOptions::new()
         .read(true)
