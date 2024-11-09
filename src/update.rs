@@ -108,7 +108,7 @@ fn update_input(
                     }
                 }
             }
-            state.changed = true;
+            state.open_file.set_changed();
             Mode::Normal
         }
     };
@@ -155,7 +155,7 @@ fn update_selected(
         }
         SelectedMsg::Delete => {
             state.heap = state.heap.delete(index);
-            state.changed = true;
+            state.open_file.set_changed();
             Mode::Normal
         }
     };
@@ -176,7 +176,7 @@ fn update_compare(
         }
         CompareMsg::Confirm => {
             state.heap = state.heap.merge_pair(first_selected);
-            state.changed = true;
+            state.open_file.set_changed();
             Mode::Normal
         }
     };
@@ -191,7 +191,7 @@ pub fn update(message: Message, state: SessionState) -> Option<Model> {
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
-        Message::StartQuit => match state.changed {
+        Message::StartQuit => match state.open_file.is_changed() {
             true => Model { state, mode: Mode::Save(true) },
             false => return None,
         },

@@ -20,6 +20,17 @@ const DATA_FILE: &str = "data.bin";
 pub struct OpenDataFile {
     path: PathBuf,
     _file: File,
+    changed: bool,
+}
+
+impl OpenDataFile {
+    pub fn set_changed(&mut self) {
+        self.changed = true;
+    }
+
+    pub fn is_changed(&self) -> bool {
+        self.changed
+    }
 }
 
 // Return the application data file path, creating any missing directories.
@@ -64,15 +75,15 @@ pub fn init_state() -> SessionState {
         true => load_heap(&file),
         false => Heap::Empty,
     };
-    let open_file = OpenDataFile { path, _file: file };
-    SessionState { heap, open_file, changed: false }
+    let open_file = OpenDataFile { path, _file: file, changed: false };
+    SessionState { heap, open_file }
 }
 
-// Return the Heap and data file path from the session state, dropping the
-// locked File to unlock it.
+// Return the Heap and data file path from the session state.
+// The File is dropped to unlock it.
 fn unlock_state(state: SessionState) -> (Heap, PathBuf) {
-    let SessionState { heap, open_file, .. } = state;
-    let OpenDataFile { path, _file: _ } = open_file;
+    let SessionState { heap, open_file } = state;
+    let OpenDataFile { path, _file: _, .. } = open_file;
     (heap, path)
 }
 
