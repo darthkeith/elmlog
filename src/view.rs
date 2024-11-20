@@ -22,6 +22,7 @@ use crate::{
         NodeType,
         PreOrderIter,
     },
+    io::LoadState,
     model::{
         Choice,
         InputAction,
@@ -105,6 +106,19 @@ fn style_main(text: Text) -> Paragraph {
         .block(block)
         .left_aligned()
         .set_style(style::DEFAULT)
+}
+
+// Return the load widget.
+fn load(load_state: &LoadState) -> Paragraph {
+    let lines = load_state.get_file_names()
+        .map(|(file_name, highlight)| {
+            if highlight {
+                Line::styled(format!(" {file_name} "), style::DEFAULT_HL)
+            } else {
+                Line::from(file_name)
+            }
+        });
+    style_main(Text::from_iter(lines))
 }
 
 // Return the style to apply to a label of given type with optional highlight.
@@ -231,6 +245,7 @@ fn save_query(save: bool) -> Paragraph<'static> {
 fn status_bar(model: &Model) -> Line {
     let mut status = vec![" ".into()];
     match &model.mode {
+        Mode::Load(_) => status.push("Select file to open.".into()),
         Mode::Normal => match model.state.heap.status() {
             HeapStatus::Empty => status.push("Empty.".into()),
             HeapStatus::SingleRoot => status.push("Item selected.".into()),
@@ -255,6 +270,19 @@ fn status_bar(model: &Model) -> Line {
     Line::from(status)
         .left_aligned()
         .set_style(style::ACCENT)
+}
+
+// Return the load mode key-command pairs.
+fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
+    let mut pairs = Vec::new();
+    if file_count > 1 {
+        pairs.push(("K │ ↑", "Up"));
+        pairs.push(("J │ ↓", "Down"));
+    }
+    pairs.push(("Enter", "Confirm"));
+    pairs.push(("N", "New"));
+    pairs.push(("Q", "Quit"));
+    pairs
 }
 
 // Return the normal mode key-command pairs.
@@ -307,6 +335,7 @@ fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
 // Return the command bar widget based on the current `model`.
 fn command_bar(model: &Model) -> Line {
     let mut pairs = match &model.mode {
+        Mode::Load(load_state) => load_mode_commands(load_state.size()),
         Mode::Normal => normal_mode_commands(&model.state.heap),
         Mode::Input(input_state) => {
             input_mode_commands(input_state.input.is_empty())
@@ -321,8 +350,9 @@ fn command_bar(model: &Model) -> Line {
             ("Enter", "Confirm"),
         ],
     };
-    if !matches!(model.mode, Mode::Normal) {
-        pairs.push(("Esc", "Cancel"));
+    match &model.mode {
+        Mode::Load(_) | Mode::Normal => (),
+        _ => pairs.push(("Esc", "Cancel")),
     }
     to_command_bar(pairs)
 }
@@ -339,6 +369,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
     let Model { state, mode } = model;
     let SessionState { heap, .. } = state;
     match mode {
+        Mode::Load(load_state) => {
+            frame.render_widget(load(load_state), main_area);
+        }
         Mode::Normal => {
             frame.render_widget(forest_normal(heap), main_area);
         }

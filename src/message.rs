@@ -2,7 +2,18 @@ use std::io;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
-use crate::model::{Choice, InputState, Mode};
+use crate::{
+    io::LoadState,
+    model::{Choice, InputState, Mode},
+};
+
+// A message sent in Load mode.
+pub enum LoadMsg {
+    Decrement,
+    Increment,
+    Open,
+    New,
+}
 
 // A message sent in Normal mode.
 pub enum NormalMsg {
@@ -38,8 +49,9 @@ pub enum CompareMsg {
     Confirm,
 }
 
-// Represents changes to be made to the model, grouped by mode.
+// Represents changes to be made to the model.
 pub enum Message {
+    Load(LoadMsg, LoadState),
     Normal(NormalMsg),
     Input(InputMsg, InputState),
     Select(SelectMsg, usize),
@@ -49,6 +61,19 @@ pub enum Message {
     ToggleSave(bool),
     Quit(bool),
     Continue(Mode),
+}
+
+// Map a `key` to a Message in Load mode.
+fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
+    let load_msg = match key {
+        KeyCode::Char('k') | KeyCode::Up => LoadMsg::Decrement,
+        KeyCode::Char('j') | KeyCode::Down => LoadMsg::Increment,
+        KeyCode::Enter => LoadMsg::Open,
+        KeyCode::Char('n') => LoadMsg::New,
+        KeyCode::Char('q') => return Message::Quit(false),
+        _ => return Message::Continue(Mode::Load(load_state)),
+    };
+    Message::Load(load_msg, load_state)
 }
 
 // Return to Normal mode on Esc, otherwise continue in the given `mode`.
@@ -130,6 +155,7 @@ fn to_save_msg(key: KeyCode, save: bool) -> Message {
 // Map a pressed `key` to a Message based on the current `mode`.
 fn key_to_message(mode: Mode, key: KeyCode) -> Message {
     match mode {
+        Mode::Load(load_state) => to_load_msg(key, load_state),
         Mode::Normal => to_normal_msg(key),
         Mode::Input(input) => to_input_msg(key, input),
         Mode::Select(index) => to_select_msg(key, index),

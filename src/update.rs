@@ -1,9 +1,10 @@
 use crate::{
     heap::HeapStatus,
-    io,
+    io::{self, LoadState},
     message::{
         CompareMsg,
         InputMsg,
+        LoadMsg,
         Message,
         NormalMsg,
         SelectedMsg,
@@ -45,6 +46,27 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
         return c_val;
     }
     return index;
+}
+
+// Return the next Model based on a message sent in Load mode.
+fn update_load(
+    msg: LoadMsg,
+    load_state: LoadState,
+    state: SessionState
+) -> Model {
+    let mode = match msg {
+        LoadMsg::New => Mode::Normal,
+        LoadMsg::Decrement => Mode::Load(load_state.decrement()),
+        LoadMsg::Increment => Mode::Load(load_state.increment()),
+        LoadMsg::Open => {
+            let path = load_state.get_path();
+            return Model {
+                state: io::init_session_state(path),
+                mode: Mode::Normal,
+            };
+        }
+    };
+    Model { state, mode }
 }
 
 // Return the next Model based on a message sent in Normal mode.
@@ -108,7 +130,7 @@ fn update_input(
                     }
                 }
             }
-            state.open_file.set_changed();
+            state.set_changed();
             Mode::Normal
         }
     };
@@ -155,7 +177,7 @@ fn update_selected(
         }
         SelectedMsg::Delete => {
             state.heap = state.heap.delete(index);
-            state.open_file.set_changed();
+            state.set_changed();
             Mode::Normal
         }
     };
@@ -176,7 +198,7 @@ fn update_compare(
         }
         CompareMsg::Confirm => {
             state.heap = state.heap.merge_pair(first_selected);
-            state.open_file.set_changed();
+            state.set_changed();
             Mode::Normal
         }
     };
@@ -186,12 +208,13 @@ fn update_compare(
 /// Return the next Model based on the `message` and the session `state`.
 pub fn update(message: Message, state: SessionState) -> Option<Model> {
     let model = match message {
+        Message::Load(msg, load_state) => update_load(msg, load_state, state),
         Message::Normal(msg) => update_normal(msg, state),
         Message::Input(msg, input_state) => update_input(msg, input_state, state),
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
-        Message::StartQuit => match state.open_file.is_changed() {
+        Message::StartQuit => match state.is_changed() {
             true => Model { state, mode: Mode::Save(true) },
             false => return None,
         },
