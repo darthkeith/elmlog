@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::Read,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use fs2::FileExt;
@@ -12,7 +12,6 @@ use crate::{
 };
 
 const APP_DIR: &str = "sieve-selector";
-const DEFAULT_FILE_NAME: &str = "Untitled";
 
 /// The `name` and `path` of a file.
 struct FileEntry {
@@ -65,6 +64,7 @@ impl LoadState {
             .map(|(i, name)| (name, i == self.index))
     }
 
+    /// Return the total number of files.
     pub fn size(&self) -> usize {
         self.files.len()
     }
@@ -156,38 +156,46 @@ fn unlock_state(state: SessionState) -> (Heap, Option<PathBuf>) {
 }
 
 // Set whether the file's permissions are read only.
-fn set_read_only(file_path: &PathBuf, read_only: bool) {
-    let mut permissions = File::open(file_path)
+fn set_read_only(path: &Path, read_only: bool) {
+    let mut permissions = File::open(path)
         .expect("Failed to open file")
         .metadata()
         .expect("Failed to extract metadata")
         .permissions();
     permissions.set_readonly(read_only);
-    fs::set_permissions(file_path, permissions)
+    fs::set_permissions(path, permissions)
         .expect("Failed to set file permissions");
+}
+
+// Write the `heap` to an existing file at the given `path`.
+fn write_to_file(heap: Heap, path: &Path) {
+    set_read_only(path, false);
+    let file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .expect("Failed to write to file");
+    lock(&file);
+    bincode::serialize_into(&file, &heap)
+        .expect("Failed to serialize data");
+    set_read_only(path, true);
 }
 
 /// Save the current session `state`.
 pub fn save(state: SessionState) {
     let (heap, maybe_path) = unlock_state(state);
-    let path = match maybe_path {
-        Some(path) => path,
-        None => {
-            let path = app_dir_path().join(DEFAULT_FILE_NAME);
-            File::create_new(&path)
-                .expect("Failed to create default file (may already exist)");
-            path
-        }
-    };
-    set_read_only(&path, false);
-    let file = OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .open(&path)
-        .expect("Failed to write to file");
-    lock(&file);
-    bincode::serialize_into(&file, &heap)
-        .expect("Failed to serialize data");
-    set_read_only(&path, true);
+    if let Some(path) = maybe_path {
+        write_to_file(heap, &path);
+    }
+}
+
+/// Save the `heap` with the given `file_name`.
+///
+/// The file name is assumed to be unique and valid.
+pub fn save_new(heap: Heap, file_name: String) {
+    let path = app_dir_path().join(file_name);
+    File::create_new(&path)
+        .expect("Failed to create file");
+    write_to_file(heap, &path);
 }
 

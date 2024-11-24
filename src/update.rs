@@ -106,7 +106,7 @@ fn update_input(
     msg: InputMsg,
     mut input_state: InputState,
     mut state: SessionState,
-) -> Model {
+) -> Option<Model> {
     let mode = match msg {
         InputMsg::Append(c) => {
             if !(input_state.input.is_empty() && c == ' ') {
@@ -120,21 +120,25 @@ fn update_input(
         }
         InputMsg::Submit => {
             let InputState { input, action } = input_state;
-            if let Some(label) = trim_input(input) {
+            if let Some(text) = trim_input(input) {
                 match action {
                     InputAction::Insert => {
-                        state.heap = state.heap.prepend(label);
+                        state.heap = state.heap.prepend(text);
                     }
                     InputAction::Edit(index) => {
-                        state.heap.set_label(index, label);
+                        state.heap.set_label(index, text);
+                    }
+                    InputAction::Save => {
+                        io::save_new(state.heap, text);
+                        return None;
                     }
                 }
+                state.set_changed();
             }
-            state.set_changed();
             Mode::Normal
         }
     };
-    Model { state, mode }
+    Some(Model { state, mode })
 }
 
 // Return the next Model based on a message sent in Select mode.
@@ -205,12 +209,33 @@ fn update_compare(
     Model { state, mode }
 }
 
+// Return the next Model if more action is needed after a Quit message.
+fn update_quit(save: bool, state: SessionState) -> Option<Model> {
+    if !save {
+        return None;
+    }
+    match &state.maybe_file {
+        Some(_) => {
+            io::save(state);
+            None
+        }
+        None => {
+            let input_state = InputState {
+                input: String::new(),
+                action: InputAction::Save,
+            };
+            let mode = Mode::Input(input_state);
+            Some(Model { state, mode })
+        }
+    }
+}
+
 /// Return the next Model based on the `message` and the session `state`.
 pub fn update(message: Message, state: SessionState) -> Option<Model> {
     let model = match message {
         Message::Load(msg, load_state) => update_load(msg, load_state, state),
         Message::Normal(msg) => update_normal(msg, state),
-        Message::Input(msg, input_state) => update_input(msg, input_state, state),
+        Message::Input(msg, input_state) => return update_input(msg, input_state, state),
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
@@ -219,12 +244,7 @@ pub fn update(message: Message, state: SessionState) -> Option<Model> {
             false => return None,
         },
         Message::ToggleSave(save) => Model { state, mode: Mode::Save(!save) },
-        Message::Quit(save) => {
-            if save {
-                io::save(state);
-            }
-            return None;
-        }
+        Message::Quit(save) => return update_quit(save, state),
         Message::Continue(mode) => Model { state, mode },
     };
     Some(model)

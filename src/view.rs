@@ -258,6 +258,7 @@ fn status_bar(model: &Model) -> Line {
         Mode::Input(state) => match state.action {
             InputAction::Insert => status.push("Enter new item.".into()),
             InputAction::Edit(_) => status.push("Edit item.".into()),
+            InputAction::Save => status.push("Enter a file name.".into()),
         }
         Mode::Select(index) => {
             status.push("Selected index: ".into());
@@ -279,7 +280,7 @@ fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
         pairs.push(("K │ ↑", "Up"));
         pairs.push(("J │ ↓", "Down"));
     }
-    pairs.push(("Enter", "Confirm"));
+    pairs.push(("Enter", "Open"));
     pairs.push(("N", "New"));
     pairs.push(("Q", "Quit"));
     pairs

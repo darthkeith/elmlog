@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-alpha] - 2024-11-24
+
+### Added
+- Support for saving multiple files.
+- Display load screen on launch to allow file selection.
+- Prompt the user to enter a file name when quitting an unsaved project.
+
 ## [1.3.0-alpha] - 2024-11-07
 
 ### Changed

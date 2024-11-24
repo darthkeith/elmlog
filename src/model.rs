@@ -7,6 +7,7 @@ use crate::{
 pub enum InputAction {
     Insert,
     Edit(usize),
+    Save,
 }
 
 /// Current user input and action to be performed with it.

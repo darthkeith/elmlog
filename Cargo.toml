@@ -1,6 +1,6 @@
 [package]
 name = "sieve-selector"
-version = "1.3.0-alpha"
+version = "2.0.0-alpha"
 edition = "2021"
 
 [dependencies]
