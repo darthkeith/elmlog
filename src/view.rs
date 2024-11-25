@@ -277,8 +277,7 @@ fn status_bar(model: &Model) -> Line {
 fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
     let mut pairs = Vec::new();
     if file_count > 1 {
-        pairs.push(("K │ ↑", "Up"));
-        pairs.push(("J │ ↓", "Down"));
+        pairs.push(("J/K │ ↓/↑", "Down/Up"));
     }
     pairs.push(("Enter", "Open"));
     pairs.push(("N", "New"));
@@ -312,8 +311,7 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
     let mut pairs = Vec::new();
     if size > 1 {
         pairs.push(("0-9", "Jump"));
-        pairs.push(("K │ ↑", "Up"));
-        pairs.push(("J │ ↓", "Down"));
+        pairs.push(("J/K │ ↓/↑", "Down/Up"));
     }
     pairs.push(("Enter", "Confirm"));
     pairs
