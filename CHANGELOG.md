@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1-alpha] - 2024-12-03
+
+### Fixed
+- Prevent overwriting existing files by enforcing unique file names.
+
+### Added
+- Display reason for invalid input in status bar.
+
 ## [2.0.0-alpha] - 2024-11-24
 
 ### Added

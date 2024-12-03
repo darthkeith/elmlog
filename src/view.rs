@@ -25,7 +25,9 @@ use crate::{
     io::LoadState,
     model::{
         Choice,
+        FileNameStatus,
         InputAction,
+        InputState,
         Mode,
         Model,
         SessionState,
@@ -255,10 +257,26 @@ fn status_bar(model: &Model) -> Line {
                 status.push(n.to_string().set_style(style::NUMBER));
             }
         }
-        Mode::Input(state) => match state.action {
-            InputAction::Insert => status.push("Enter new item.".into()),
-            InputAction::Edit(_) => status.push("Edit item.".into()),
-            InputAction::Save => status.push("Enter a file name.".into()),
+        Mode::Input(input_state) => match &input_state.action {
+            InputAction::Insert => match input_state.input.is_empty() {
+                true => status.push("Enter new item | [Empty]".into()),
+                false => status.push("Enter new item".into()),
+            }
+            InputAction::Edit(_) => match input_state.input.is_empty() {
+                true => status.push("Edit item | [Empty]".into()),
+                false => status.push("Edit item".into()),
+            }
+            InputAction::Save(file_name_status) => match file_name_status {
+                FileNameStatus::Empty => {
+                    status.push("Enter file name | [Empty]".into())
+                }
+                FileNameStatus::Exists => {
+                    status.push("Enter file name | [File Exists]".into())
+                }
+                FileNameStatus::Unique => {
+                    status.push("Enter file name".into())
+                }
+            }
         }
         Mode::Select(index) => {
             status.push("Selected index: ".into());
@@ -299,10 +317,11 @@ fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
 }
 
 // Return the input mode key-command pairs.
-fn input_mode_commands(empty: bool) -> Vec<(&'static str, &'static str)> {
-    match empty {
-        true => Vec::new(),
-        false => vec![("Enter", "Submit")],
+fn input_mode_commands(input_state: &InputState) -> Vec<(&'static str, &'static str)> {
+    if input_state.is_valid() {
+        vec![("Enter", "Submit")]
+    } else {
+        Vec::new()
     }
 }
 
@@ -336,9 +355,7 @@ fn command_bar(model: &Model) -> Line {
     let mut pairs = match &model.mode {
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
         Mode::Normal => normal_mode_commands(&model.state.heap),
-        Mode::Input(input_state) => {
-            input_mode_commands(input_state.input.is_empty())
-        }
+        Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Select(_) => select_mode_commands(model.state.heap.size()),
         Mode::Selected(_) => vec![
             ("E", "Edit"),

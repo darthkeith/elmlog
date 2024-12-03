@@ -146,6 +146,12 @@ pub fn init_session_state(path: PathBuf) -> SessionState {
     SessionState { heap, maybe_file: Some(open_file) }
 }
 
+/// Check whether `file_name` exists in the app directory.
+pub fn file_name_exists(file_name: &str) -> bool {
+    let path = app_dir_path().join(file_name);
+    path.exists()
+}
+
 // Return the Heap and data file path (if present) from the session state.
 // The File is dropped to unlock it.
 fn unlock_state(state: SessionState) -> (Heap, Option<PathBuf>) {

@@ -97,14 +97,14 @@ fn to_normal_msg(key: KeyCode) -> Message {
 }
 
 // Map a `key` to a Message in Input mode.
-fn to_input_msg(key: KeyCode, state: InputState) -> Message {
+fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
     let input_msg = match key {
         KeyCode::Char(c) => InputMsg::Append(c),
         KeyCode::Backspace => InputMsg::PopChar,
-        KeyCode::Enter if !state.input.is_empty() => InputMsg::Submit,
-        _ => return default(key, Mode::Input(state)),
+        KeyCode::Enter => InputMsg::Submit,
+        _ => return default(key, Mode::Input(input_state)),
     };
-    Message::Input(input_msg, state)
+    Message::Input(input_msg, input_state)
 }
 
 // Map a `key` to a Message in Select mode.

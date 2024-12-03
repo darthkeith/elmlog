@@ -20,16 +20,6 @@ use crate::{
     },
 };
 
-// Trim the `input` string and return the result if non-empty.
-fn trim_input(input: String) -> Option<String> {
-    let trimmed = input.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
 // Append a digit to `index` if valid, otherwise return a fallback value.
 fn append_index(index: usize, c: char, heap_size: usize) -> usize {
     if !c.is_ascii_digit() {
@@ -72,13 +62,7 @@ fn update_load(
 // Return the next Model based on a message sent in Normal mode.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
     let mode = match msg {
-        NormalMsg::StartInput => {
-            let input_state = InputState {
-                input: String::new(),
-                action: InputAction::Insert,
-            };
-            Mode::Input(input_state)
-        }
+        NormalMsg::StartInput => Mode::Input(InputState::new_insert()),
         NormalMsg::StartSelect => {
             match state.heap.size() > 0 {
                 true => Mode::Select(0),
@@ -104,38 +88,29 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
 // Return the next Model based on a message sent in Input mode.
 fn update_input(
     msg: InputMsg,
-    mut input_state: InputState,
+    input_state: InputState,
     mut state: SessionState,
 ) -> Option<Model> {
     let mode = match msg {
-        InputMsg::Append(c) => {
-            if !(input_state.input.is_empty() && c == ' ') {
-                input_state.input.push(c);
-            }
-            Mode::Input(input_state)
-        }
-        InputMsg::PopChar => {
-            input_state.input.pop();
-            Mode::Input(input_state)
-        }
+        InputMsg::Append(c) => Mode::Input(input_state.append(c)),
+        InputMsg::PopChar => Mode::Input(input_state.pop()),
         InputMsg::Submit => {
-            let InputState { input, action } = input_state;
-            if let Some(text) = trim_input(input) {
-                match action {
-                    InputAction::Insert => {
-                        state.heap = state.heap.prepend(text);
-                    }
-                    InputAction::Edit(index) => {
-                        state.heap.set_label(index, text);
-                    }
-                    InputAction::Save => {
+            let input_state = input_state.update_status();
+            if input_state.is_valid() {
+                let InputState { input, action } = input_state;
+                let text = input.trim().to_string();
+                state = match action {
+                    InputAction::Insert => state.insert(text),
+                    InputAction::Edit(index) => state.edit(index, text),
+                    InputAction::Save(_) => {
                         io::save_new(state.heap, text);
                         return None;
                     }
-                }
-                state.set_changed();
+                };
+                Mode::Normal
+            } else {
+                Mode::Input(input_state)
             }
-            Mode::Normal
         }
     };
     Some(Model { state, mode })
@@ -173,15 +148,12 @@ fn update_selected(
 ) -> Model {
     let mode = match msg {
         SelectedMsg::Edit => {
-            let input_state = InputState {
-                input: state.heap.label_at(index).to_string(),
-                action: InputAction::Edit(index),
-            };
+            let text = state.heap.label_at(index).to_string();
+            let input_state = InputState::new_edit(text, index);
             Mode::Input(input_state)
         }
         SelectedMsg::Delete => {
-            state.heap = state.heap.delete(index);
-            state.set_changed();
+            state = state.delete(index);
             Mode::Normal
         }
     };
@@ -201,8 +173,7 @@ fn update_compare(
             Mode::Compare(Choice { item1, item2, first_selected: toggled })
         }
         CompareMsg::Confirm => {
-            state.heap = state.heap.merge_pair(first_selected);
-            state.set_changed();
+            state = state.merge_pair(first_selected);
             Mode::Normal
         }
     };
@@ -220,10 +191,7 @@ fn update_quit(save: bool, state: SessionState) -> Option<Model> {
             None
         }
         None => {
-            let input_state = InputState {
-                input: String::new(),
-                action: InputAction::Save,
-            };
+            let input_state = InputState::new_save();
             let mode = Mode::Input(input_state);
             Some(Model { state, mode })
         }
