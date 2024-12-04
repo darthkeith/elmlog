@@ -1,8 +1,9 @@
+mod statusbar;
 mod style;
 
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Style, Styled, Stylize},
+    style::{Style, Styled},
     text::{Line, Span, Text},
     widgets::{
         block::Padding,
@@ -25,14 +26,14 @@ use crate::{
     io::LoadState,
     model::{
         Choice,
-        FileNameStatus,
-        InputAction,
         InputState,
         Mode,
         Model,
         SessionState,
     },
 };
+
+use self::statusbar::status_bar;
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
@@ -243,53 +244,53 @@ fn save_query(save: bool) -> Paragraph<'static> {
     style_main(Text::from(lines))
 }
 
-// Return the status bar widget based on the current `model`.
-fn status_bar(model: &Model) -> Line {
-    let mut status = vec![" ".into()];
-    match &model.mode {
-        Mode::Load(_) => status.push("Select file to open.".into()),
-        Mode::Normal => match model.state.heap.status() {
-            HeapStatus::Empty => status.push("Empty.".into()),
-            HeapStatus::SingleRoot => status.push("Item selected.".into()),
-            HeapStatus::MultiRoot(..) => {
-                status.push("Items to compare: ".into());
-                let n = model.state.heap.root_count();
-                status.push(n.to_string().set_style(style::NUMBER));
-            }
-        }
-        Mode::Input(input_state) => match &input_state.action {
-            InputAction::Insert => match input_state.input.is_empty() {
-                true => status.push("Enter new item | [Empty]".into()),
-                false => status.push("Enter new item".into()),
-            }
-            InputAction::Edit(_) => match input_state.input.is_empty() {
-                true => status.push("Edit item | [Empty]".into()),
-                false => status.push("Edit item".into()),
-            }
-            InputAction::Save(file_name_status) => match file_name_status {
-                FileNameStatus::Empty => {
-                    status.push("Enter file name | [Empty]".into())
-                }
-                FileNameStatus::Exists => {
-                    status.push("Enter file name | [File Exists]".into())
-                }
-                FileNameStatus::Unique => {
-                    status.push("Enter file name".into())
-                }
-            }
-        }
-        Mode::Select(index) => {
-            status.push("Selected index: ".into());
-            status.push(index.to_string().bold());
-        }
-        Mode::Selected(_) => status.push("Enter command.".into()),
-        Mode::Compare(_) => status.push("Select item to promote.".into()),
-        Mode::Save(_) => status.push("Save changes before quitting?".into()),
-    };
-    Line::from(status)
-        .left_aligned()
-        .set_style(style::ACCENT)
-}
+// // Return the status bar widget based on the current `model`.
+// fn status_bar(model: &Model) -> Line {
+//     let mut status = vec![" ".into()];
+//     match &model.mode {
+//         Mode::Load(_) => status.push("Select file to open.".into()),
+//         Mode::Normal => match model.state.heap.status() {
+//             HeapStatus::Empty => status.push("Empty.".into()),
+//             HeapStatus::SingleRoot => status.push("Item selected.".into()),
+//             HeapStatus::MultiRoot(..) => {
+//                 status.push("Items to compare: ".into());
+//                 let n = model.state.heap.root_count();
+//                 status.push(n.to_string().set_style(style::NUMBER));
+//             }
+//         }
+//         Mode::Input(input_state) => match &input_state.action {
+//             InputAction::Insert => match input_state.input.is_empty() {
+//                 true => status.push("Enter new item | [Empty]".into()),
+//                 false => status.push("Enter new item".into()),
+//             }
+//             InputAction::Edit(_) => match input_state.input.is_empty() {
+//                 true => status.push("Edit item | [Empty]".into()),
+//                 false => status.push("Edit item".into()),
+//             }
+//             InputAction::Save(file_name_status) => match file_name_status {
+//                 FileNameStatus::Empty => {
+//                     status.push("Enter file name | [Empty]".into())
+//                 }
+//                 FileNameStatus::Exists => {
+//                     status.push("Enter file name | [File Exists]".into())
+//                 }
+//                 FileNameStatus::Unique => {
+//                     status.push("Enter file name".into())
+//                 }
+//             }
+//         }
+//         Mode::Select(index) => {
+//             status.push("Selected index: ".into());
+//             status.push(index.to_string().bold());
+//         }
+//         Mode::Selected(_) => status.push("Enter command.".into()),
+//         Mode::Compare(_) => status.push("Select item to promote.".into()),
+//         Mode::Save(_) => status.push("Save changes before quitting?".into()),
+//     };
+//     Line::from(status)
+//         .left_aligned()
+//         .set_style(style::ACCENT)
+// }
 
 // Return the load mode key-command pairs.
 fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
