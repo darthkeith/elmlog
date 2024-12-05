@@ -7,7 +7,7 @@ use crate::{
 pub enum FileNameStatus {
     Empty,
     Exists,
-    Unique,
+    Valid,
 }
 
 /// Action to be performed with the user input string.
@@ -61,7 +61,7 @@ impl FileNameStatus {
         } else if io::file_name_exists(file_name) {
             FileNameStatus::Exists
         } else {
-            FileNameStatus::Unique
+            FileNameStatus::Valid
         }
     }
 }
@@ -106,7 +106,7 @@ impl InputState {
             return false;
         }
         match self.action {
-            InputAction::Save(FileNameStatus::Unique) => true,
+            InputAction::Save(FileNameStatus::Valid) => true,
             InputAction::Save(_) => false,
             _ => true
         }

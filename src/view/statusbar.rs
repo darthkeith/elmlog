@@ -92,7 +92,7 @@ pub fn status_bar(model: &Model) -> Line {
                 FileNameStatus::Exists => {
                     status_alert(input::FILENAME, alert::EXISTS)
                 }
-                FileNameStatus::Unique => status(input::FILENAME),
+                FileNameStatus::Valid => status(input::FILENAME),
             }
         }
         Mode::Select(index) => status_select(*index),
