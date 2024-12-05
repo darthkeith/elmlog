@@ -1,6 +1,6 @@
 use ratatui::{
     style::{Styled, Stylize},
-    text::Line,
+    text::{Line, Span},
 };
 
 use crate::{
@@ -14,51 +14,93 @@ use crate::{
     view::style
 };
 
+mod normal {
+    pub const EMPTY: &str = "Empty";
+    pub const SINGLE: &str = "Item selected";
+    pub const MULTI: &str = "Items to compare: ";
+}
+mod input {
+    pub const INSERT: &str = "Enter new item";
+    pub const EDIT: &str = "Edit item";
+    pub const FILENAME: &str = "Enter file name";
+}
+mod alert {
+    pub const EMPTY: &str = "Empty";
+    pub const EXISTS: &str = "File Exists";
+}
+const LOAD: &str = "Select file to open.";
+const SELECT: &str = "Selected index: ";
+const SELECTED: &str = "Enter command";
+const COMPARE: &str = "Select item to promote";
+const SAVE: &str = "Save changes before quitting?";
+
+fn add_indent(text: &str) -> String {
+    format!(" {}", text)
+}
+
+// Return a status bar Line with the given message.
+fn status(msg: &str) -> Line {
+    Line::from(add_indent(msg))
+}
+
+// Return a status bar Line with the given message and alert.
+fn status_alert<'a>(msg: &'a str, alert: &'a str) -> Line<'a> {
+    Line::from(format!(" {msg} | [{alert}]"))
+}
+
+// Return the status bar Line in Normal mode when there are `n` roots.
+fn status_normal_multi(n: usize) -> Line<'static> {
+    Line::from(vec![
+        add_indent(normal::MULTI).into(),
+        Span::styled(n.to_string(), style::NUMBER),
+    ])
+}
+
+// Return the status bar Line in Select mode with `index` selected.
+fn status_select(index: usize) -> Line<'static> {
+    Line::from(vec![
+        add_indent(SELECT).into(),
+        index.to_string().bold(),
+    ])
+}
+
 /// Return the status bar widget based on the `model`.
 pub fn status_bar(model: &Model) -> Line {
-    let mut status = vec![" ".into()];
     match &model.mode {
-        Mode::Load(_) => status.push("Select file to open.".into()),
+        Mode::Load(_) => status(LOAD),
         Mode::Normal => match model.state.heap.status() {
-            HeapStatus::Empty => status.push("Empty.".into()),
-            HeapStatus::SingleRoot => status.push("Item selected.".into()),
+            HeapStatus::Empty => status(normal::EMPTY),
+            HeapStatus::SingleRoot => status(normal::SINGLE),
             HeapStatus::MultiRoot(..) => {
-                status.push("Items to compare: ".into());
                 let n = model.state.heap.root_count();
-                status.push(n.to_string().set_style(style::NUMBER));
+                status_normal_multi(n)
             }
         }
         Mode::Input(input_state) => match &input_state.action {
             InputAction::Insert => match input_state.input.is_empty() {
-                true => status.push("Enter new item | [Empty]".into()),
-                false => status.push("Enter new item".into()),
+                true => status_alert(input::INSERT, alert::EMPTY),
+                false => status(input::INSERT),
             }
             InputAction::Edit(_) => match input_state.input.is_empty() {
-                true => status.push("Edit item | [Empty]".into()),
-                false => status.push("Edit item".into()),
+                true => status_alert(input::EDIT, alert::EMPTY),
+                false => status(input::EDIT),
             }
             InputAction::Save(file_name_status) => match file_name_status {
                 FileNameStatus::Empty => {
-                    status.push("Enter file name | [Empty]".into())
+                    status_alert(input::FILENAME, alert::EMPTY)
                 }
                 FileNameStatus::Exists => {
-                    status.push("Enter file name | [File Exists]".into())
+                    status_alert(input::FILENAME, alert::EXISTS)
                 }
-                FileNameStatus::Unique => {
-                    status.push("Enter file name".into())
-                }
+                FileNameStatus::Unique => status(input::FILENAME),
             }
         }
-        Mode::Select(index) => {
-            status.push("Selected index: ".into());
-            status.push(index.to_string().bold());
-        }
-        Mode::Selected(_) => status.push("Enter command.".into()),
-        Mode::Compare(_) => status.push("Select item to promote.".into()),
-        Mode::Save(_) => status.push("Save changes before quitting?".into()),
-    };
-    Line::from(status)
-        .left_aligned()
-        .set_style(style::ACCENT)
+        Mode::Select(index) => status_select(*index),
+        Mode::Selected(_) => status(SELECTED),
+        Mode::Compare(_) => status(COMPARE),
+        Mode::Save(_) => status(SAVE),
+    }
+    .left_aligned()
+    .set_style(style::ACCENT)
 }
 
