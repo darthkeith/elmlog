@@ -12,7 +12,7 @@ pub enum FileNameStatus {
 
 /// Action to be performed with the user input string.
 pub enum InputAction {
-    Insert,
+    Add,
     Edit(usize),
     Save(FileNameStatus),
 }
@@ -67,11 +67,11 @@ impl FileNameStatus {
 }
 
 impl InputState {
-    /// Create an `InputState` to insert an item.
-    pub fn new_insert() -> Self {
+    /// Create an `InputState` to add an item.
+    pub fn new_add() -> Self {
         InputState {
             input: String::new(),
-            action: InputAction::Insert,
+            action: InputAction::Add,
         }
     }
 
@@ -148,8 +148,8 @@ impl SessionState {
         }
     }
 
-    /// Insert `label` at the front of the heap.
-    pub fn insert(mut self, label: String) -> Self {
+    /// Add `label` at the front of the heap.
+    pub fn add(mut self, label: String) -> Self {
         self.heap = self.heap.prepend(label);
         self.set_changed();
         self

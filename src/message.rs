@@ -87,7 +87,7 @@ fn default(key: KeyCode, mode: Mode) -> Message {
 // Map a `key` to a Message in Normal mode.
 fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
-        KeyCode::Char('i') => NormalMsg::StartInput,
+        KeyCode::Char('a') => NormalMsg::StartInput,
         KeyCode::Char('s') => NormalMsg::StartSelect,
         KeyCode::Char('c') => NormalMsg::StartCompare,
         KeyCode::Char('q') => return Message::StartQuit,

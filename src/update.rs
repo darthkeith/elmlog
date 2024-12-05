@@ -62,7 +62,7 @@ fn update_load(
 // Return the next Model based on a message sent in Normal mode.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
     let mode = match msg {
-        NormalMsg::StartInput => Mode::Input(InputState::new_insert()),
+        NormalMsg::StartInput => Mode::Input(InputState::new_add()),
         NormalMsg::StartSelect => {
             match state.heap.size() > 0 {
                 true => Mode::Select(0),
@@ -100,7 +100,7 @@ fn update_input(
                 let InputState { input, action } = input_state;
                 let text = input.trim().to_string();
                 state = match action {
-                    InputAction::Insert => state.insert(text),
+                    InputAction::Add => state.add(text),
                     InputAction::Edit(index) => state.edit(index, text),
                     InputAction::Save(_) => {
                         io::save_new(state.heap, text);

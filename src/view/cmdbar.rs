@@ -23,7 +23,7 @@ const SUBMIT: (&str, &str) = ("Enter", "Submit");
 const CONFIRM: (&str, &str) = ("Enter", "Confirm");
 const NEW: (&str, &str) = ("N", "New");
 const QUIT: (&str, &str) = ("Q", "Quit");
-const INSERT: (&str, &str) = ("I", "Insert");
+const ADD: (&str, &str) = ("A", "Add");
 const SELECT: (&str, &str) = ("S", "Select");
 const COMPARE: (&str, &str) = ("C", "Compare");
 const EDIT: (&str, &str) = ("E", "Edit");
@@ -43,7 +43,7 @@ fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
 
 // Return the normal mode key-command pairs.
 fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
-    let mut pairs = vec![INSERT];
+    let mut pairs = vec![ADD];
     if heap.size() > 0 {
         pairs.push(SELECT);
         if let HeapStatus::MultiRoot(..) = heap.status() {

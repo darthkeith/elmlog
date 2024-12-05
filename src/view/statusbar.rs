@@ -20,7 +20,7 @@ mod normal {
     pub const MULTI: &str = "Items to compare: ";
 }
 mod input {
-    pub const INSERT: &str = "Enter new item";
+    pub const ADD: &str = "Enter new item";
     pub const EDIT: &str = "Edit item";
     pub const FILENAME: &str = "Enter file name";
 }
@@ -77,9 +77,9 @@ pub fn status_bar(model: &Model) -> Line {
             }
         }
         Mode::Input(input_state) => match &input_state.action {
-            InputAction::Insert => match input_state.input.is_empty() {
-                true => status_alert(input::INSERT, alert::EMPTY),
-                false => status(input::INSERT),
+            InputAction::Add => match input_state.input.is_empty() {
+                true => status_alert(input::ADD, alert::EMPTY),
+                false => status(input::ADD),
             }
             InputAction::Edit(_) => match input_state.input.is_empty() {
                 true => status_alert(input::EDIT, alert::EMPTY),
