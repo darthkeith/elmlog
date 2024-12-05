@@ -1,3 +1,4 @@
+mod cmdbar;
 mod statusbar;
 mod style;
 
@@ -26,7 +27,6 @@ use crate::{
     io::LoadState,
     model::{
         Choice,
-        InputState,
         Mode,
         Model,
         SessionState,
@@ -34,6 +34,7 @@ use crate::{
 };
 
 use self::statusbar::status_bar;
+use self::cmdbar::command_bar;
 
 // Represents a text block used for tree drawing.
 enum IndentBlock {
@@ -242,136 +243,6 @@ fn save_query(save: bool) -> Paragraph<'static> {
         ],
     };
     style_main(Text::from(lines))
-}
-
-// // Return the status bar widget based on the current `model`.
-// fn status_bar(model: &Model) -> Line {
-//     let mut status = vec![" ".into()];
-//     match &model.mode {
-//         Mode::Load(_) => status.push("Select file to open.".into()),
-//         Mode::Normal => match model.state.heap.status() {
-//             HeapStatus::Empty => status.push("Empty.".into()),
-//             HeapStatus::SingleRoot => status.push("Item selected.".into()),
-//             HeapStatus::MultiRoot(..) => {
-//                 status.push("Items to compare: ".into());
-//                 let n = model.state.heap.root_count();
-//                 status.push(n.to_string().set_style(style::NUMBER));
-//             }
-//         }
-//         Mode::Input(input_state) => match &input_state.action {
-//             InputAction::Insert => match input_state.input.is_empty() {
-//                 true => status.push("Enter new item | [Empty]".into()),
-//                 false => status.push("Enter new item".into()),
-//             }
-//             InputAction::Edit(_) => match input_state.input.is_empty() {
-//                 true => status.push("Edit item | [Empty]".into()),
-//                 false => status.push("Edit item".into()),
-//             }
-//             InputAction::Save(file_name_status) => match file_name_status {
-//                 FileNameStatus::Empty => {
-//                     status.push("Enter file name | [Empty]".into())
-//                 }
-//                 FileNameStatus::Exists => {
-//                     status.push("Enter file name | [File Exists]".into())
-//                 }
-//                 FileNameStatus::Unique => {
-//                     status.push("Enter file name".into())
-//                 }
-//             }
-//         }
-//         Mode::Select(index) => {
-//             status.push("Selected index: ".into());
-//             status.push(index.to_string().bold());
-//         }
-//         Mode::Selected(_) => status.push("Enter command.".into()),
-//         Mode::Compare(_) => status.push("Select item to promote.".into()),
-//         Mode::Save(_) => status.push("Save changes before quitting?".into()),
-//     };
-//     Line::from(status)
-//         .left_aligned()
-//         .set_style(style::ACCENT)
-// }
-
-// Return the load mode key-command pairs.
-fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
-    let mut pairs = Vec::new();
-    if file_count > 1 {
-        pairs.push(("J/K │ ↓/↑", "Down/Up"));
-    }
-    pairs.push(("Enter", "Open"));
-    pairs.push(("N", "New"));
-    pairs.push(("Q", "Quit"));
-    pairs
-}
-
-// Return the normal mode key-command pairs.
-fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
-    let mut pairs = vec![("I", "Insert")];
-    if heap.size() > 0 {
-        pairs.push(("S", "Select"));
-        if let HeapStatus::MultiRoot(..) = heap.status() {
-            pairs.push(("C", "Compare"));
-        }
-    }
-    pairs.push(("Q", "Quit"));
-    pairs
-}
-
-// Return the input mode key-command pairs.
-fn input_mode_commands(input_state: &InputState) -> Vec<(&'static str, &'static str)> {
-    if input_state.is_valid() {
-        vec![("Enter", "Submit")]
-    } else {
-        Vec::new()
-    }
-}
-
-// Return the select mode key-command pairs.
-fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
-    let mut pairs = Vec::new();
-    if size > 1 {
-        pairs.push(("0-9", "Jump"));
-        pairs.push(("J/K │ ↓/↑", "Down/Up"));
-    }
-    pairs.push(("Enter", "Confirm"));
-    pairs
-}
-
-// Convert key-command pairs into a command bar.
-fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
-    let mut text_spans = Vec::new();
-    for (key, command) in pairs {
-        text_spans.push(format!(" {key} ").set_style(style::CMD_KEY));
-        text_spans.push(format!(" {command}").set_style(style::CMD_NAME));
-        text_spans.push("    ".into());
-    }
-    text_spans.pop();  // Remove extra spacer at end
-    Line::from(text_spans)
-        .centered()
-        .set_style(style::DEFAULT)
-}
-
-// Return the command bar widget based on the current `model`.
-fn command_bar(model: &Model) -> Line {
-    let mut pairs = match &model.mode {
-        Mode::Load(load_state) => load_mode_commands(load_state.size()),
-        Mode::Normal => normal_mode_commands(&model.state.heap),
-        Mode::Input(input_state) => input_mode_commands(input_state),
-        Mode::Select(_) => select_mode_commands(model.state.heap.size()),
-        Mode::Selected(_) => vec![
-            ("E", "Edit"),
-            ("D", "Delete"),
-        ],
-        Mode::Compare(_) | Mode::Save(_) => vec![
-            ("Space", "Toggle"),
-            ("Enter", "Confirm"),
-        ],
-    };
-    match &model.mode {
-        Mode::Load(_) | Mode::Normal => (),
-        _ => pairs.push(("Esc", "Cancel")),
-    }
-    to_command_bar(pairs)
 }
 
 /// Render the UI on the `frame` based on the current `model`.
