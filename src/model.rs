@@ -10,19 +10,6 @@ pub enum FileNameStatus {
     Unique,
 }
 
-impl FileNameStatus {
-    // Check the status of the given file name.
-    fn check(file_name: &str) -> Self {
-        if file_name.is_empty() {
-            FileNameStatus::Empty
-        } else if io::file_name_exists(file_name) {
-            FileNameStatus::Exists
-        } else {
-            FileNameStatus::Unique
-        }
-    }
-}
-
 /// Action to be performed with the user input string.
 pub enum InputAction {
     Insert,
@@ -34,6 +21,49 @@ pub enum InputAction {
 pub struct InputState {
     pub input: String,
     pub action: InputAction,
+}
+
+/// A choice between two items.
+pub struct Choice {
+    pub item1: String,
+    pub item2: String,
+    pub first_selected: bool,
+}
+
+/// Operational modes of the application.
+pub enum Mode {
+    Load(LoadState),
+    Normal,
+    Input(InputState),
+    Select(usize),
+    Selected(usize),
+    Compare(Choice),
+    Save(bool),
+}
+
+/// State that is persistent across modes within a given session.
+pub struct SessionState {
+    pub heap: Heap,
+    pub maybe_file: Option<OpenDataFile>,
+}
+
+/// State of the entire application.
+pub struct Model {
+    pub state: SessionState,
+    pub mode: Mode,
+}
+
+impl FileNameStatus {
+    // Check the status of the given file name.
+    fn check(file_name: &str) -> Self {
+        if file_name.is_empty() {
+            FileNameStatus::Empty
+        } else if io::file_name_exists(file_name) {
+            FileNameStatus::Exists
+        } else {
+            FileNameStatus::Unique
+        }
+    }
 }
 
 impl InputState {
@@ -102,30 +132,6 @@ impl InputState {
     }
 }
 
-/// A choice between two items.
-pub struct Choice {
-    pub item1: String,
-    pub item2: String,
-    pub first_selected: bool,
-}
-
-/// Operational modes of the application.
-pub enum Mode {
-    Load(LoadState),
-    Normal,
-    Input(InputState),
-    Select(usize),
-    Selected(usize),
-    Compare(Choice),
-    Save(bool),
-}
-
-/// State that is persistent across modes within a given session.
-pub struct SessionState {
-    pub heap: Heap,
-    pub maybe_file: Option<OpenDataFile>,
-}
-
 impl SessionState {
     /// Return whether data was changed in the current session.
     pub fn is_changed(&self) -> bool {
@@ -169,12 +175,6 @@ impl SessionState {
         self.set_changed();
         self
     }
-}
-
-/// State of the entire application.
-pub struct Model {
-    pub state: SessionState,
-    pub mode: Mode,
 }
 
 impl Model {
