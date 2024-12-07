@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::Read,
+    io::{Read, Result},
     path::{Path, PathBuf},
 };
 
@@ -56,7 +56,7 @@ impl LoadState {
     }
 
     /// Iterator of file names with a boolean for whether the file is selected.
-    pub fn get_file_names(&self) -> impl Iterator<Item = (&str, bool)> {
+    pub fn get_filenames(&self) -> impl Iterator<Item = (&str, bool)> {
         self.files
             .iter()
             .map(|f| f.name.as_str())
@@ -146,9 +146,9 @@ pub fn init_session_state(path: PathBuf) -> SessionState {
     SessionState { heap, maybe_file: Some(open_file) }
 }
 
-/// Check whether `file_name` exists in the app directory.
-pub fn file_name_exists(file_name: &str) -> bool {
-    let path = app_dir_path().join(file_name);
+/// Check whether `filename` exists in the app directory.
+pub fn filename_exists(filename: &str) -> bool {
+    let path = app_dir_path().join(filename);
     path.exists()
 }
 
@@ -173,8 +173,8 @@ fn set_read_only(path: &Path, read_only: bool) {
         .expect("Failed to set file permissions");
 }
 
-// Write the `heap` to an existing file at the given `path`.
-fn write_to_file(heap: Heap, path: &Path) {
+// Write the `heap` to an existing file at `path`.
+fn write_to_file(heap: &Heap, path: &Path) {
     set_read_only(path, false);
     let file = OpenOptions::new()
         .write(true)
@@ -182,7 +182,7 @@ fn write_to_file(heap: Heap, path: &Path) {
         .open(path)
         .expect("Failed to write to file");
     lock(&file);
-    bincode::serialize_into(&file, &heap)
+    bincode::serialize_into(&file, heap)
         .expect("Failed to serialize data");
     set_read_only(path, true);
 }
@@ -191,17 +191,17 @@ fn write_to_file(heap: Heap, path: &Path) {
 pub fn save(state: SessionState) {
     let (heap, maybe_path) = unlock_state(state);
     if let Some(path) = maybe_path {
-        write_to_file(heap, &path);
+        write_to_file(&heap, &path);
     }
 }
 
-/// Save the `heap` with the given `file_name`.
+/// Save the `heap` with the `filename`.
 ///
-/// The file name is assumed to be unique and valid.
-pub fn save_new(heap: Heap, file_name: String) {
-    let path = app_dir_path().join(file_name);
-    File::create_new(&path)
-        .expect("Failed to create file");
+/// Return an error if the file cannot be created.
+pub fn save_new(heap: &Heap, filename: String) -> Result<()> {
+    let path = app_dir_path().join(filename);
+    File::create_new(&path)?;
     write_to_file(heap, &path);
+    Ok(())
 }
 

@@ -7,6 +7,7 @@ use crate::{
 pub enum FileNameStatus {
     Empty,
     Exists,
+    Invalid,
     Valid,
 }
 
@@ -55,10 +56,10 @@ pub struct Model {
 
 impl FileNameStatus {
     // Check the status of the given file name.
-    fn check(file_name: &str) -> Self {
-        if file_name.is_empty() {
+    fn check(filename: &str) -> Self {
+        if filename.is_empty() {
             FileNameStatus::Empty
-        } else if io::file_name_exists(file_name) {
+        } else if io::filename_exists(filename) {
             FileNameStatus::Exists
         } else {
             FileNameStatus::Valid
@@ -128,6 +129,14 @@ impl InputState {
             self.update_status()
         } else {
             self
+        }
+    }
+
+    /// Return an `InputState` for saving with the invalid `filename`.
+    pub fn invalid(filename: String) -> Self {
+        InputState {
+            input: filename,
+            action: InputAction::Save(FileNameStatus::Invalid),
         }
     }
 }

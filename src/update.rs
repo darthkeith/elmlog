@@ -99,15 +99,25 @@ fn update_input(
             if input_state.is_valid() {
                 let InputState { input, action } = input_state;
                 let text = input.trim().to_string();
-                state = match action {
-                    InputAction::Add => state.add(text),
-                    InputAction::Edit(index) => state.edit(index, text),
-                    InputAction::Save(_) => {
-                        io::save_new(state.heap, text);
-                        return None;
+                match action {
+                    InputAction::Add => {
+                        state = state.add(text);
+                        Mode::Normal
                     }
-                };
-                Mode::Normal
+                    InputAction::Edit(index) => {
+                        state = state.edit(index, text);
+                        Mode::Normal
+                    }
+                    InputAction::Save(_) => {
+                        match io::save_new(&state.heap, text) {
+                            Ok(()) => return None,
+                            Err(_) => {
+                                let input_state = InputState::invalid(input);
+                                Mode::Input(input_state)
+                            }
+                        }
+                    }
+                }
             } else {
                 Mode::Input(input_state)
             }

@@ -1,9 +1,14 @@
 # Changelog
 
+## [2.0.2-alpha] - 2024-12-06
+
+### Fixed
+- Prevent crash when attempting to save invalid filename.
+
 ## [2.0.1-alpha] - 2024-12-03
 
 ### Fixed
-- Prevent overwriting existing files by enforcing unique file names.
+- Prevent overwriting existing files by enforcing unique filenames.
 
 ### Added
 - Display reason for invalid input in status bar.
@@ -13,7 +18,7 @@
 ### Added
 - Support for saving multiple files.
 - Display load screen on launch to allow file selection.
-- Prompt the user to enter a file name when quitting an unsaved project.
+- Prompt the user to enter a filename when quitting an unsaved project.
 
 ## [1.3.0-alpha] - 2024-11-07
 

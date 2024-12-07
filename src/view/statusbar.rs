@@ -27,6 +27,7 @@ mod input {
 mod alert {
     pub const EMPTY: &str = "Empty";
     pub const EXISTS: &str = "File Exists";
+    pub const INVALID: &str = "Invalid Filename";
 }
 const LOAD: &str = "Select file to open.";
 const SELECT: &str = "Selected index: ";
@@ -85,12 +86,15 @@ pub fn status_bar(model: &Model) -> Line {
                 true => status_alert(input::EDIT, alert::EMPTY),
                 false => status(input::EDIT),
             }
-            InputAction::Save(file_name_status) => match file_name_status {
+            InputAction::Save(filename_status) => match filename_status {
                 FileNameStatus::Empty => {
                     status_alert(input::FILENAME, alert::EMPTY)
                 }
                 FileNameStatus::Exists => {
                     status_alert(input::FILENAME, alert::EXISTS)
+                }
+                FileNameStatus::Invalid => {
+                    status_alert(input::FILENAME, alert::INVALID)
                 }
                 FileNameStatus::Valid => status(input::FILENAME),
             }

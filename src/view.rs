@@ -50,12 +50,12 @@ pub fn style_main(text: Text) -> Paragraph {
 
 // Return the load widget.
 fn load(load_state: &LoadState) -> Paragraph {
-    let lines = load_state.get_file_names()
-        .map(|(file_name, highlight)| {
+    let lines = load_state.get_filenames()
+        .map(|(filename, highlight)| {
             if highlight {
-                Line::styled(format!(" {file_name} "), style::DEFAULT_HL)
+                Line::styled(format!(" {filename} "), style::DEFAULT_HL)
             } else {
-                Line::from(file_name)
+                Line::from(filename)
             }
         });
     style_main(Text::from_iter(lines))
