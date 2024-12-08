@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.0-alpha] - 2024-12-07
+
+### Added
+- Delete files during file selection.
+
 ## [2.0.2-alpha] - 2024-12-06
 
 ### Fixed

@@ -25,6 +25,15 @@ pub struct LoadState {
     index: usize,
 }
 
+/// A file locked for exclusive data access.
+///
+/// The File is only stored to keep the lock active.
+pub struct OpenDataFile {
+    path: PathBuf,
+    _file: File,
+    changed: bool,
+}
+
 impl LoadState {
     /// Return the path at the current `index`.
     pub fn get_path(&self) -> PathBuf {
@@ -68,15 +77,22 @@ impl LoadState {
     pub fn size(&self) -> usize {
         self.files.len()
     }
-}
 
-/// A file locked for exclusive data access.
-///
-/// The File is only stored to keep the lock active.
-pub struct OpenDataFile {
-    path: PathBuf,
-    _file: File,
-    changed: bool,
+    /// Delete the currently selected file and remove it from the list.
+    ///
+    /// Return None if there are no files left.
+    pub fn delete(mut self) -> Option<Self> {
+        let entry = self.files.remove(self.index);
+        fs::remove_file(entry.path)
+            .expect("Failed to delete file");
+        if self.files.is_empty() {
+            return None;
+        }
+        if self.index == self.files.len() {
+            self.index -= 1;
+        }
+        Some(self)
+    }
 }
 
 impl OpenDataFile {

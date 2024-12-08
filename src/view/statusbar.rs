@@ -29,7 +29,7 @@ mod alert {
     pub const EXISTS: &str = "File Exists";
     pub const INVALID: &str = "Invalid Filename";
 }
-const LOAD: &str = "Select file to open.";
+const LOAD: &str = "Open a file or start a new session";
 const SELECT: &str = "Selected index: ";
 const SELECTED: &str = "Enter command";
 const COMPARE: &str = "Select item to promote";

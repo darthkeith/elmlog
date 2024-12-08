@@ -45,7 +45,6 @@ fn update_load(
     state: SessionState
 ) -> Model {
     let mode = match msg {
-        LoadMsg::New => Mode::Normal,
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {
@@ -54,6 +53,11 @@ fn update_load(
                 state: io::init_session_state(path),
                 mode: Mode::Normal,
             };
+        }
+        LoadMsg::New => Mode::Normal,
+        LoadMsg::Delete => match load_state.delete() {
+            Some(load_state) => Mode::Load(load_state),
+            None => Mode::Normal,
         }
     };
     Model { state, mode }

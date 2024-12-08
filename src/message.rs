@@ -13,6 +13,7 @@ pub enum LoadMsg {
     Increment,
     Open,
     New,
+    Delete,
 }
 
 // A message sent in Normal mode.
@@ -70,6 +71,7 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
         KeyCode::Char('j') | KeyCode::Down => LoadMsg::Increment,
         KeyCode::Enter => LoadMsg::Open,
         KeyCode::Char('n') => LoadMsg::New,
+        KeyCode::Char('d') => LoadMsg::Delete,
         KeyCode::Char('q') => return Message::Quit(false),
         _ => return Message::Continue(Mode::Load(load_state)),
     };

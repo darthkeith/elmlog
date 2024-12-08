@@ -37,7 +37,7 @@ fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
     if file_count > 1 {
         pairs.push(DOWN_UP);
     }
-    pairs.extend(&[OPEN, NEW, QUIT]);
+    pairs.extend(&[OPEN, NEW, DELETE, QUIT]);
     pairs
 }
 
