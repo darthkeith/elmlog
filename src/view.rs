@@ -20,7 +20,7 @@ use ratatui::{
 use crate::{
     io::LoadState,
     model::{
-        Choice,
+        CompareState,
         Mode,
         Model,
         SessionState,
@@ -73,11 +73,11 @@ fn text_input(input: &str) -> Paragraph {
 }
 
 // Return the compare widget given a choice between two items.
-fn compare<'a>(choice: &Choice) -> Paragraph<'a> {
-    let Choice { item1, item2, first_selected } = choice;
+fn compare<'a>(cmp_state: &CompareState) -> Paragraph<'a> {
+    let CompareState { item1, item2, first } = cmp_state;
     let line1 = Line::from(format!(" {item1} "));
     let line2 = Line::from(format!(" {item2} "));
-    let lines = match first_selected {
+    let lines = match first {
         true => vec![
             line1.set_style(style::DEFAULT_HL),
             line2,

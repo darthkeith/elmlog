@@ -12,7 +12,7 @@ use crate::{
         SelectMsg,
     },
     model::{
-        Choice,
+        CompareState,
         InputAction,
         InputState,
         Mode,
@@ -81,10 +81,10 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Option<Model> {
         NormalMsg::StartCompare => {
             match state.heap.status() {
                 HeapStatus::MultiRoot(item1, item2) => Mode::Compare(
-                    Choice {
+                    CompareState {
                         item1: item1.to_string(),
                         item2: item2.to_string(),
-                        first_selected: true,
+                        first: true,
                     }
                 ),
                 _ => Mode::Normal,
@@ -202,17 +202,16 @@ fn update_selected(
 // Return the next Model based on a message sent in Compare mode.
 fn update_compare(
     msg: CompareMsg,
-    choice: Choice,
+    cmp_state: CompareState,
     mut state: SessionState,
 ) -> Model {
-    let Choice { item1, item2, first_selected } = choice;
+    let CompareState { item1, item2, first } = cmp_state;
     let mode = match msg {
         CompareMsg::Toggle => {
-            let toggled = !first_selected;
-            Mode::Compare(Choice { item1, item2, first_selected: toggled })
+            Mode::Compare(CompareState { item1, item2, first: !first })
         }
         CompareMsg::Confirm => {
-            state = state.merge_pair(first_selected);
+            state = state.merge_pair(first);
             Mode::Normal
         }
     };

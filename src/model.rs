@@ -30,11 +30,11 @@ pub struct InputState {
     pub action: InputAction,
 }
 
-/// A choice between two items.
-pub struct Choice {
+/// A choice between two items with one selected.
+pub struct CompareState {
     pub item1: String,
     pub item2: String,
-    pub first_selected: bool,
+    pub first: bool,
 }
 
 /// User's current save choice and subsequent action.
@@ -50,7 +50,7 @@ pub enum Mode {
     Input(InputState),
     Select(usize),
     Selected(usize),
-    Compare(Choice),
+    Compare(CompareState),
     Save(SaveState),
 }
 

@@ -5,7 +5,7 @@ use crossterm::event::{self, KeyCode, KeyEventKind};
 use crate::{
     io::LoadState,
     model::{
-        Choice,
+        CompareState,
         InputState,
         Mode,
         SaveState,
@@ -71,7 +71,7 @@ pub enum Message {
     Input(InputMsg, InputState),
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
-    Compare(CompareMsg, Choice),
+    Compare(CompareMsg, CompareState),
     Save(SaveMsg, SaveState),
     Continue(Mode),
 }
@@ -149,13 +149,13 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
 }
 
 // Map a `key` to a Message in Compare mode.
-fn to_compare_msg(key: KeyCode, choice: Choice) -> Message {
+fn to_compare_msg(key: KeyCode, cmp_state: CompareState) -> Message {
     let compare_msg = match key {
         KeyCode::Char(' ') => CompareMsg::Toggle,
         KeyCode::Enter => CompareMsg::Confirm,
-        _ => return default(key, Mode::Compare(choice)),
+        _ => return default(key, Mode::Compare(cmp_state)),
     };
-    Message::Compare(compare_msg, choice)
+    Message::Compare(compare_msg, cmp_state)
 }
 
 // Map a `key` to a Message in Save mode.
