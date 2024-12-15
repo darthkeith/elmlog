@@ -16,24 +16,26 @@ use crate::{
     view::style,
 };
 
-const JUMP: (&str, &str) = ("0-9", "Jump");
-const DOWN_UP: (&str, &str) = ("J/K │ ↓/↑", "Down/Up");
-const OPEN: (&str, &str) = ("Enter", "Open");
-const SUBMIT: (&str, &str) = ("Enter", "Submit");
-const CONFIRM: (&str, &str) = ("Enter", "Confirm");
-const NEW: (&str, &str) = ("N", "New");
-const LOAD: (&str, &str) = ("L", "Load");
-const QUIT: (&str, &str) = ("Q", "Quit");
-const ADD: (&str, &str) = ("A", "Add");
-const SELECT: (&str, &str) = ("S", "Select");
-const COMPARE: (&str, &str) = ("C", "Compare");
-const EDIT: (&str, &str) = ("E", "Edit");
-const DELETE: (&str, &str) = ("D", "Delete");
-const TOGGLE: (&str, &str) = ("Space", "Toggle");
-const CANCEL: (&str, &str) = ("Esc", "Cancel");
+type KeyPair<'a> = (&'a str, &'a str);
+
+const JUMP: KeyPair = ("0-9", "Jump");
+const DOWN_UP: KeyPair = ("J/K │ ↓/↑", "Down/Up");
+const OPEN: KeyPair = ("Enter", "Open");
+const SUBMIT: KeyPair = ("Enter", "Submit");
+const CONFIRM: KeyPair = ("Enter", "Confirm");
+const NEW: KeyPair = ("N", "New");
+const LOAD: KeyPair = ("L", "Load");
+const QUIT: KeyPair = ("Q", "Quit");
+const ADD: KeyPair = ("A", "Add");
+const SELECT: KeyPair = ("S", "Select");
+const COMPARE: KeyPair = ("C", "Compare");
+const EDIT: KeyPair = ("E", "Edit");
+const DELETE: KeyPair = ("D", "Delete");
+const TOGGLE: KeyPair = ("Space", "Toggle");
+const CANCEL: KeyPair = ("Esc", "Cancel");
 
 // Return the load mode key-command pairs.
-fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
+fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if file_count > 1 {
         pairs.push(DOWN_UP);
@@ -43,7 +45,7 @@ fn load_mode_commands(file_count: usize) -> Vec<(&'static str, &'static str)> {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
+fn normal_mode_commands(heap: &Heap) -> Vec<KeyPair> {
     let mut pairs = vec![ADD];
     if heap.size() > 0 {
         pairs.push(SELECT);
@@ -56,7 +58,7 @@ fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
 }
 
 // Return the input mode key-command pairs.
-fn input_mode_commands(input_state: &InputState) -> Vec<(&'static str, &'static str)> {
+fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
     if input_state.is_valid() {
         vec![SUBMIT]
     } else {
@@ -65,7 +67,7 @@ fn input_mode_commands(input_state: &InputState) -> Vec<(&'static str, &'static 
 }
 
 // Return the select mode key-command pairs.
-fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
+fn select_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
@@ -75,7 +77,7 @@ fn select_mode_commands(size: usize) -> Vec<(&'static str, &'static str)> {
 }
 
 // Convert key-command pairs into a command bar.
-fn to_command_bar<'a>(pairs: Vec<(&'a str, &'a str)>) -> Line<'a> {
+fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
     let mut spans = Vec::new();
     for (key, command) in pairs {
         spans.push(format!(" {key} ").set_style(style::CMD_KEY));
