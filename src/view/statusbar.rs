@@ -10,6 +10,7 @@ use crate::{
         InputAction,
         Mode,
         Model,
+        SaveAction,
     },
     view::style
 };
@@ -29,24 +30,28 @@ mod alert {
     pub const EXISTS: &str = "File Exists";
     pub const INVALID: &str = "Invalid Filename";
 }
+mod action {
+    pub const LOAD: &str = "Loading";
+    pub const QUIT: &str = "Quitting";
+}
 const LOAD: &str = "Open a file or start a new session";
 const SELECT: &str = "Selected index: ";
 const SELECTED: &str = "Enter command";
 const COMPARE: &str = "Select item to promote";
-const SAVE: &str = "Save changes before quitting?";
+const SAVE: &str = "Save changes?";
 
 fn add_indent(text: &str) -> String {
     format!(" {}", text)
 }
 
-// Return a status bar Line with the given message.
-fn status(msg: &str) -> Line {
-    Line::from(add_indent(msg))
+// Return a status bar Line with the `message`.
+fn status(message: &str) -> Line {
+    Line::from(add_indent(message))
 }
 
-// Return a status bar Line with the given message and alert.
-fn status_alert<'a>(msg: &'a str, alert: &'a str) -> Line<'a> {
-    Line::from(format!(" {msg} | [{alert}]"))
+// Return a status bar Line with the `message` and additional `info`.
+fn status_info<'a>(message: &'a str, info: &'a str) -> Line<'a> {
+    Line::from(format!(" {message} | [{info}]"))
 }
 
 // Return the status bar Line in Normal mode when there are `n` roots.
@@ -79,22 +84,22 @@ pub fn status_bar(model: &Model) -> Line {
         }
         Mode::Input(input_state) => match &input_state.action {
             InputAction::Add => match input_state.input.is_empty() {
-                true => status_alert(input::ADD, alert::EMPTY),
+                true => status_info(input::ADD, alert::EMPTY),
                 false => status(input::ADD),
             }
             InputAction::Edit(_) => match input_state.input.is_empty() {
-                true => status_alert(input::EDIT, alert::EMPTY),
+                true => status_info(input::EDIT, alert::EMPTY),
                 false => status(input::EDIT),
             }
-            InputAction::Save(filename_status) => match filename_status {
+            InputAction::Save(filename_status, _) => match filename_status {
                 FileNameStatus::Empty => {
-                    status_alert(input::FILENAME, alert::EMPTY)
+                    status_info(input::FILENAME, alert::EMPTY)
                 }
                 FileNameStatus::Exists => {
-                    status_alert(input::FILENAME, alert::EXISTS)
+                    status_info(input::FILENAME, alert::EXISTS)
                 }
                 FileNameStatus::Invalid => {
-                    status_alert(input::FILENAME, alert::INVALID)
+                    status_info(input::FILENAME, alert::INVALID)
                 }
                 FileNameStatus::Valid => status(input::FILENAME),
             }
@@ -102,7 +107,10 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::Select(index) => status_select(*index),
         Mode::Selected(_) => status(SELECTED),
         Mode::Compare(_) => status(COMPARE),
-        Mode::Save(_) => status(SAVE),
+        Mode::Save(save_state) => match save_state.action {
+            SaveAction::Load => status_info(SAVE, action::LOAD),
+            SaveAction::Quit => status_info(SAVE, action::QUIT),
+        }
     }
     .left_aligned()
     .set_style(style::ACCENT)

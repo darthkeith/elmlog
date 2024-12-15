@@ -11,11 +11,17 @@ pub enum FileNameStatus {
     Valid,
 }
 
+/// Action to perform after saving.
+pub enum SaveAction {
+    Load,
+    Quit,
+}
+
 /// Action to be performed with the user input string.
 pub enum InputAction {
     Add,
     Edit(usize),
-    Save(FileNameStatus),
+    Save(FileNameStatus, SaveAction),
 }
 
 /// Current user input and action to be performed with it.
@@ -31,6 +37,12 @@ pub struct Choice {
     pub first_selected: bool,
 }
 
+/// User's current save choice and subsequent action.
+pub struct SaveState {
+    pub save: bool,
+    pub action: SaveAction,
+}
+
 /// Operational modes of the application.
 pub enum Mode {
     Load(LoadState),
@@ -39,7 +51,7 @@ pub enum Mode {
     Select(usize),
     Selected(usize),
     Compare(Choice),
-    Save(bool),
+    Save(SaveState),
 }
 
 /// State that is persistent across modes within a given session.
@@ -85,18 +97,18 @@ impl InputState {
     }
 
     /// Create an `InputState` to save a new file.
-    pub fn new_save() -> Self {
+    pub fn new_save(action: SaveAction) -> Self {
         InputState {
             input: String::new(),
-            action: InputAction::Save(FileNameStatus::Empty),
+            action: InputAction::Save(FileNameStatus::Empty, action),
         }
     }
 
     /// Update the file name status if a file is being saved.
     pub fn update_status(mut self) -> Self {
-        if let InputAction::Save(_) = self.action {
+        if let InputAction::Save(_, save_action) = self.action {
             let status = FileNameStatus::check(self.input.trim());
-            self.action = InputAction::Save(status);
+            self.action = InputAction::Save(status, save_action);
         }
         self
     }
@@ -106,9 +118,10 @@ impl InputState {
         if self.input.is_empty() {
             return false;
         }
-        match self.action {
-            InputAction::Save(FileNameStatus::Valid) => true,
-            InputAction::Save(_) => false,
+        match &self.action {
+            InputAction::Save(status, _) => {
+                matches!(status, FileNameStatus::Valid)
+            }
             _ => true
         }
     }
@@ -133,10 +146,26 @@ impl InputState {
     }
 
     /// Return an `InputState` for saving with the invalid `filename`.
-    pub fn invalid(filename: String) -> Self {
+    pub fn invalid(filename: String, save_action: SaveAction) -> Self {
         InputState {
             input: filename,
-            action: InputAction::Save(FileNameStatus::Invalid),
+            action: InputAction::Save(FileNameStatus::Invalid, save_action),
+        }
+    }
+}
+
+impl SaveState {
+    pub fn new_load() -> Self {
+        SaveState { save: true, action: SaveAction::Load }
+    }
+
+    pub fn new_quit() -> Self {
+        SaveState { save: true, action: SaveAction::Quit }
+    }
+    pub fn toggle(self) -> Self {
+        SaveState {
+            save: !self.save,
+            ..self
         }
     }
 }

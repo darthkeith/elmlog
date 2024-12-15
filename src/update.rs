@@ -7,6 +7,7 @@ use crate::{
         LoadMsg,
         Message,
         NormalMsg,
+        SaveMsg,
         SelectedMsg,
         SelectMsg,
     },
@@ -16,6 +17,8 @@ use crate::{
         InputState,
         Mode,
         Model,
+        SaveAction,
+        SaveState,
         SessionState,
     },
 };
@@ -43,28 +46,30 @@ fn update_load(
     msg: LoadMsg,
     load_state: LoadState,
     state: SessionState
-) -> Model {
+) -> Option<Model> {
     let mode = match msg {
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {
             let path = load_state.get_path();
-            return Model {
+            let model = Model {
                 state: io::init_session_state(path),
                 mode: Mode::Normal,
             };
+            return Some(model);
         }
         LoadMsg::New => Mode::Normal,
         LoadMsg::Delete => match load_state.delete() {
             Some(load_state) => Mode::Load(load_state),
             None => Mode::Normal,
         }
+        LoadMsg::Quit => return None,
     };
-    Model { state, mode }
+    Some(Model { state, mode })
 }
 
 // Return the next Model based on a message sent in Normal mode.
-fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
+fn update_normal(msg: NormalMsg, state: SessionState) -> Option<Model> {
     let mode = match msg {
         NormalMsg::StartInput => Mode::Input(InputState::new_add()),
         NormalMsg::StartSelect => {
@@ -85,8 +90,16 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Model {
                 _ => Mode::Normal,
             }
         }
+        NormalMsg::Load => match state.is_changed() {
+            true => Mode::Save(SaveState::new_load()),
+            false => return Some(Model::init()),
+        }
+        NormalMsg::Quit => match state.is_changed() {
+            true => Mode::Save(SaveState::new_quit()),
+            false => return None,
+        }
     };
-    Model { state, mode }
+    Some(Model { state, mode })
 }
 
 // Return the next Model based on a message sent in Input mode.
@@ -112,11 +125,14 @@ fn update_input(
                         state = state.edit(index, text);
                         Mode::Normal
                     }
-                    InputAction::Save(_) => {
+                    InputAction::Save(_, save_action) => {
                         match io::save_new(&state.heap, text) {
-                            Ok(()) => return None,
+                            Ok(()) => match save_action {
+                                SaveAction::Load => return Some(Model::init()),
+                                SaveAction::Quit => return None,
+                            }
                             Err(_) => {
-                                let input_state = InputState::invalid(input);
+                                let input_state = InputState::invalid(input, save_action);
                                 Mode::Input(input_state)
                             }
                         }
@@ -194,39 +210,47 @@ fn update_compare(
     Model { state, mode }
 }
 
-// Return the next Model if more action is needed after a Quit message.
-fn update_quit(save: bool, state: SessionState) -> Option<Model> {
-    if !save {
-        return None;
-    }
-    match &state.maybe_file {
-        Some(_) => {
-            io::save(state);
-            None
+// Return the next Model based on a message sent in Save mode.
+fn update_save(
+    msg: SaveMsg,
+    save_state: SaveState,
+    state: SessionState,
+) -> Option<Model> {
+    let mode = match msg {
+        SaveMsg::Toggle => Mode::Save(save_state.toggle()),
+        SaveMsg::Confirm => match save_state.save {
+            true => match &state.maybe_file {
+                Some(_) => {
+                    io::save(state);
+                    match save_state.action {
+                        SaveAction::Load => return Some(Model::init()),
+                        SaveAction::Quit => return None,
+                    }
+                }
+                None => {
+                    let input_state = InputState::new_save(save_state.action);
+                    Mode::Input(input_state)
+                }
+            }
+            false => match save_state.action {
+                SaveAction::Load => return Some(Model::init()),
+                SaveAction::Quit => return None,
+            }
         }
-        None => {
-            let input_state = InputState::new_save();
-            let mode = Mode::Input(input_state);
-            Some(Model { state, mode })
-        }
-    }
+    };
+    Some(Model { state, mode })
 }
 
 /// Return the next Model based on the `message` and the session `state`.
 pub fn update(message: Message, state: SessionState) -> Option<Model> {
     let model = match message {
-        Message::Load(msg, load_state) => update_load(msg, load_state, state),
-        Message::Normal(msg) => update_normal(msg, state),
+        Message::Load(msg, load_state) => return update_load(msg, load_state, state),
+        Message::Normal(msg) => return update_normal(msg, state),
         Message::Input(msg, input_state) => return update_input(msg, input_state, state),
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
-        Message::StartQuit => match state.is_changed() {
-            true => Model { state, mode: Mode::Save(true) },
-            false => return None,
-        },
-        Message::ToggleSave(save) => Model { state, mode: Mode::Save(!save) },
-        Message::Quit(save) => return update_quit(save, state),
+        Message::Save(msg, save_state) => return update_save(msg, save_state, state),
         Message::Continue(mode) => Model { state, mode },
     };
     Some(model)

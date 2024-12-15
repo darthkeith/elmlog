@@ -1,10 +1,15 @@
-use std::io;
+use std::io::Result;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
 use crate::{
     io::LoadState,
-    model::{Choice, InputState, Mode},
+    model::{
+        Choice,
+        InputState,
+        Mode,
+        SaveState,
+    },
 };
 
 // A message sent in Load mode.
@@ -14,6 +19,7 @@ pub enum LoadMsg {
     Open,
     New,
     Delete,
+    Quit,
 }
 
 // A message sent in Normal mode.
@@ -21,6 +27,8 @@ pub enum NormalMsg {
     StartInput,
     StartSelect,
     StartCompare,
+    Load,
+    Quit,
 }
 
 // A message sent in Input mode.
@@ -50,6 +58,12 @@ pub enum CompareMsg {
     Confirm,
 }
 
+// A message sent in Save mode.
+pub enum SaveMsg {
+    Toggle,
+    Confirm,
+}
+
 // Represents changes to be made to the model.
 pub enum Message {
     Load(LoadMsg, LoadState),
@@ -58,9 +72,7 @@ pub enum Message {
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Compare(CompareMsg, Choice),
-    StartQuit,
-    ToggleSave(bool),
-    Quit(bool),
+    Save(SaveMsg, SaveState),
     Continue(Mode),
 }
 
@@ -72,18 +84,10 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
         KeyCode::Enter => LoadMsg::Open,
         KeyCode::Char('n') => LoadMsg::New,
         KeyCode::Char('d') => LoadMsg::Delete,
-        KeyCode::Char('q') => return Message::Quit(false),
+        KeyCode::Char('q') => LoadMsg::Quit,
         _ => return Message::Continue(Mode::Load(load_state)),
     };
     Message::Load(load_msg, load_state)
-}
-
-// Return to Normal mode on Esc, otherwise continue in the given `mode`.
-fn default(key: KeyCode, mode: Mode) -> Message {
-    Message::Continue(match key {
-        KeyCode::Esc => Mode::Normal,
-        _ => mode,
-    })
 }
 
 // Map a `key` to a Message in Normal mode.
@@ -92,10 +96,19 @@ fn to_normal_msg(key: KeyCode) -> Message {
         KeyCode::Char('a') => NormalMsg::StartInput,
         KeyCode::Char('s') => NormalMsg::StartSelect,
         KeyCode::Char('c') => NormalMsg::StartCompare,
-        KeyCode::Char('q') => return Message::StartQuit,
+        KeyCode::Char('l') => NormalMsg::Load,
+        KeyCode::Char('q') => NormalMsg::Quit,
         _ => return Message::Continue(Mode::Normal),
     };
     Message::Normal(normal_msg)
+}
+
+// Return to Normal mode on Esc, otherwise continue in the given `mode`.
+fn default(key: KeyCode, mode: Mode) -> Message {
+    Message::Continue(match key {
+        KeyCode::Esc => Mode::Normal,
+        _ => mode,
+    })
 }
 
 // Map a `key` to a Message in Input mode.
@@ -146,12 +159,13 @@ fn to_compare_msg(key: KeyCode, choice: Choice) -> Message {
 }
 
 // Map a `key` to a Message in Save mode.
-fn to_save_msg(key: KeyCode, save: bool) -> Message {
-    match key {
-        KeyCode::Char(' ') => Message::ToggleSave(save),
-        KeyCode::Enter => Message::Quit(save),
-        _ => return default(key, Mode::Save(save)),
-    }
+fn to_save_msg(key: KeyCode, save_state: SaveState) -> Message {
+    let save_msg = match key {
+        KeyCode::Char(' ') => SaveMsg::Toggle,
+        KeyCode::Enter => SaveMsg::Confirm,
+        _ => return default(key, Mode::Save(save_state)),
+    };
+    Message::Save(save_msg, save_state)
 }
 
 // Map a pressed `key` to a Message based on the current `mode`.
@@ -163,12 +177,12 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
         Mode::Compare(choice) => to_compare_msg(key, choice),
-        Mode::Save(save) => to_save_msg(key, save),
+        Mode::Save(save_state) => to_save_msg(key, save_state),
     }
 }
 
 /// Convert a user input event into a Message based on the current `mode`.
-pub fn handle_event(mode: Mode) -> io::Result<Message> {
+pub fn handle_event(mode: Mode) -> Result<Message> {
     let event::Event::Key(key) = event::read()? else {
         return Ok(Message::Continue(mode));
     };

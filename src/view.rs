@@ -137,8 +137,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Compare(choice) => {
             frame.render_widget(compare(choice), main_area);
         }
-        Mode::Save(save) => {
-            frame.render_widget(save_query(*save), main_area);
+        Mode::Save(save_state) => {
+            frame.render_widget(save_query(save_state.save), main_area);
         }
     }
     frame.render_widget(status_bar(model), status_bar_area);

@@ -22,6 +22,7 @@ const OPEN: (&str, &str) = ("Enter", "Open");
 const SUBMIT: (&str, &str) = ("Enter", "Submit");
 const CONFIRM: (&str, &str) = ("Enter", "Confirm");
 const NEW: (&str, &str) = ("N", "New");
+const LOAD: (&str, &str) = ("L", "Load");
 const QUIT: (&str, &str) = ("Q", "Quit");
 const ADD: (&str, &str) = ("A", "Add");
 const SELECT: (&str, &str) = ("S", "Select");
@@ -50,7 +51,7 @@ fn normal_mode_commands(heap: &Heap) -> Vec<(&str, &str)> {
             pairs.push(COMPARE);
         }
     }
-    pairs.push(QUIT);
+    pairs.extend(&[LOAD, QUIT]);
     pairs
 }
 
