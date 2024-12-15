@@ -102,11 +102,43 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Option<Model> {
     Some(Model { state, mode })
 }
 
+// Return the next model after input is submitted by the user.
+fn submit_input(
+    input_state: InputState,
+    mut state: SessionState,
+) -> Option<Model> {
+    let InputState { input, action } = input_state;
+    let text = input.trim().to_string();
+    let mode = match action {
+        InputAction::Add => {
+            state = state.add(text);
+            Mode::Normal
+        }
+        InputAction::Edit(index) => {
+            state = state.edit(index, text);
+            Mode::Normal
+        }
+        InputAction::Save(_, save_action) => {
+            match io::save_new(&state.heap, text) {
+                Ok(()) => match save_action {
+                    SaveAction::Load => return Some(Model::init()),
+                    SaveAction::Quit => return None,
+                }
+                Err(_) => {
+                    let input_state = InputState::invalid(input, save_action);
+                    Mode::Input(input_state)
+                }
+            }
+        }
+    };
+    Some(Model { state, mode })
+}
+
 // Return the next Model based on a message sent in Input mode.
 fn update_input(
     msg: InputMsg,
     input_state: InputState,
-    mut state: SessionState,
+    state: SessionState,
 ) -> Option<Model> {
     let mode = match msg {
         InputMsg::Append(c) => Mode::Input(input_state.append(c)),
@@ -114,30 +146,7 @@ fn update_input(
         InputMsg::Submit => {
             let input_state = input_state.update_status();
             if input_state.is_valid() {
-                let InputState { input, action } = input_state;
-                let text = input.trim().to_string();
-                match action {
-                    InputAction::Add => {
-                        state = state.add(text);
-                        Mode::Normal
-                    }
-                    InputAction::Edit(index) => {
-                        state = state.edit(index, text);
-                        Mode::Normal
-                    }
-                    InputAction::Save(_, save_action) => {
-                        match io::save_new(&state.heap, text) {
-                            Ok(()) => match save_action {
-                                SaveAction::Load => return Some(Model::init()),
-                                SaveAction::Quit => return None,
-                            }
-                            Err(_) => {
-                                let input_state = InputState::invalid(input, save_action);
-                                Mode::Input(input_state)
-                            }
-                        }
-                    }
-                }
+                return submit_input(input_state, state);
             } else {
                 Mode::Input(input_state)
             }
