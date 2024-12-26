@@ -122,8 +122,8 @@ fn app_dir_path() -> PathBuf {
     path
 }
 
-/// Return the LoadState if there is a least one data file.
-pub fn get_load_state() -> Option<LoadState> {
+// Return the LoadState if there is a least one data file.
+fn get_load_state() -> Option<LoadState> {
     let files: Vec<FileEntry> = fs::read_dir(app_dir_path())
         .expect("Unable to read app directory")
         .filter_map(Result::ok)
@@ -157,8 +157,8 @@ fn load_heap(mut file: &File) -> Heap {
         .expect("Failed to deserialize data")
 }
 
-/// Initialize a session's state using the `path` to a data file.
-pub fn init_session_state(path: PathBuf) -> SessionState {
+// Initialize a session's state using the `path` to a data file.
+fn init_session_state(path: PathBuf) -> SessionState {
     let file = OpenOptions::new()
         .read(true)
         .open(&path)
@@ -169,8 +169,8 @@ pub fn init_session_state(path: PathBuf) -> SessionState {
     SessionState { heap, maybe_file: Some(open_file) }
 }
 
-/// Check whether `filename` exists in the app directory.
-pub fn filename_exists(filename: &str) -> bool {
+// Check whether `filename` exists in the app directory.
+fn filename_exists(filename: &str) -> bool {
     let path = app_dir_path().join(filename);
     path.exists()
 }
@@ -210,18 +210,16 @@ fn write_to_file(heap: &Heap, path: &Path) {
     set_read_only(path, true);
 }
 
-/// Save the current session `state`.
-pub fn save(state: SessionState) {
+// Save the current session `state`.
+fn save(state: SessionState) {
     let (heap, maybe_path) = unlock_state(state);
     if let Some(path) = maybe_path {
         write_to_file(&heap, &path);
     }
 }
 
-/// Save the `heap` with the `filename`.
-///
-/// Return an error if the file cannot be created.
-pub fn save_new(heap: &Heap, filename: &str) -> Result<()> {
+// Save the `heap` with the `filename`.
+fn save_new(heap: &Heap, filename: &str) -> Result<()> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
     write_to_file(heap, &path);

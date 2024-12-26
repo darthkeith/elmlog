@@ -205,11 +205,18 @@ impl SaveState {
 }
 
 impl SessionState {
-    /// Create a SessionState with an empty heap and no saved file.
-    pub fn new() -> Self {
+    // Create a SessionState with an empty heap and no saved file.
+    fn new() -> Self {
         SessionState {
             heap: Heap::Empty,
             maybe_file: None,
+        }
+    }
+
+    // Mark the session state as modified if a saved file exists.
+    fn set_changed(&mut self) {
+        if let Some(ref mut open_file) = self.maybe_file {
+            open_file.set_changed();
         }
     }
 
@@ -218,13 +225,6 @@ impl SessionState {
         match &self.maybe_file {
             Some(open_file) => open_file.is_changed(),
             None => !matches!(self.heap, Heap::Empty),
-        }
-    }
-
-    // Mark the session state as modified if a saved file exists.
-    fn set_changed(&mut self) {
-        if let Some(ref mut open_file) = self.maybe_file {
-            open_file.set_changed();
         }
     }
 
