@@ -87,7 +87,7 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
     spans.pop();  // Remove extra spacer at end
     Line::from(spans)
         .centered()
-        .set_style(style::DEFAULT)
+        .set_style(style::ACCENT)
 }
 
 /// Return the command bar widget based on the current `model`.

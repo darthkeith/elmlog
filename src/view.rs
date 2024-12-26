@@ -109,13 +109,14 @@ fn save_query(save: bool) -> Paragraph<'static> {
 
 /// Render the UI on the `frame` based on the current `model`.
 pub fn view(model: &Model, frame: &mut Frame) {
-    let [main_area, status_bar_area, command_bar_area] =
+    let [status_bar_area, main_area, command_bar_area] =
         Layout::vertical([
-            Constraint::Min(0),
             Constraint::Length(1),
+            Constraint::Min(0),
             Constraint::Length(1),
         ])
         .areas(frame.area());
+    frame.render_widget(status_bar(model), status_bar_area);
     let Model { state, mode } = model;
     let SessionState { heap, .. } = state;
     match mode {
@@ -134,14 +135,13 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Selected(index) => {
             frame.render_widget(forest_selected(heap, *index), main_area);
         }
-        Mode::Compare(choice) => {
-            frame.render_widget(compare(choice), main_area);
+        Mode::Compare(compare_state) => {
+            frame.render_widget(compare(compare_state), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);
         }
     }
-    frame.render_widget(status_bar(model), status_bar_area);
     frame.render_widget(command_bar(model), command_bar_area);
 }
 
