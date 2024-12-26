@@ -117,7 +117,7 @@ fn find_subheap(root: Heap, index: usize) -> PathToSubheap {
             break;
         }
     }
-    return PathToSubheap { path, subheap: heap };
+    PathToSubheap { path, subheap: heap }
 }
 
 // Reconstruct a heap given a path to a subheap.
@@ -206,7 +206,7 @@ impl Heap {
         let mut count = 0;
         while let Heap::Node { sibling, .. } = heap {
             count += 1;
-            heap = &*sibling;
+            heap = sibling;
         }
         count
     }
@@ -275,7 +275,7 @@ impl Heap {
     }
 
     // Convert a Heap into a Node if non-empty.
-    fn to_node<'a>(&'a self, node_type: NodeType) -> Option<Node<'a>> {
+    fn to_node(&self, node_type: NodeType) -> Option<Node> {
         match self {
             Heap::Empty => None,
             Heap::Node { label, child, sibling, .. } => {
@@ -319,7 +319,7 @@ impl<'a> Iterator for PreOrderIter<'a> {
         if let Some(node) = child.to_node(NodeType::Child) {
             self.stack.push(node);
         }
-        return Some((label, pos));
+        Some((label, pos))
     }
 }
 

@@ -43,7 +43,7 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
     if c_val < heap_size {
         return c_val;
     }
-    return index;
+    index
 }
 
 // Update the Model based on a Load mode message.
@@ -126,7 +126,7 @@ fn update_label(
             }
         }
     };
-    let mode = label_state.to_mode();
+    let mode = label_state.into_mode();
     Command::None(Model { state, mode })
 }
 
@@ -152,7 +152,7 @@ fn update_filename(
             false => return Command::SaveNew(state, filename_state),
         }
     };
-    let mode = filename_state.to_mode();
+    let mode = filename_state.into_mode();
     Command::None(Model { state, mode })
 }
 

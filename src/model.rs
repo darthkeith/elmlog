@@ -99,7 +99,7 @@ impl LabelState {
     }
 
     /// Return the Input mode containing the LabelState.
-    pub fn to_mode(self) -> Mode {
+    pub fn into_mode(self) -> Mode {
         Mode::Input(InputState::Label(self))
     }
 }
@@ -131,7 +131,7 @@ impl FilenameState {
     }
 
     /// Return the Input mode containing the FilenameState.
-    pub fn to_mode(self) -> Mode {
+    pub fn into_mode(self) -> Mode {
         Mode::Input(InputState::Filename(self))
     }
 
@@ -170,12 +170,9 @@ impl InputState {
     /// Return whether the user input is valid.
     pub fn is_valid(&self) -> bool {
         match self {
-            InputState::Label(label_state) => !label_state.input.is_empty(),
+            InputState::Label(label_state) => !label_state.is_empty(),
             InputState::Filename(filename_state) => {
-                match filename_state.status {
-                    FilenameStatus::Valid => true,
-                    _ => false,
-                }
+                matches!(filename_state.status, FilenameStatus::Valid)
             }
         }
     }

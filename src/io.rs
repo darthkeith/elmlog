@@ -245,7 +245,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 true => FilenameStatus::Exists,
                 false => FilenameStatus::Valid,
             };
-            let mode = filename_state.status(status).to_mode();
+            let mode = filename_state.status(status).into_mode();
             Model { state, mode }
         }
         Command::SaveNew(state, filename_state) => {
@@ -259,7 +259,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                     }
                 }
             };
-            let mode = filename_state.status(status).to_mode();
+            let mode = filename_state.status(status).into_mode();
             Model { state, mode }
         }
         Command::Save(state, action) => {
