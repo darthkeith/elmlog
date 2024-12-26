@@ -1,10 +1,22 @@
 use crate::{
     heap::Heap,
-    io::{self, LoadState, OpenDataFile},
+    io::{LoadState, OpenDataFile},
 };
 
-/// Status of the user input string as a potential file name.
-pub enum FileNameStatus {
+/// Action to be performed with the user input label string.
+pub enum LabelAction {
+    Add,
+    Edit(usize),
+}
+
+/// Current user input label and action to be performed with it.
+pub struct LabelState {
+    pub input: String,
+    pub action: LabelAction,
+}
+
+/// Status of the user input string as a potential filename.
+pub enum FilenameStatus {
     Empty,
     Exists,
     Invalid,
@@ -12,22 +24,22 @@ pub enum FileNameStatus {
 }
 
 /// Action to perform after saving.
-pub enum SaveAction {
+pub enum PostSaveAction {
     Load,
     Quit,
 }
 
-/// Action to be performed with the user input string.
-pub enum InputAction {
-    Add,
-    Edit(usize),
-    Save(FileNameStatus, SaveAction),
+/// Current user input filename with status and next action to be performed.
+pub struct FilenameState {
+    pub input: String,
+    pub status: FilenameStatus,
+    pub post_save: PostSaveAction,
 }
 
-/// Current user input and action to be performed with it.
-pub struct InputState {
-    pub input: String,
-    pub action: InputAction,
+/// Input mode state, storing either a label or filename input.
+pub enum InputState {
+    Label(LabelState),
+    Filename(FilenameState),
 }
 
 /// A choice between two items with one selected.
@@ -40,7 +52,7 @@ pub struct CompareState {
 /// User's current save choice and subsequent action.
 pub struct SaveState {
     pub save: bool,
-    pub action: SaveAction,
+    pub post_save: PostSaveAction,
 }
 
 /// Operational modes of the application.
@@ -66,111 +78,144 @@ pub struct Model {
     pub mode: Mode,
 }
 
-impl FileNameStatus {
-    // Check the status of the given file name.
-    fn check(filename: &str) -> Self {
-        if filename.is_empty() {
-            FileNameStatus::Empty
-        } else if io::filename_exists(filename) {
-            FileNameStatus::Exists
-        } else {
-            FileNameStatus::Valid
-        }
-    }
-}
-
-impl InputState {
-    /// Create an `InputState` to add an item.
-    pub fn new_add() -> Self {
-        InputState {
-            input: String::new(),
-            action: InputAction::Add,
-        }
-    }
-
-    /// Create an `InputState` to edit the `label` of the item at `index`.
-    pub fn new_edit(label: String, index: usize) -> Self {
-        InputState {
-            input: label,
-            action: InputAction::Edit(index),
-        }
-    }
-
-    /// Create an `InputState` to save a new file.
-    pub fn new_save(action: SaveAction) -> Self {
-        InputState {
-            input: String::new(),
-            action: InputAction::Save(FileNameStatus::Empty, action),
-        }
-    }
-
-    /// Update the file name status if a file is being saved.
-    pub fn update_status(mut self) -> Self {
-        if let InputAction::Save(_, save_action) = self.action {
-            let status = FileNameStatus::check(self.input.trim());
-            self.action = InputAction::Save(status, save_action);
+impl LabelState {
+    /// Append a character to the input string, not starting with whitespace.
+    pub fn append(mut self, c: char) -> Self {
+        if !(self.input.is_empty() && c == ' ') {
+            self.input.push(c);
         }
         self
     }
 
-    /// Check whether the user input is valid.
-    pub fn is_valid(&self) -> bool {
-        if self.input.is_empty() {
-            return false;
-        }
-        match &self.action {
-            InputAction::Save(status, _) => {
-                matches!(status, FileNameStatus::Valid)
-            }
-            _ => true
-        }
+    /// Pop a character from the input text.
+    pub fn pop(mut self) -> Self {
+        self.input.pop();
+        self
     }
 
-    /// Append a character to the input text.
+    /// Return whether the input text is empty.
+    pub fn is_empty(&self) -> bool {
+        self.input.is_empty()
+    }
+
+    /// Return the Input mode containing the LabelState.
+    pub fn to_mode(self) -> Mode {
+        Mode::Input(InputState::Label(self))
+    }
+}
+
+impl FilenameState {
+    /// Append a character to the input string, not starting with whitespace.
     pub fn append(mut self, c: char) -> Self {
         if !(self.input.is_empty() && c == ' ') {
             self.input.push(c);
-            self.update_status()
-        } else {
-            self
         }
+        self
     }
 
     /// Pop a character from the input text.
     pub fn pop(mut self) -> Self {
-        if let Some(_) = self.input.pop() {
-            self.update_status()
-        } else {
-            self
+        self.input.pop();
+        self
+    }
+
+    /// Return whether the input text is empty.
+    pub fn is_empty(&self) -> bool {
+        self.input.is_empty()
+    }
+
+    /// Set the filename status.
+    pub fn status(mut self, status: FilenameStatus) -> Self {
+        self.status = status;
+        self
+    }
+
+    /// Return the Input mode containing the FilenameState.
+    pub fn to_mode(self) -> Mode {
+        Mode::Input(InputState::Filename(self))
+    }
+
+    /// Return a reference to the trimmed user input.
+    pub fn input(&self) -> &str {
+        self.input.trim()
+    }
+}
+
+impl InputState {
+    /// Create an InputState to add an item.
+    pub fn new_add() -> Self {
+        InputState::Label(LabelState {
+            input: String::new(),
+            action: LabelAction::Add,
+        })
+    }
+
+    /// Create an InputState to edit the `label` of the item at `index`.
+    pub fn new_edit(label: String, index: usize) -> Self {
+        InputState::Label(LabelState {
+            input: label,
+            action: LabelAction::Edit(index),
+        })
+    }
+
+    /// Create an InputState to save a new file.
+    pub fn new_save(post_save: PostSaveAction) -> Self {
+        InputState::Filename(FilenameState {
+            input: String::new(),
+            status: FilenameStatus::Empty,
+            post_save,
+        })
+    }
+
+    /// Return whether the user input is valid.
+    pub fn is_valid(&self) -> bool {
+        match self {
+            InputState::Label(label_state) => !label_state.input.is_empty(),
+            InputState::Filename(filename_state) => {
+                match filename_state.status {
+                    FilenameStatus::Valid => true,
+                    _ => false,
+                }
+            }
         }
     }
 
-    /// Return an `InputState` for saving with the invalid `filename`.
-    pub fn invalid(filename: String, save_action: SaveAction) -> Self {
-        InputState {
-            input: filename,
-            action: InputAction::Save(FileNameStatus::Invalid, save_action),
+    /// Return a reference to the user input string.
+    pub fn input(&self) -> &str {
+        match self {
+            InputState::Label(label_state) => &label_state.input,
+            InputState::Filename(filename_state) => &filename_state.input,
         }
     }
 }
 
 impl SaveState {
+    /// Create a SaveState for subsequently loading.
     pub fn new_load() -> Self {
-        SaveState { save: true, action: SaveAction::Load }
+        SaveState { save: true, post_save: PostSaveAction::Load }
     }
 
+    /// Create a SaveState for subsequently quitting.
     pub fn new_quit() -> Self {
-        SaveState { save: true, action: SaveAction::Quit }
+        SaveState { save: true, post_save: PostSaveAction::Quit }
     }
-    pub fn toggle(self) -> Self {
-        SaveState {
-            save: !self.save,
-            ..self
-        }
+
+    /// Toggle the boolean indicating whether the user intends to save.
+    pub fn toggle(mut self) -> Self {
+        self.save = !self.save;
+        self
     }
 }
 
 impl SessionState {
+    /// Create a SessionState with an empty heap and no saved file.
+    pub fn new() -> Self {
+        SessionState {
+            heap: Heap::Empty,
+            maybe_file: None,
+        }
+    }
+
     /// Return whether data was changed in the current session.
     pub fn is_changed(&self) -> bool {
         match &self.maybe_file {
@@ -216,17 +261,20 @@ impl SessionState {
 }
 
 impl Model {
-    /// Return the initial Model.
-    pub fn init() -> Self {
-        let state = SessionState {
-            heap: Heap::Empty,
-            maybe_file: None,
-        };
-        let mode = match io::get_load_state() {
-            Some(load_state) => Mode::Load(load_state),
-            None => Mode::Normal,
-        };
-        Model { state, mode }
+    /// Create a Model in Normal mode.
+    pub fn new() -> Self {
+        Model {
+            state: SessionState::new(),
+            mode: Mode::Normal,
+        }
+    }
+
+    /// Create a Model in Load mode containing the `load_state`.
+    pub fn load(load_state: LoadState) -> Self {
+        Model {
+            state: SessionState::new(),
+            mode: Mode::Load(load_state),
+        }
     }
 }
 

@@ -1,8 +1,10 @@
 use crate::{
     heap::HeapStatus,
-    io::{self, LoadState},
+    io::LoadState,
     message::{
+        Command,
         CompareMsg,
+        InputEdit,
         InputMsg,
         LoadMsg,
         Message,
@@ -13,11 +15,14 @@ use crate::{
     },
     model::{
         CompareState,
-        InputAction,
+        FilenameState,
+        FilenameStatus,
         InputState,
+        LabelAction,
+        LabelState,
         Mode,
         Model,
-        SaveAction,
+        PostSaveAction,
         SaveState,
         SessionState,
     },
@@ -41,42 +46,36 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
     return index;
 }
 
-// Return the next Model based on a message sent in Load mode.
+// Update the Model based on a Load mode message.
 fn update_load(
     msg: LoadMsg,
     load_state: LoadState,
     state: SessionState
-) -> Option<Model> {
+) -> Command {
     let mode = match msg {
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {
             let path = load_state.get_path();
-            let model = Model {
-                state: io::init_session_state(path),
-                mode: Mode::Normal,
-            };
-            return Some(model);
+            return Command::InitSession(path);
         }
         LoadMsg::New => Mode::Normal,
         LoadMsg::Delete => match load_state.delete() {
             Some(load_state) => Mode::Load(load_state),
             None => Mode::Normal,
         }
-        LoadMsg::Quit => return None,
+        LoadMsg::Quit => return Command::Quit,
     };
-    Some(Model { state, mode })
+    Command::None(Model { state, mode })
 }
 
-// Return the next Model based on a message sent in Normal mode.
-fn update_normal(msg: NormalMsg, state: SessionState) -> Option<Model> {
+// Update the Model based on a Normal mode message.
+fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let mode = match msg {
         NormalMsg::StartInput => Mode::Input(InputState::new_add()),
-        NormalMsg::StartSelect => {
-            match state.heap.size() > 0 {
-                true => Mode::Select(0),
-                false => Mode::Normal,
-            }
+        NormalMsg::StartSelect => match state.heap.size() > 0 {
+            true => Mode::Select(0),
+            false => Mode::Normal,
         }
         NormalMsg::StartCompare => {
             match state.heap.status() {
@@ -92,71 +91,73 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Option<Model> {
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
-            false => return Some(Model::init()),
+            false => return Command::Load,
         }
         NormalMsg::Quit => match state.is_changed() {
             true => Mode::Save(SaveState::new_quit()),
-            false => return None,
+            false => return Command::Quit,
         }
     };
-    Some(Model { state, mode })
+    Command::None(Model { state, mode })
 }
 
-// Return the next model after input is submitted by the user.
-fn submit_input(
-    input_state: InputState,
-    mut state: SessionState,
-) -> Option<Model> {
-    let InputState { input, action } = input_state;
-    let text = input.trim().to_string();
-    let mode = match action {
-        InputAction::Add => {
-            state = state.add(text);
-            Mode::Normal
-        }
-        InputAction::Edit(index) => {
-            state = state.edit(index, text);
-            Mode::Normal
-        }
-        InputAction::Save(_, save_action) => {
-            match io::save_new(&state.heap, text) {
-                Ok(()) => match save_action {
-                    SaveAction::Load => return Some(Model::init()),
-                    SaveAction::Quit => return None,
-                }
-                Err(_) => {
-                    let input_state = InputState::invalid(input, save_action);
-                    Mode::Input(input_state)
-                }
-            }
-        }
-    };
-    Some(Model { state, mode })
-}
-
-// Return the next Model based on a message sent in Input mode.
-fn update_input(
+// Update the Model based on an Input mode label editing message.
+fn update_label(
     msg: InputMsg,
-    input_state: InputState,
+    label_state: LabelState,
     state: SessionState,
-) -> Option<Model> {
-    let mode = match msg {
-        InputMsg::Append(c) => Mode::Input(input_state.append(c)),
-        InputMsg::PopChar => Mode::Input(input_state.pop()),
-        InputMsg::Submit => {
-            let input_state = input_state.update_status();
-            if input_state.is_valid() {
-                return submit_input(input_state, state);
-            } else {
-                Mode::Input(input_state)
+) -> Command {
+    let label_state = match msg {
+        InputMsg::Edit(edit) => match edit {
+            InputEdit::Append(c) => label_state.append(c),
+            InputEdit::PopChar => label_state.pop(),
+        }
+        InputMsg::Submit => match label_state.is_empty() {
+            true => label_state,
+            false => {
+                let LabelState { input, action } = label_state;
+                let label = input.trim().to_string();
+                let state = match action {
+                    LabelAction::Add => state.add(label),
+                    LabelAction::Edit(index) => state.edit(index, label),
+                };
+                let model = Model { state, mode: Mode::Normal };
+                return Command::None(model);
             }
         }
     };
-    Some(Model { state, mode })
+    let mode = label_state.to_mode();
+    Command::None(Model { state, mode })
 }
 
-// Return the next Model based on a message sent in Select mode.
-fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Model {
+// Update the Model based on an Input mode filename editing message.
+fn update_filename(
+    msg: InputMsg,
+    filename_state: FilenameState,
+    state: SessionState,
+) -> Command {
+    let filename_state = match msg {
+        InputMsg::Edit(edit) => {
+            let filename_state = match edit {
+                InputEdit::Append(c) => filename_state.append(c),
+                InputEdit::PopChar => filename_state.pop(),
+            };
+            match filename_state.is_empty() {
+                true => filename_state.status(FilenameStatus::Empty),
+                false => return Command::CheckFileExists(state, filename_state),
+            }
+        }
+        InputMsg::Submit => match filename_state.is_empty() {
+            true => filename_state.status(FilenameStatus::Empty),
+            false => return Command::SaveNew(state, filename_state),
+        }
+    };
+    let mode = filename_state.to_mode();
+    Command::None(Model { state, mode })
+}
+
+// Update the Model based on a Select mode message.
+fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
     let mode = match msg {
         SelectMsg::Append(c) => {
             let i = append_index(index, c, state.heap.size());
@@ -176,19 +177,19 @@ fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Model {
         }
         SelectMsg::Confirm => Mode::Selected(index),
     };
-    Model { state, mode }
+    Command::None(Model { state, mode })
 }
 
-// Return the next Model based on a message sent in Selected mode.
+// Update the Model based on a Selected mode message.
 fn update_selected(
     msg: SelectedMsg,
     index: usize,
     mut state: SessionState,
-) -> Model {
+) -> Command {
     let mode = match msg {
         SelectedMsg::Edit => {
-            let text = state.heap.label_at(index).to_string();
-            let input_state = InputState::new_edit(text, index);
+            let label = state.heap.label_at(index).to_string();
+            let input_state = InputState::new_edit(label, index);
             Mode::Input(input_state)
         }
         SelectedMsg::Delete => {
@@ -196,15 +197,15 @@ fn update_selected(
             Mode::Normal
         }
     };
-    Model { state, mode }
+    Command::None(Model { state, mode })
 }
 
-// Return the next Model based on a message sent in Compare mode.
+// Update the Model based on a Compare mode message.
 fn update_compare(
     msg: CompareMsg,
     cmp_state: CompareState,
     mut state: SessionState,
-) -> Model {
+) -> Command {
     let CompareState { item1, item2, first } = cmp_state;
     let mode = match msg {
         CompareMsg::Toggle => {
@@ -215,52 +216,55 @@ fn update_compare(
             Mode::Normal
         }
     };
-    Model { state, mode }
+    Command::None(Model { state, mode })
 }
 
-// Return the next Model based on a message sent in Save mode.
+// Update the Model based on a Save mode message.
 fn update_save(
     msg: SaveMsg,
     save_state: SaveState,
     state: SessionState,
-) -> Option<Model> {
+) -> Command {
     let mode = match msg {
         SaveMsg::Toggle => Mode::Save(save_state.toggle()),
-        SaveMsg::Confirm => match save_state.save {
-            true => match &state.maybe_file {
-                Some(_) => {
-                    io::save(state);
-                    match save_state.action {
-                        SaveAction::Load => return Some(Model::init()),
-                        SaveAction::Quit => return None,
+        SaveMsg::Confirm => {
+            let SaveState { save, post_save } = save_state;
+            match save {
+                true => match &state.maybe_file {
+                    Some(_) => return Command::Save(state, post_save),
+                    None => {
+                        let input_state = InputState::new_save(post_save);
+                        Mode::Input(input_state)
                     }
                 }
-                None => {
-                    let input_state = InputState::new_save(save_state.action);
-                    Mode::Input(input_state)
+                false => match post_save {
+                    PostSaveAction::Load => return Command::Load,
+                    PostSaveAction::Quit => return Command::Quit,
                 }
-            }
-            false => match save_state.action {
-                SaveAction::Load => return Some(Model::init()),
-                SaveAction::Quit => return None,
             }
         }
     };
-    Some(Model { state, mode })
+    Command::None(Model { state, mode })
 }
 
-/// Return the next Model based on the `message` and the session `state`.
-pub fn update(message: Message, state: SessionState) -> Option<Model> {
-    let model = match message {
-        Message::Load(msg, load_state) => return update_load(msg, load_state, state),
-        Message::Normal(msg) => return update_normal(msg, state),
-        Message::Input(msg, input_state) => return update_input(msg, input_state, state),
+/// Update the Model based on `message` and return an IO Command.
+pub fn update(message: Message, state: SessionState) -> Command {
+    match message {
+        Message::Load(msg, load_state) => update_load(msg, load_state, state),
+        Message::Normal(msg) => update_normal(msg, state),
+        Message::Input(msg, input_state) => match input_state {
+            InputState::Label(label_state) => {
+                update_label(msg, label_state, state)
+            }
+            InputState::Filename(filename_state) => {
+                update_filename(msg, filename_state, state)
+            }
+        }
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Compare(msg, choice) => update_compare(msg, choice, state),
-        Message::Save(msg, save_state) => return update_save(msg, save_state, state),
-        Message::Continue(mode) => Model { state, mode },
-    };
-    Some(model)
+        Message::Save(msg, save_state) => update_save(msg, save_state, state),
+        Message::Continue(mode) => Command::None(Model { state, mode }),
+    }
 }
 

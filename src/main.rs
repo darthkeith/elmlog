@@ -10,19 +10,22 @@ use std::io::Result;
 use ratatui::DefaultTerminal;
 
 use crate::{
-    message::handle_event,
+    io::execute_command,
+    message::{Command, handle_event},
     model::Model,
     update::update,
     view::view,
 };
 
 fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
-    let mut model = Model::init();
+    let mut model = execute_command(Command::Load).unwrap();
     loop {
         terminal.draw(|frame| view(&model, frame))?;
-        let message = handle_event(model.mode)?;
-        model = match update(message, model.state) {
-            Some(m) => m,
+        let Model { state, mode } = model;
+        let message = handle_event(mode)?;
+        let command = update(message, state);
+        model = match execute_command(command) {
+            Some(updated_model) => updated_model,
             None => return Ok(()),
         }
     }

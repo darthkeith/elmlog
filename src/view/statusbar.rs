@@ -6,11 +6,12 @@ use ratatui::{
 use crate::{
     heap::HeapStatus,
     model::{
-        FileNameStatus,
-        InputAction,
+        FilenameStatus,
+        InputState,
+        LabelAction,
         Mode,
         Model,
-        SaveAction,
+        PostSaveAction,
     },
     view::style
 };
@@ -30,7 +31,7 @@ mod alert {
     pub const EXISTS: &str = "File Exists";
     pub const INVALID: &str = "Invalid Filename";
 }
-mod action {
+mod post_save {
     pub const LOAD: &str = "Loading";
     pub const QUIT: &str = "Quitting";
 }
@@ -50,8 +51,11 @@ fn status(message: &str) -> Line {
 }
 
 // Return a status bar Line with the `message` and additional `info`.
-fn status_info<'a>(message: &'a str, info: &'a str) -> Line<'a> {
-    Line::from(format!(" {message} | [{info}]"))
+fn status_info<'a>(message: &'a str, info: Option<&'a str>) -> Line<'a> {
+    match info {
+        Some(info) => Line::from(format!(" {message} | [{info}]")),
+        None => status(message),
+    }
 }
 
 // Return the status bar Line in Normal mode when there are `n` roots.
@@ -82,34 +86,35 @@ pub fn status_bar(model: &Model) -> Line {
                 status_normal_multi(n)
             }
         }
-        Mode::Input(input_state) => match &input_state.action {
-            InputAction::Add => match input_state.input.is_empty() {
-                true => status_info(input::ADD, alert::EMPTY),
-                false => status(input::ADD),
-            }
-            InputAction::Edit(_) => match input_state.input.is_empty() {
-                true => status_info(input::EDIT, alert::EMPTY),
-                false => status(input::EDIT),
-            }
-            InputAction::Save(filename_status, _) => match filename_status {
-                FileNameStatus::Empty => {
-                    status_info(input::FILENAME, alert::EMPTY)
-                }
-                FileNameStatus::Exists => {
-                    status_info(input::FILENAME, alert::EXISTS)
-                }
-                FileNameStatus::Invalid => {
-                    status_info(input::FILENAME, alert::INVALID)
-                }
-                FileNameStatus::Valid => status(input::FILENAME),
-            }
+        Mode::Input(InputState::Label(label_state)) => {
+            let message = match label_state.action {
+                LabelAction::Add => input::ADD,
+                LabelAction::Edit(_) => input::EDIT,
+            };
+            let info = match label_state.is_empty() {
+                true => Some(alert::EMPTY),
+                false => None,
+            };
+            status_info(message, info)
+        }
+        Mode::Input(InputState::Filename(filename_state)) => {
+            let info = match filename_state.status {
+                FilenameStatus::Empty => Some(alert::EMPTY),
+                FilenameStatus::Exists => Some(alert::EXISTS),
+                FilenameStatus::Invalid => Some(alert::INVALID),
+                FilenameStatus::Valid => None,
+            };
+            status_info(input::FILENAME, info)
         }
         Mode::Select(index) => status_select(*index),
         Mode::Selected(_) => status(SELECTED),
         Mode::Compare(_) => status(COMPARE),
-        Mode::Save(save_state) => match save_state.action {
-            SaveAction::Load => status_info(SAVE, action::LOAD),
-            SaveAction::Quit => status_info(SAVE, action::QUIT),
+        Mode::Save(save_state) => {
+            let info = match save_state.post_save {
+                PostSaveAction::Load => post_save::LOAD,
+                PostSaveAction::Quit => post_save::QUIT,
+            };
+            status_info(SAVE, Some(info))
         }
     }
     .left_aligned()

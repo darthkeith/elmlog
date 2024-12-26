@@ -126,7 +126,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
             frame.render_widget(forest_normal(heap), main_area);
         }
         Mode::Input(input_state) => {
-            frame.render_widget(text_input(&input_state.input), main_area);
+            frame.render_widget(text_input(input_state.input()), main_area);
         }
         Mode::Select(index) => {
             frame.render_widget(forest_select(heap, *index), main_area);

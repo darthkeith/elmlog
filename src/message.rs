@@ -1,4 +1,7 @@
-use std::io::Result;
+use std::{
+    io::Result,
+    path::PathBuf,
+};
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
@@ -6,13 +9,17 @@ use crate::{
     io::LoadState,
     model::{
         CompareState,
+        FilenameState,
         InputState,
         Mode,
+        Model,
+        PostSaveAction,
         SaveState,
+        SessionState,
     },
 };
 
-// A message sent in Load mode.
+/// A message sent in Load mode.
 pub enum LoadMsg {
     Decrement,
     Increment,
@@ -22,7 +29,7 @@ pub enum LoadMsg {
     Quit,
 }
 
-// A message sent in Normal mode.
+/// A message sent in Normal mode.
 pub enum NormalMsg {
     StartInput,
     StartSelect,
@@ -31,14 +38,19 @@ pub enum NormalMsg {
     Quit,
 }
 
-// A message sent in Input mode.
-pub enum InputMsg {
+/// Type of edit to apply to the user input text.
+pub enum InputEdit {
     Append(char),
     PopChar,
+}
+
+/// A message sent in Input mode.
+pub enum InputMsg {
+    Edit(InputEdit),
     Submit,
 }
 
-// A message sent in Select mode.
+/// A message sent in Select mode.
 pub enum SelectMsg {
     Append(char),
     Decrement,
@@ -46,25 +58,25 @@ pub enum SelectMsg {
     Confirm,
 }
 
-// A message sent in Selected mode.
+/// A message sent in Selected mode.
 pub enum SelectedMsg {
     Edit,
     Delete,
 }
 
-// A message sent in Compare mode.
+/// A message sent in Compare mode.
 pub enum CompareMsg {
     Toggle,
     Confirm,
 }
 
-// A message sent in Save mode.
+/// A message sent in Save mode.
 pub enum SaveMsg {
     Toggle,
     Confirm,
 }
 
-// Represents changes to be made to the model.
+/// A message indicating changes to be made to the model.
 pub enum Message {
     Load(LoadMsg, LoadState),
     Normal(NormalMsg),
@@ -74,6 +86,17 @@ pub enum Message {
     Compare(CompareMsg, CompareState),
     Save(SaveMsg, SaveState),
     Continue(Mode),
+}
+
+/// A message indicating an IO action to perform.
+pub enum Command {
+    None(Model),
+    Load,
+    InitSession(PathBuf),
+    CheckFileExists(SessionState, FilenameState),
+    SaveNew(SessionState, FilenameState),
+    Save(SessionState, PostSaveAction),
+    Quit,
 }
 
 // Map a `key` to a Message in Load mode.
@@ -114,8 +137,8 @@ fn default(key: KeyCode, mode: Mode) -> Message {
 // Map a `key` to a Message in Input mode.
 fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
     let input_msg = match key {
-        KeyCode::Char(c) => InputMsg::Append(c),
-        KeyCode::Backspace => InputMsg::PopChar,
+        KeyCode::Char(c) => InputMsg::Edit(InputEdit::Append(c)),
+        KeyCode::Backspace => InputMsg::Edit(InputEdit::PopChar),
         KeyCode::Enter => InputMsg::Submit,
         _ => return default(key, Mode::Input(input_state)),
     };

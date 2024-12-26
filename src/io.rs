@@ -8,7 +8,14 @@ use fs2::FileExt;
 
 use crate::{
     heap::Heap,
-    model::SessionState,
+    message::Command,
+    model::{
+        FilenameStatus,
+        Mode,
+        Model,
+        PostSaveAction,
+        SessionState,
+    },
 };
 
 const APP_DIR: &str = "sieve-selector";
@@ -214,10 +221,56 @@ pub fn save(state: SessionState) {
 /// Save the `heap` with the `filename`.
 ///
 /// Return an error if the file cannot be created.
-pub fn save_new(heap: &Heap, filename: String) -> Result<()> {
+pub fn save_new(heap: &Heap, filename: &str) -> Result<()> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
     write_to_file(heap, &path);
     Ok(())
+}
+
+/// Execute `command` and return the updated Model.
+pub fn execute_command(command: Command) -> Option<Model> {
+    let model = match command {
+        Command::None(model) => model,
+        Command::Load => match get_load_state() {
+            Some(load_state) => Model::load(load_state),
+            None => Model::new(),
+        }
+        Command::InitSession(path) => {
+            let state = init_session_state(path);
+            Model { state, mode: Mode::Normal }
+        }
+        Command::CheckFileExists(state, filename_state) => {
+            let status = match filename_exists(filename_state.input()) {
+                true => FilenameStatus::Exists,
+                false => FilenameStatus::Valid,
+            };
+            let mode = filename_state.status(status).to_mode();
+            Model { state, mode }
+        }
+        Command::SaveNew(state, filename_state) => {
+            let status = match filename_exists(filename_state.input()) {
+                true => FilenameStatus::Exists,
+                false => match save_new(&state.heap, filename_state.input()) {
+                    Err(_) => FilenameStatus::Invalid,
+                    Ok(()) => return match filename_state.post_save {
+                        PostSaveAction::Load => execute_command(Command::Load),
+                        PostSaveAction::Quit => None,
+                    }
+                }
+            };
+            let mode = filename_state.status(status).to_mode();
+            Model { state, mode }
+        }
+        Command::Save(state, action) => {
+            save(state);
+            return match action {
+                PostSaveAction::Load => execute_command(Command::Load),
+                PostSaveAction::Quit => None,
+            }
+        }
+        Command::Quit => return None,
+    };
+    Some(model)
 }
 
