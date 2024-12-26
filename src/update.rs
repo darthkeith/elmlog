@@ -72,12 +72,12 @@ fn update_load(
 // Update the Model based on a Normal mode message.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let mode = match msg {
-        NormalMsg::StartInput => Mode::Input(InputState::new_add()),
-        NormalMsg::StartSelect => match state.heap.size() > 0 {
+        NormalMsg::Input => Mode::Input(InputState::new_add()),
+        NormalMsg::Select => match state.heap.size() > 0 {
             true => Mode::Select(0),
             false => Mode::Normal,
         }
-        NormalMsg::StartCompare => {
+        NormalMsg::Compare => {
             match state.heap.status() {
                 HeapStatus::MultiRoot(item1, item2) => Mode::Compare(
                     CompareState {

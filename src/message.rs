@@ -31,9 +31,9 @@ pub enum LoadMsg {
 
 /// A message sent in Normal mode.
 pub enum NormalMsg {
-    StartInput,
-    StartSelect,
-    StartCompare,
+    Input,
+    Select,
+    Compare,
     Load,
     Quit,
 }
@@ -116,9 +116,9 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 // Map a `key` to a Message in Normal mode.
 fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
-        KeyCode::Char('a') => NormalMsg::StartInput,
-        KeyCode::Char('s') => NormalMsg::StartSelect,
-        KeyCode::Char('c') => NormalMsg::StartCompare,
+        KeyCode::Char('a') => NormalMsg::Input,
+        KeyCode::Char('s') => NormalMsg::Select,
+        KeyCode::Char('c') => NormalMsg::Compare,
         KeyCode::Char('l') => NormalMsg::Load,
         KeyCode::Char('q') => NormalMsg::Quit,
         _ => return Message::Continue(Mode::Normal),
