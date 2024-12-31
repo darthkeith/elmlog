@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.3.0-alpha] - 2024-12-30
+
+### Added
+- Confirmation screen for messages and actions like deleting items/files.
+
 ## [2.2.0-alpha] - 2024-12-14
 
 ### Added

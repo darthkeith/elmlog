@@ -71,8 +71,13 @@ impl LoadState {
         }
     }
 
-    /// Iterator of file names with a boolean for whether the file is selected.
-    pub fn get_filenames(&self) -> impl Iterator<Item = (&str, bool)> {
+    /// Return the selected filename.
+    pub fn filename(&self) -> &str {
+        &self.files[self.index].name
+    }
+
+    /// Iterator of filenames with a boolean for whether the file is selected.
+    pub fn filename_iter(&self) -> impl Iterator<Item = (&str, bool)> {
         self.files
             .iter()
             .map(|f| f.name.as_str())
@@ -85,10 +90,9 @@ impl LoadState {
         self.files.len()
     }
 
-    /// Delete the currently selected file and remove it from the list.
-    ///
-    /// Return None if there are no files left.
-    pub fn delete(mut self) -> Option<Self> {
+    // Delete the currently selected file and remove it from the list.
+    // Return None if there are no files left.
+    fn delete(mut self) -> Option<Self> {
         let entry = self.files.remove(self.index);
         fs::remove_file(entry.path)
             .expect("Failed to delete file");
@@ -232,11 +236,13 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::None(model) => model,
         Command::Load => match get_load_state() {
             Some(load_state) => Model::load(load_state),
-            None => Model::new(),
+            None => Model::default(),
         }
         Command::InitSession(path) => {
-            let state = init_session_state(path);
-            Model { state, mode: Mode::Normal }
+            Model {
+                state: init_session_state(path),
+                mode: Mode::Normal,
+            }
         }
         Command::CheckFileExists(state, filename_state) => {
             let status = match filename_exists(filename_state.input()) {
@@ -266,6 +272,10 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 PostSaveAction::Load => execute_command(Command::Load),
                 PostSaveAction::Quit => None,
             }
+        }
+        Command::DeleteFile(load_state) => match load_state.delete() {
+            Some(load_state) => Model::load(load_state),
+            None => Model::default(),
         }
         Command::Quit => return None,
     };

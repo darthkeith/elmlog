@@ -9,6 +9,7 @@ use crate::{
     io::LoadState,
     model::{
         CompareState,
+        ConfirmState,
         FilenameState,
         InputState,
         Mode,
@@ -78,6 +79,7 @@ pub enum SaveMsg {
 
 /// A message indicating changes to be made to the model.
 pub enum Message {
+    Confirm(bool, ConfirmState),
     Load(LoadMsg, LoadState),
     Normal(NormalMsg),
     Input(InputMsg, InputState),
@@ -96,7 +98,18 @@ pub enum Command {
     CheckFileExists(SessionState, FilenameState),
     SaveNew(SessionState, FilenameState),
     Save(SessionState, PostSaveAction),
+    DeleteFile(LoadState),
     Quit,
+}
+
+// Map a `key` to a Message in Confirm mode.
+fn to_confirm_msg(key: KeyCode, confirm_state: ConfirmState) -> Message {
+    let confirm = match key {
+        KeyCode::Enter => true,
+        KeyCode::Esc => false,
+        _ => return Message::Continue(Mode::Confirm(confirm_state)),
+    };
+    Message::Confirm(confirm, confirm_state)
 }
 
 // Map a `key` to a Message in Load mode.
@@ -172,13 +185,13 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
 }
 
 // Map a `key` to a Message in Compare mode.
-fn to_compare_msg(key: KeyCode, cmp_state: CompareState) -> Message {
+fn to_compare_msg(key: KeyCode, compare_state: CompareState) -> Message {
     let compare_msg = match key {
         KeyCode::Char(' ') => CompareMsg::Toggle,
         KeyCode::Enter => CompareMsg::Confirm,
-        _ => return default(key, Mode::Compare(cmp_state)),
+        _ => return default(key, Mode::Compare(compare_state)),
     };
-    Message::Compare(compare_msg, cmp_state)
+    Message::Compare(compare_msg, compare_state)
 }
 
 // Map a `key` to a Message in Save mode.
@@ -194,12 +207,13 @@ fn to_save_msg(key: KeyCode, save_state: SaveState) -> Message {
 // Map a pressed `key` to a Message based on the current `mode`.
 fn key_to_message(mode: Mode, key: KeyCode) -> Message {
     match mode {
+        Mode::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
         Mode::Load(load_state) => to_load_msg(key, load_state),
         Mode::Normal => to_normal_msg(key),
         Mode::Input(input) => to_input_msg(key, input),
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
-        Mode::Compare(choice) => to_compare_msg(key, choice),
+        Mode::Compare(compare_state) => to_compare_msg(key, compare_state),
         Mode::Save(save_state) => to_save_msg(key, save_state),
     }
 }

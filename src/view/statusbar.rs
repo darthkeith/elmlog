@@ -6,6 +6,7 @@ use ratatui::{
 use crate::{
     heap::HeapStatus,
     model::{
+        ConfirmState,
         FilenameStatus,
         InputState,
         LabelAction,
@@ -16,6 +17,11 @@ use crate::{
     view::style
 };
 
+mod confirm {
+    pub const NEW: &str = "No saved files, starting new session...";
+    pub const DELETE_ITEM: &str = "Delete item?";
+    pub const DELETE_FILE: &str = "Delete file?";
+}
 mod normal {
     pub const EMPTY: &str = "Empty";
     pub const SINGLE: &str = "Item selected";
@@ -77,6 +83,11 @@ fn status_select(index: usize) -> Line<'static> {
 /// Return the status bar widget based on the `model`.
 pub fn status_bar(model: &Model) -> Line {
     match &model.mode {
+        Mode::Confirm(confirm_state) => match confirm_state {
+            ConfirmState::NewSession => status(confirm::NEW),
+            ConfirmState::DeleteItem(..) => status(confirm::DELETE_ITEM),
+            ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
+        }
         Mode::Load(_) => status(LOAD),
         Mode::Normal => match model.state.heap.status() {
             HeapStatus::Empty => status(normal::EMPTY),

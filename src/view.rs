@@ -21,6 +21,7 @@ use crate::{
     io::LoadState,
     model::{
         CompareState,
+        ConfirmState,
         Mode,
         Model,
         SessionState,
@@ -48,9 +49,19 @@ pub fn style_main(text: Text) -> Paragraph {
         .set_style(style::DEFAULT)
 }
 
+// Return the confirm widget.
+fn confirm(confirm_state: &ConfirmState) -> Paragraph {
+    let text = match confirm_state {
+        ConfirmState::NewSession => Text::default(),
+        ConfirmState::DeleteItem(label, _) => Text::from(label.as_str()),
+        ConfirmState::DeleteFile(load_state) => Text::from(load_state.filename()),
+    };
+    style_main(text)
+}
+
 // Return the load widget.
 fn load(load_state: &LoadState) -> Paragraph {
-    let lines = load_state.get_filenames()
+    let lines = load_state.filename_iter()
         .map(|(filename, highlight)| {
             if highlight {
                 Line::styled(format!(" {filename} "), style::DEFAULT_HL)
@@ -120,6 +131,9 @@ pub fn view(model: &Model, frame: &mut Frame) {
     let Model { state, mode } = model;
     let SessionState { heap, .. } = state;
     match mode {
+        Mode::Confirm(confirm_state) => {
+            frame.render_widget(confirm(confirm_state), main_area);
+        }
         Mode::Load(load_state) => {
             frame.render_widget(load(load_state), main_area);
         }

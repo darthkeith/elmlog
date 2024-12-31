@@ -9,6 +9,7 @@ use crate::{
         HeapStatus,
     },
     model::{
+        ConfirmState,
         InputState,
         Mode,
         Model,
@@ -33,6 +34,14 @@ const EDIT: KeyPair = ("E", "Edit");
 const DELETE: KeyPair = ("D", "Delete");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
+
+// Return the confirm mode key-command pairs.
+fn confirm_mode_commands(confirm_state: &ConfirmState) -> Vec<KeyPair<'static>> {
+    match confirm_state {
+        ConfirmState::NewSession => vec![CONFIRM],
+        _ => vec![CONFIRM, CANCEL],
+    }
+}
 
 // Return the load mode key-command pairs.
 fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
@@ -60,9 +69,9 @@ fn normal_mode_commands(heap: &Heap) -> Vec<KeyPair> {
 // Return the input mode key-command pairs.
 fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
     if input_state.is_valid() {
-        vec![SUBMIT]
+        vec![SUBMIT, CANCEL]
     } else {
-        Vec::new()
+        vec![CANCEL]
     }
 }
 
@@ -72,7 +81,7 @@ fn select_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.push(CONFIRM);
+    pairs.extend(&[CONFIRM, CANCEL]);
     pairs
 }
 
@@ -92,18 +101,15 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 
 /// Return the command bar widget based on the current `model`.
 pub fn command_bar(model: &Model) -> Line {
-    let mut pairs = match &model.mode {
+    let pairs = match &model.mode {
+        Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
         Mode::Normal => normal_mode_commands(&model.state.heap),
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Select(_) => select_mode_commands(model.state.heap.size()),
-        Mode::Selected(_) => vec![EDIT, DELETE],
-        Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM],
+        Mode::Selected(_) => vec![EDIT, DELETE, CANCEL],
+        Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
-    match &model.mode {
-        Mode::Load(_) | Mode::Normal => (),
-        _ => pairs.push(CANCEL),
-    }
     to_command_bar(pairs)
 }
 

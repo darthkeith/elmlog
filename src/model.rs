@@ -3,6 +3,13 @@ use crate::{
     io::{LoadState, OpenDataFile},
 };
 
+/// Action to be confirmed in Confirm mode.
+pub enum ConfirmState {
+    NewSession,
+    DeleteItem(String, usize),
+    DeleteFile(LoadState),
+}
+
 /// Action to be performed with the user input label string.
 pub enum LabelAction {
     Add,
@@ -57,6 +64,7 @@ pub struct SaveState {
 
 /// Operational modes of the application.
 pub enum Mode {
+    Confirm(ConfirmState),
     Load(LoadState),
     Normal,
     Input(InputState),
@@ -258,11 +266,11 @@ impl SessionState {
 }
 
 impl Model {
-    /// Create a Model in Normal mode.
-    pub fn new() -> Self {
+    /// Create a default Model for when there are no saved files.
+    pub fn default() -> Self {
         Model {
             state: SessionState::new(),
-            mode: Mode::Normal,
+            mode: Mode::Confirm(ConfirmState::NewSession),
         }
     }
 

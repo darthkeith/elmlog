@@ -15,6 +15,7 @@ use crate::{
     },
     model::{
         CompareState,
+        ConfirmState,
         FilenameState,
         FilenameStatus,
         InputState,
@@ -46,6 +47,32 @@ fn append_index(index: usize, c: char, heap_size: usize) -> usize {
     index
 }
 
+// Update the Model based on a Confirm mode message.
+fn update_confirm(
+    confirm: bool,
+    confirm_state: ConfirmState,
+    mut state: SessionState
+) -> Command {
+    let mode = match confirm {
+        true => match confirm_state {
+            ConfirmState::NewSession => Mode::Normal,
+            ConfirmState::DeleteItem(_, index) => {
+                state = state.delete(index);
+                Mode::Normal
+            }
+            ConfirmState::DeleteFile(load_state) => {
+                return Command::DeleteFile(load_state);
+            }
+        }
+        false => match confirm_state {
+            ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
+            ConfirmState::DeleteItem(..) => Mode::Normal,
+            ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
+        }
+    };
+    Command::None(Model { state, mode })
+}
+
 // Update the Model based on a Load mode message.
 fn update_load(
     msg: LoadMsg,
@@ -60,10 +87,7 @@ fn update_load(
             return Command::InitSession(path);
         }
         LoadMsg::New => Mode::Normal,
-        LoadMsg::Delete => match load_state.delete() {
-            Some(load_state) => Mode::Load(load_state),
-            None => Mode::Normal,
-        }
+        LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
     Command::None(Model { state, mode })
@@ -186,15 +210,13 @@ fn update_selected(
     index: usize,
     mut state: SessionState,
 ) -> Command {
+    let label = state.heap.label_at(index).to_string();
     let mode = match msg {
         SelectedMsg::Edit => {
-            let label = state.heap.label_at(index).to_string();
-            let input_state = InputState::new_edit(label, index);
-            Mode::Input(input_state)
+            Mode::Input(InputState::new_edit(label, index))
         }
         SelectedMsg::Delete => {
-            state = state.delete(index);
-            Mode::Normal
+            Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
     };
     Command::None(Model { state, mode })
@@ -203,10 +225,10 @@ fn update_selected(
 // Update the Model based on a Compare mode message.
 fn update_compare(
     msg: CompareMsg,
-    cmp_state: CompareState,
+    compare_state: CompareState,
     mut state: SessionState,
 ) -> Command {
-    let CompareState { item1, item2, first } = cmp_state;
+    let CompareState { item1, item2, first } = compare_state;
     let mode = match msg {
         CompareMsg::Toggle => {
             Mode::Compare(CompareState { item1, item2, first: !first })
@@ -250,6 +272,9 @@ fn update_save(
 /// Update the Model based on `message` and return an IO Command.
 pub fn update(message: Message, state: SessionState) -> Command {
     match message {
+        Message::Confirm(confirm, confirm_state) => {
+            update_confirm(confirm, confirm_state, state)
+        }
         Message::Load(msg, load_state) => update_load(msg, load_state, state),
         Message::Normal(msg) => update_normal(msg, state),
         Message::Input(msg, input_state) => match input_state {
@@ -262,7 +287,9 @@ pub fn update(message: Message, state: SessionState) -> Command {
         }
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
-        Message::Compare(msg, choice) => update_compare(msg, choice, state),
+        Message::Compare(msg, compare_state) => {
+            update_compare(msg, compare_state, state)
+        }
         Message::Save(msg, save_state) => update_save(msg, save_state, state),
         Message::Continue(mode) => Command::None(Model { state, mode }),
     }
