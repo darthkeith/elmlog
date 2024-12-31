@@ -103,13 +103,9 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         }
         NormalMsg::Compare => {
             match state.heap.status() {
-                HeapStatus::MultiRoot(item1, item2) => Mode::Compare(
-                    CompareState {
-                        item1: item1.to_string(),
-                        item2: item2.to_string(),
-                        first: true,
-                    }
-                ),
+                HeapStatus::MultiRoot(item1, item2) => {
+                    Mode::Compare(CompareState::new(item1, item2))
+                }
                 _ => Mode::Normal,
             }
         }
@@ -228,13 +224,12 @@ fn update_compare(
     compare_state: CompareState,
     mut state: SessionState,
 ) -> Command {
-    let CompareState { item1, item2, first } = compare_state;
     let mode = match msg {
         CompareMsg::Toggle => {
-            Mode::Compare(CompareState { item1, item2, first: !first })
+            Mode::Compare(compare_state.toggle())
         }
         CompareMsg::Confirm => {
-            state = state.merge_pair(first);
+            state = state.merge_pair(compare_state.first);
             Mode::Normal
         }
     };
@@ -254,10 +249,7 @@ fn update_save(
             match save {
                 true => match &state.maybe_file {
                     Some(_) => return Command::Save(state, post_save),
-                    None => {
-                        let input_state = InputState::new_save(post_save);
-                        Mode::Input(input_state)
-                    }
+                    None => Mode::Input(InputState::new_save(post_save))
                 }
                 false => match post_save {
                     PostSaveAction::Load => return Command::Load,

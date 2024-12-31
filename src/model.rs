@@ -194,6 +194,23 @@ impl InputState {
     }
 }
 
+impl CompareState {
+    /// Create a new CompareState with the first item selected by default.
+    pub fn new(item1: &str, item2: &str) -> Self {
+        CompareState {
+            item1: item1.to_string(),
+            item2: item2.to_string(),
+            first: true,
+        }
+    }
+
+    /// Toggle which item is selected.
+    pub fn toggle(mut self) -> Self {
+        self.first = !self.first;
+        self
+    }
+}
+
 impl SaveState {
     /// Create a SaveState for subsequently loading.
     pub fn new_load() -> Self {
