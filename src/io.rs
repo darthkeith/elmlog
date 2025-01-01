@@ -10,6 +10,8 @@ use crate::{
     heap::Heap,
     message::Command,
     model::{
+        FilenameAction,
+        FilenameState,
         FilenameStatus,
         Mode,
         Model,
@@ -39,6 +41,17 @@ pub struct OpenDataFile {
     path: PathBuf,
     _file: File,
     changed: bool,
+}
+
+impl FileEntry {
+    fn rename(&self, filename: &str) -> Result<Self> {
+        let path = app_dir_path().join(filename);
+        fs::rename(&self.path, &path)?;
+        Ok(FileEntry {
+            name: filename.to_string(),
+            path,
+        })
+    }
 }
 
 impl LoadState {
@@ -88,6 +101,13 @@ impl LoadState {
     /// Return the total number of files.
     pub fn size(&self) -> usize {
         self.files.len()
+    }
+
+    // Rename the selected file.
+    fn rename(&mut self, filename: &str) -> Result<()> {
+        let i = self.index;
+        self.files[i] = self.files[i].rename(filename)?;
+        Ok(())
     }
 
     // Delete the currently selected file and remove it from the list.
@@ -252,18 +272,42 @@ pub fn execute_command(command: Command) -> Option<Model> {
             let mode = filename_state.status(status).into_mode();
             Model { state, mode }
         }
-        Command::SaveNew(state, filename_state) => {
-            let status = match filename_exists(filename_state.input()) {
+        Command::Rename(state, filename, mut load_state) => {
+            let status = match filename_exists(&filename) {
                 true => FilenameStatus::Exists,
-                false => match save_new(&state.heap, filename_state.input()) {
+                false => match load_state.rename(&filename) {
                     Err(_) => FilenameStatus::Invalid,
-                    Ok(()) => return match filename_state.post_save {
+                    Ok(()) => {
+                        let mode = Mode::Load(load_state);
+                        return Some(Model { state, mode });
+                    }
+                }
+            };
+            let mode = FilenameState {
+                input: filename,
+                action: FilenameAction::Rename(load_state),
+                status,
+            }
+            .into_mode();
+            Model { state, mode }
+        }
+        Command::SaveNew(state, filename, post_save) => {
+            let status = match filename_exists(&filename) {
+                true => FilenameStatus::Exists,
+                false => match save_new(&state.heap, &filename) {
+                    Err(_) => FilenameStatus::Invalid,
+                    Ok(()) => return match post_save {
                         PostSaveAction::Load => execute_command(Command::Load),
                         PostSaveAction::Quit => None,
                     }
                 }
             };
-            let mode = filename_state.status(status).into_mode();
+            let mode = FilenameState {
+                input: filename,
+                action: FilenameAction::SaveNew(post_save),
+                status,
+            }
+            .into_mode();
             Model { state, mode }
         }
         Command::Save(state, action) => {

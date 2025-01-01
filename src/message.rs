@@ -26,6 +26,7 @@ pub enum LoadMsg {
     Increment,
     Open,
     New,
+    Rename,
     Delete,
     Quit,
 }
@@ -49,6 +50,7 @@ pub enum InputEdit {
 pub enum InputMsg {
     Edit(InputEdit),
     Submit,
+    Cancel,
 }
 
 /// A message sent in Select mode.
@@ -96,7 +98,8 @@ pub enum Command {
     Load,
     InitSession(PathBuf),
     CheckFileExists(SessionState, FilenameState),
-    SaveNew(SessionState, FilenameState),
+    Rename(SessionState, String, LoadState),
+    SaveNew(SessionState, String, PostSaveAction),
     Save(SessionState, PostSaveAction),
     DeleteFile(LoadState),
     Quit,
@@ -119,6 +122,7 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
         KeyCode::Char('j') | KeyCode::Down => LoadMsg::Increment,
         KeyCode::Enter => LoadMsg::Open,
         KeyCode::Char('n') => LoadMsg::New,
+        KeyCode::Char('r') => LoadMsg::Rename,
         KeyCode::Char('d') => LoadMsg::Delete,
         KeyCode::Char('q') => LoadMsg::Quit,
         _ => return Message::Continue(Mode::Load(load_state)),
@@ -139,23 +143,24 @@ fn to_normal_msg(key: KeyCode) -> Message {
     Message::Normal(normal_msg)
 }
 
-// Return to Normal mode on Esc, otherwise continue in the given `mode`.
-fn default(key: KeyCode, mode: Mode) -> Message {
-    Message::Continue(match key {
-        KeyCode::Esc => Mode::Normal,
-        _ => mode,
-    })
-}
-
 // Map a `key` to a Message in Input mode.
 fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
     let input_msg = match key {
         KeyCode::Char(c) => InputMsg::Edit(InputEdit::Append(c)),
         KeyCode::Backspace => InputMsg::Edit(InputEdit::PopChar),
         KeyCode::Enter => InputMsg::Submit,
-        _ => return default(key, Mode::Input(input_state)),
+        KeyCode::Esc => InputMsg::Cancel,
+        _ => return Message::Continue(Mode::Input(input_state)),
     };
     Message::Input(input_msg, input_state)
+}
+
+// Return to Normal mode on Esc, otherwise continue in the given `mode`.
+fn default(key: KeyCode, mode: Mode) -> Message {
+    Message::Continue(match key {
+        KeyCode::Esc => Mode::Normal,
+        _ => mode,
+    })
 }
 
 // Map a `key` to a Message in Select mode.

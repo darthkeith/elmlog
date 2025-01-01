@@ -7,6 +7,7 @@ use crate::{
     heap::HeapStatus,
     model::{
         ConfirmState,
+        FilenameAction,
         FilenameStatus,
         InputState,
         LabelAction,
@@ -28,9 +29,10 @@ mod normal {
     pub const MULTI: &str = "Items to compare: ";
 }
 mod input {
-    pub const ADD: &str = "Enter new item";
+    pub const ADD: &str = "Add item";
     pub const EDIT: &str = "Edit item";
-    pub const FILENAME: &str = "Enter file name";
+    pub const RENAME: &str = "Rename file";
+    pub const SAVENEW: &str = "Save new file";
 }
 mod alert {
     pub const EMPTY: &str = "Empty";
@@ -109,13 +111,17 @@ pub fn status_bar(model: &Model) -> Line {
             status_info(message, info)
         }
         Mode::Input(InputState::Filename(filename_state)) => {
+            let message = match filename_state.action {
+                FilenameAction::Rename(_) => input::RENAME,
+                FilenameAction::SaveNew(_) => input::SAVENEW,
+            };
             let info = match filename_state.status {
                 FilenameStatus::Empty => Some(alert::EMPTY),
                 FilenameStatus::Exists => Some(alert::EXISTS),
                 FilenameStatus::Invalid => Some(alert::INVALID),
                 FilenameStatus::Valid => None,
             };
-            status_info(input::FILENAME, info)
+            status_info(message, info)
         }
         Mode::Select(index) => status_select(*index),
         Mode::Selected(_) => status(SELECTED),

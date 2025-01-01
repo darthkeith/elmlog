@@ -31,6 +31,7 @@ const ADD: KeyPair = ("A", "Add");
 const SELECT: KeyPair = ("S", "Select");
 const COMPARE: KeyPair = ("C", "Compare");
 const EDIT: KeyPair = ("E", "Edit");
+const RENAME: KeyPair = ("R", "Rename");
 const DELETE: KeyPair = ("D", "Delete");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
@@ -49,7 +50,7 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
     if file_count > 1 {
         pairs.push(DOWN_UP);
     }
-    pairs.extend(&[OPEN, NEW, DELETE, QUIT]);
+    pairs.extend(&[OPEN, NEW, RENAME, DELETE, QUIT]);
     pairs
 }
 

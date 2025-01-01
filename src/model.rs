@@ -10,7 +10,7 @@ pub enum ConfirmState {
     DeleteFile(LoadState),
 }
 
-/// Action to be performed with the user input label string.
+/// Action to perform with the user input label string.
 pub enum LabelAction {
     Add,
     Edit(usize),
@@ -22,7 +22,19 @@ pub struct LabelState {
     pub action: LabelAction,
 }
 
-/// Status of the user input string as a potential filename.
+/// Action to perform after saving.
+pub enum PostSaveAction {
+    Load,
+    Quit,
+}
+
+/// Action to perform with the user input filename string.
+pub enum FilenameAction {
+    Rename(LoadState),
+    SaveNew(PostSaveAction),
+}
+
+/// Status of the user input filename string.
 pub enum FilenameStatus {
     Empty,
     Exists,
@@ -30,17 +42,11 @@ pub enum FilenameStatus {
     Valid,
 }
 
-/// Action to perform after saving.
-pub enum PostSaveAction {
-    Load,
-    Quit,
-}
-
 /// Current user input filename with status and next action to be performed.
 pub struct FilenameState {
     pub input: String,
+    pub action: FilenameAction,
     pub status: FilenameStatus,
-    pub post_save: PostSaveAction,
 }
 
 /// Input mode state, storing either a label or filename input.
@@ -166,12 +172,21 @@ impl InputState {
         })
     }
 
+    /// Create an InputState to rename a file.
+    pub fn new_rename(load_state: LoadState) -> Self {
+        InputState::Filename(FilenameState {
+            input: String::new(),
+            action: FilenameAction::Rename(load_state),
+            status: FilenameStatus::Empty,
+        })
+    }
+
     /// Create an InputState to save a new file.
     pub fn new_save(post_save: PostSaveAction) -> Self {
         InputState::Filename(FilenameState {
             input: String::new(),
+            action: FilenameAction::SaveNew(post_save),
             status: FilenameStatus::Empty,
-            post_save,
         })
     }
 

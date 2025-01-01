@@ -16,6 +16,7 @@ use crate::{
     model::{
         CompareState,
         ConfirmState,
+        FilenameAction,
         FilenameState,
         FilenameStatus,
         InputState,
@@ -87,6 +88,7 @@ fn update_load(
             return Command::InitSession(path);
         }
         LoadMsg::New => Mode::Normal,
+        LoadMsg::Rename => Mode::Input(InputState::new_rename(load_state)),
         LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
@@ -145,6 +147,10 @@ fn update_label(
                 return Command::None(model);
             }
         }
+        InputMsg::Cancel => {
+            let model = Model { state, mode: Mode::Normal };
+            return Command::None(model);
+        }
     };
     let mode = label_state.into_mode();
     Command::None(Model { state, mode })
@@ -169,7 +175,24 @@ fn update_filename(
         }
         InputMsg::Submit => match filename_state.is_empty() {
             true => filename_state.status(FilenameStatus::Empty),
-            false => return Command::SaveNew(state, filename_state),
+            false => {
+                let filename = filename_state.input;
+                match filename_state.action {
+                    FilenameAction::Rename(load_state) => {
+                        return Command::Rename(state, filename, load_state);
+                    }
+                    FilenameAction::SaveNew(post_save) => {
+                        return Command::SaveNew(state, filename, post_save);
+                    }
+                }
+            }
+        }
+        InputMsg::Cancel => {
+            let mode = match filename_state.action {
+                FilenameAction::Rename(load_state) => Mode::Load(load_state),
+                FilenameAction::SaveNew(_) => Mode::Normal,
+            };
+            return Command::None(Model { state, mode });
         }
     };
     let mode = filename_state.into_mode();

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.4.0-alpha] - 2025-01-01
+
+### Added
+- **Rename** command to rename files.
+
 ## [2.3.0-alpha] - 2024-12-30
 
 ### Added
