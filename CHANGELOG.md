@@ -1,5 +1,7 @@
 # Changelog
 
+## [Unreleased]
+
 ## [2.4.0-alpha] - 2025-01-01
 
 ### Added
@@ -76,4 +78,18 @@
 - Targeted commands:
   - **Edit**: Modify item text.
   - **Delete**: Delete an item.
+
+[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.4.0-alpha...HEAD
+[2.4.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.3.0-alpha...v2.4.0-alpha
+[2.3.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.2.0-alpha...v2.3.0-alpha
+[2.2.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.1.0-alpha...v2.2.0-alpha
+[2.1.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.0.2-alpha...v2.1.0-alpha
+[2.0.2-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.0.1-alpha...v2.0.2-alpha
+[2.0.1-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.0.0-alpha...v2.0.1-alpha
+[2.0.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v1.3.0-alpha...v2.0.0-alpha
+[1.3.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v1.2.0-alpha...v1.3.0-alpha
+[1.2.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v1.1.0-alpha...v1.2.0-alpha
+[1.1.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v1.0.0-alpha...v1.1.0-alpha
+[1.0.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v0.1.0-alpha...v1.0.0-alpha
+[0.1.0-alpha]: https://github.com/darthkeith/sieve-selector/releases/tag/v0.1.0-alpha
 
