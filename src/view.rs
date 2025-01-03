@@ -3,6 +3,8 @@ mod forest;
 mod statusbar;
 mod style;
 
+use std::cmp::min;
+
 use ratatui::{
     layout::{Constraint, Layout},
     style::Styled,
@@ -38,8 +40,16 @@ use self::{
     statusbar::status_bar,
 };
 
-/// Style the main area content.
-pub fn style_main(text: Text) -> Paragraph {
+// Calculate the scroll offset.
+fn calculate_offset(area_height: u16, list_size: usize, index: usize) -> u16 {
+    let area_height = area_height as usize;
+    let centered = index.saturating_sub(area_height / 2);
+    let max_offset = list_size.saturating_sub(area_height);
+    min(centered, max_offset) as u16
+}
+
+// Style the `text` to display in the main area.
+fn style_main(text: Text) -> Paragraph {
     let block = Block::new()
         .borders(Borders::NONE)
         .padding(Padding::uniform(1));
@@ -60,7 +70,7 @@ fn confirm(confirm_state: &ConfirmState) -> Paragraph {
 }
 
 // Return the load widget.
-fn load(load_state: &LoadState) -> Paragraph {
+fn load(load_state: &LoadState, area_height: u16) -> Paragraph {
     let lines = load_state.filename_iter()
         .map(|(filename, highlight)| {
             if highlight {
@@ -69,7 +79,11 @@ fn load(load_state: &LoadState) -> Paragraph {
                 Line::from(filename)
             }
         });
+    let size = load_state.size();
+    let index = load_state.index();
+    let offset = calculate_offset(area_height, size, index);
     style_main(Text::from_iter(lines))
+    .scroll((offset, 0))
 }
 
 // Return the text input widget given the `input` string.
@@ -135,7 +149,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
             frame.render_widget(confirm(confirm_state), main_area);
         }
         Mode::Load(load_state) => {
-            frame.render_widget(load(load_state), main_area);
+            let area_height = main_area.height.saturating_sub(2);
+            frame.render_widget(load(load_state, area_height), main_area);
         }
         Mode::Normal => {
             frame.render_widget(forest_normal(heap), main_area);

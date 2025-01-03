@@ -103,6 +103,11 @@ impl LoadState {
         self.files.len()
     }
 
+    /// Return the current index.
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
     // Rename the selected file.
     fn rename(&mut self, filename: &str) -> Result<()> {
         let i = self.index;
