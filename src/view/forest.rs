@@ -14,7 +14,7 @@ use crate::{
     },
     view::{
         style,
-        style_main,
+        main_paragraph,
     },
 };
 
@@ -110,7 +110,7 @@ pub fn forest_normal(heap: &Heap) -> Paragraph {
                 Span::styled(format!("{label} "), label_style),
             ])
         });
-    style_main(Text::from_iter(lines))
+    main_paragraph(Text::from_iter(lines))
 }
 
 /// Return the forest widget in select mode.
@@ -135,7 +135,7 @@ pub fn forest_select(heap: &Heap, current_idx: usize) -> Paragraph {
                 Span::styled(format!("{label} "), label_style),
             ])
         });
-    style_main(Text::from_iter(lines))
+    main_paragraph(Text::from_iter(lines))
 }
 
 /// Return the forest widget in selected mode.
@@ -154,6 +154,6 @@ pub fn forest_selected(heap: &Heap, current_idx: usize) -> Paragraph {
                 Span::styled(fmt_label, label_style),
             ])
         });
-    style_main(Text::from_iter(lines))
+    main_paragraph(Text::from_iter(lines))
 }
 
