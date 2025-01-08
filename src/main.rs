@@ -3,6 +3,7 @@ mod io;
 mod message;
 mod model;
 mod update;
+mod util;
 mod view;
 
 use std::io::Result;

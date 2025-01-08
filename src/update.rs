@@ -28,25 +28,8 @@ use crate::{
         SaveState,
         SessionState,
     },
+    util,
 };
-
-/// Append a digit to `index` if valid, otherwise return a fallback value.
-pub fn append_index(index: usize, c: char, list_size: usize) -> usize {
-    if !c.is_ascii_digit() {
-        return index;
-    }
-    let idx_str = format!("{index}{c}");
-    if let Ok(new_index) = idx_str.parse::<usize>() {
-        if new_index < list_size {
-            return new_index;
-        }
-    }
-    let c_val = (c as usize) - ('0' as usize);
-    if c_val < list_size {
-        return c_val;
-    }
-    index
-}
 
 // Update the Model based on a Confirm mode message.
 fn update_confirm(
@@ -204,7 +187,7 @@ fn update_filename(
 fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
     let mode = match msg {
         SelectMsg::Append(c) => {
-            let i = append_index(index, c, state.heap.size());
+            let i = util::append_index(index, c, state.heap.size());
             Mode::Select(i)
         }
         SelectMsg::Decrement => {

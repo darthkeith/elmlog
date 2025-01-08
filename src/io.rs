@@ -18,7 +18,7 @@ use crate::{
         PostSaveAction,
         SessionState,
     },
-    update::append_index,
+    util,
 };
 
 const APP_DIR: &str = "sieve-selector";
@@ -108,7 +108,7 @@ impl LoadState {
     }
 
     pub fn append_index(mut self, c: char) -> Self {
-        self.index = append_index(self.index, c, self.size());
+        self.index = util::append_index(self.index, c, self.size());
         self
     }
 
