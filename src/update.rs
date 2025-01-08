@@ -30,19 +30,19 @@ use crate::{
     },
 };
 
-// Append a digit to `index` if valid, otherwise return a fallback value.
-fn append_index(index: usize, c: char, heap_size: usize) -> usize {
+/// Append a digit to `index` if valid, otherwise return a fallback value.
+pub fn append_index(index: usize, c: char, list_size: usize) -> usize {
     if !c.is_ascii_digit() {
         return index;
     }
     let idx_str = format!("{index}{c}");
     if let Ok(new_index) = idx_str.parse::<usize>() {
-        if new_index < heap_size {
+        if new_index < list_size {
             return new_index;
         }
     }
     let c_val = (c as usize) - ('0' as usize);
-    if c_val < heap_size {
+    if c_val < list_size {
         return c_val;
     }
     index
@@ -81,6 +81,7 @@ fn update_load(
     state: SessionState
 ) -> Command {
     let mode = match msg {
+        LoadMsg::Append(c) => Mode::Load(load_state.append_index(c)),
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {

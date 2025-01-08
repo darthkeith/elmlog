@@ -419,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "sieve-selector"
-version = "2.5.1-alpha"
+version = "2.6.0-alpha"
 dependencies = [
  "bincode",
  "crossterm",

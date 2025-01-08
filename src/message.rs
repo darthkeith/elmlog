@@ -22,6 +22,7 @@ use crate::{
 
 /// A message sent in Load mode.
 pub enum LoadMsg {
+    Append(char),
     Decrement,
     Increment,
     Open,
@@ -118,13 +119,18 @@ fn to_confirm_msg(key: KeyCode, confirm_state: ConfirmState) -> Message {
 // Map a `key` to a Message in Load mode.
 fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
     let load_msg = match key {
-        KeyCode::Char('k') | KeyCode::Up => LoadMsg::Decrement,
-        KeyCode::Char('j') | KeyCode::Down => LoadMsg::Increment,
+        KeyCode::Char(c) => match c {
+            'k' => LoadMsg::Decrement,
+            'j' => LoadMsg::Increment,
+            'n' => LoadMsg::New,
+            'r' => LoadMsg::Rename,
+            'd' => LoadMsg::Delete,
+            'q' => LoadMsg::Quit,
+            _ => LoadMsg::Append(c),
+        }
+        KeyCode::Up => LoadMsg::Decrement,
+        KeyCode::Down => LoadMsg::Increment,
         KeyCode::Enter => LoadMsg::Open,
-        KeyCode::Char('n') => LoadMsg::New,
-        KeyCode::Char('r') => LoadMsg::Rename,
-        KeyCode::Char('d') => LoadMsg::Delete,
-        KeyCode::Char('q') => LoadMsg::Quit,
         _ => return Message::Continue(Mode::Load(load_state)),
     };
     Message::Load(load_msg, load_state)

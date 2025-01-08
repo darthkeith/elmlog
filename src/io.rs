@@ -18,6 +18,7 @@ use crate::{
         PostSaveAction,
         SessionState,
     },
+    update::append_index,
 };
 
 const APP_DIR: &str = "sieve-selector";
@@ -89,13 +90,11 @@ impl LoadState {
         &self.files[self.index].name
     }
 
-    /// Iterator of filenames with a boolean for whether the file is selected.
-    pub fn filename_iter(&self) -> impl Iterator<Item = (&str, bool)> {
+    /// Iterate over the filenames.
+    pub fn filename_iter(&self) -> impl Iterator<Item = &str> {
         self.files
             .iter()
             .map(|f| f.name.as_str())
-            .enumerate()
-            .map(|(i, name)| (name, i == self.index))
     }
 
     /// Return the total number of files.
@@ -106,6 +105,11 @@ impl LoadState {
     /// Return the current index.
     pub fn index(&self) -> usize {
         self.index
+    }
+
+    pub fn append_index(mut self, c: char) -> Self {
+        self.index = append_index(self.index, c, self.size());
+        self
     }
 
     // Rename the selected file.

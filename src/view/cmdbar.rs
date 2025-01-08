@@ -48,7 +48,7 @@ fn confirm_mode_commands(confirm_state: &ConfirmState) -> Vec<KeyPair<'static>> 
 fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if file_count > 1 {
-        pairs.push(DOWN_UP);
+        pairs.extend(&[JUMP, DOWN_UP]);
     }
     pairs.extend(&[OPEN, NEW, RENAME, DELETE, QUIT]);
     pairs

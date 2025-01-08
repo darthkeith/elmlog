@@ -134,13 +134,20 @@ fn confirm(confirm_state: &ConfirmState) -> Paragraph {
 
 // Return the load widget.
 fn load(load_state: &LoadState) -> Scroll {
+    let selected = load_state.index();
+    let index_len = match load_state.size() {
+        0 => 0,
+        n => (n - 1).to_string().len(),
+    };
     let lines = load_state.filename_iter()
-        .map(|(filename, highlight)| {
-            if highlight {
-                Line::styled(format!(" {filename} "), style::DEFAULT_HL)
-            } else {
-                Line::from(filename)
-            }
+        .enumerate()
+        .map(|(i, filename)| {
+            let line_style = match i == selected {
+                true => style::DEFAULT_HL,
+                false => style::DEFAULT,
+            };
+            let text = format!(" {i:>width$}   {filename}", width = index_len);
+            Line::styled(text, line_style)
         });
     Scroll {
         text: Text::from_iter(lines),
