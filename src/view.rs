@@ -29,6 +29,7 @@ use crate::{
         Model,
         SessionState,
     },
+    util,
 };
 
 use self::{
@@ -135,10 +136,7 @@ fn confirm(confirm_state: &ConfirmState) -> Paragraph {
 // Return the load widget.
 fn load(load_state: &LoadState) -> Scroll {
     let selected = load_state.index();
-    let index_len = match load_state.size() {
-        0 => 0,
-        n => (n - 1).to_string().len(),
-    };
+    let index_len = util::max_index_length(load_state.size());
     let lines = load_state.filename_iter()
         .enumerate()
         .map(|(i, filename)| {

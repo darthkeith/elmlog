@@ -12,6 +12,7 @@ use crate::{
         NodeType,
         PreOrderIter,
     },
+    util,
     view::{
         style,
         main_paragraph,
@@ -115,10 +116,7 @@ pub fn forest_normal(heap: &Heap) -> Paragraph {
 
 /// Return the forest widget in select mode.
 pub fn forest_select(heap: &Heap, current_idx: usize) -> Paragraph {
-    let index_len = match heap.size() {
-        0 => 0,
-        n => (n - 1).to_string().len(),
-    };
+    let index_len = util::max_index_length(heap.size());
     let lines = ForestIter::new(heap)
         .enumerate()
         .map(|(i, (tree_row, label, label_type))| {
