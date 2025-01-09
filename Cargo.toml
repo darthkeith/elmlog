@@ -1,5 +1,5 @@
 [package]
-name = "sieve-selector"
+name = "elmlog"
 version = "2.6.0-alpha"
 edition = "2021"
 
