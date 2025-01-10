@@ -24,7 +24,7 @@ use crate::{
 const APP_DIR: &str = "sieve-selector";
 
 /// The `name` and `path` of a file.
-struct FileEntry {
+pub struct FileEntry {
     name: String,
     path: PathBuf,
 }
@@ -39,6 +39,7 @@ pub struct LoadState {
 ///
 /// The File is only stored to keep the lock active.
 pub struct OpenDataFile {
+    name: String,
     path: PathBuf,
     _file: File,
     changed: bool,
@@ -56,9 +57,9 @@ impl FileEntry {
 }
 
 impl LoadState {
-    /// Return the path at the current `index`.
-    pub fn get_path(&self) -> PathBuf {
-        self.files[self.index].path.clone()
+    /// Move the selected FileEntry.
+    pub fn move_file_entry(mut self) -> FileEntry {
+        self.files.swap_remove(self.index)
     }
 
     /// Decrement the `index`.
@@ -191,14 +192,20 @@ fn load_heap(mut file: &File) -> Heap {
 }
 
 // Initialize a session's state using the `path` to a data file.
-fn init_session_state(path: PathBuf) -> SessionState {
+fn init_session_state(file_entry: FileEntry) -> SessionState {
+    let FileEntry { name, path } = file_entry;
     let file = OpenOptions::new()
         .read(true)
         .open(&path)
         .expect("Failed to open file");
     lock(&file);
     let heap = load_heap(&file);
-    let open_file = OpenDataFile { path, _file: file, changed: false };
+    let open_file = OpenDataFile {
+        name,
+        path,
+        _file: file,
+        changed: false,
+    };
     SessionState { heap, maybe_file: Some(open_file) }
 }
 
@@ -267,9 +274,9 @@ pub fn execute_command(command: Command) -> Option<Model> {
             Some(load_state) => Model::load(load_state),
             None => Model::default(),
         }
-        Command::InitSession(path) => {
+        Command::InitSession(file_entry) => {
             Model {
-                state: init_session_state(path),
+                state: init_session_state(file_entry),
                 mode: Mode::Normal,
             }
         }

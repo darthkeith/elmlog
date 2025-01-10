@@ -68,8 +68,8 @@ fn update_load(
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {
-            let path = load_state.get_path();
-            return Command::InitSession(path);
+            let file_entry = load_state.move_file_entry();
+            return Command::InitSession(file_entry);
         }
         LoadMsg::New => Mode::Normal,
         LoadMsg::Rename => Mode::Input(InputState::new_rename(load_state)),

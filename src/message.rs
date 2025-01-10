@@ -1,12 +1,11 @@
 use std::{
     io::Result,
-    path::PathBuf,
 };
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
 use crate::{
-    io::LoadState,
+    io::{FileEntry, LoadState},
     model::{
         CompareState,
         ConfirmState,
@@ -97,7 +96,7 @@ pub enum Message {
 pub enum Command {
     None(Model),
     Load,
-    InitSession(PathBuf),
+    InitSession(FileEntry),
     CheckFileExists(SessionState, FilenameState),
     Rename(SessionState, String, LoadState),
     SaveNew(SessionState, String, PostSaveAction),
