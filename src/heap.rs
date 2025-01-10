@@ -30,10 +30,10 @@ enum Direction {
     Sibling { label: String, child: Heap },
 }
 
-// Represents a path to a subheap within a heap.
-struct PathToSubheap {
+// Zipper represention of a forest focused on a node.
+struct ForestZipper {
+    focus: Heap,
     path: Vec<Direction>,
-    subheap: Heap,
 }
 
 // Represents an attempt to separate the first two trees from a heap.
@@ -55,8 +55,8 @@ pub struct NodePosition {
     pub is_last: bool,
 }
 
-// Represents a node with additional positional information for display.
-struct Node<'a> {
+// Represents a node containing references and tree position info.
+struct NodeRef<'a> {
     label: &'a str,
     child: &'a Heap,
     sibling: &'a Heap,
@@ -98,7 +98,7 @@ fn find_label(root: &mut Heap, index: usize) -> Option<&mut String> {
 // Return a path to the subheap at the pre-order `index` in the heap.
 //
 // If the index is invalid, a path to an empty sub-heap is returned.
-fn find_subheap(root: Heap, index: usize) -> PathToSubheap {
+fn find_subheap(root: Heap, index: usize) -> ForestZipper {
     let mut heap = root;
     let mut i = index;
     let mut path = Vec::new();
@@ -117,13 +117,13 @@ fn find_subheap(root: Heap, index: usize) -> PathToSubheap {
             break;
         }
     }
-    PathToSubheap { path, subheap: heap }
+    ForestZipper { focus: heap, path }
 }
 
 // Reconstruct a heap given a path to a subheap.
-fn reconstruct_heap(path_to_subheap: PathToSubheap) -> Heap {
-    let PathToSubheap { mut path, subheap } = path_to_subheap;
-    let mut current_heap = subheap;
+fn reconstruct_heap(forest_zipper: ForestZipper) -> Heap {
+    let ForestZipper { focus, mut path } = forest_zipper;
+    let mut current_heap = focus;
     while let Some(direction) = path.pop() {
         current_heap = match direction {
             Direction::Child { label, sibling } => {
@@ -148,7 +148,7 @@ fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
         path.push(Direction::Sibling{ label, child: *child });
         current_heap = *sibling;
     }
-    let new_heap = PathToSubheap { path, subheap: right_heap };
+    let new_heap = ForestZipper { focus: right_heap, path };
     reconstruct_heap(new_heap)
 }
 
@@ -207,14 +207,14 @@ impl Heap {
 
     /// Delete the node with the pre-order `index` from the heap.
     pub fn delete(self, index: usize) -> Self {
-        let PathToSubheap { path, subheap } = find_subheap(self, index);
-        let new_subheap = match subheap {
+        let ForestZipper { focus, path } = find_subheap(self, index);
+        let new_subheap = match focus {
             Self::Node { child, sibling, .. } => concat(*child, *sibling),
             Self::Empty => Self::Empty,
         };
-        let new_heap = PathToSubheap {
+        let new_heap = ForestZipper {
+            focus: new_subheap,
             path,
-            subheap: new_subheap,
         };
         reconstruct_heap(new_heap)
     }
@@ -264,7 +264,7 @@ impl Heap {
     }
 
     // Convert a Heap into a Node if non-empty.
-    fn to_node(&self, node_type: NodeType) -> Option<Node> {
+    fn to_node(&self, node_type: NodeType) -> Option<NodeRef> {
         match self {
             Heap::Empty => None,
             Heap::Node { label, child, sibling, .. } => {
@@ -273,7 +273,7 @@ impl Heap {
                     Heap::Node { .. } => false,
                 };
                 let pos = NodePosition { node_type, is_last };
-                Some(Node { label, child, sibling, pos })
+                Some(NodeRef { label, child, sibling, pos })
             }
         }
     }
@@ -290,14 +290,14 @@ impl Heap {
 
 /// Iterator type returning node labels/positions in pre-order.
 pub struct PreOrderIter<'a> {
-    stack: Vec<Node<'a>>,
+    stack: Vec<NodeRef<'a>>,
 }
 
 impl<'a> Iterator for PreOrderIter<'a> {
     type Item = (&'a str, NodePosition);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Node { label, child, sibling, pos } = self.stack.pop()?;
+        let NodeRef { label, child, sibling, pos } = self.stack.pop()?;
         let sibling_type = match pos.node_type {
             NodeType::Root => NodeType::Root,
             _ => NodeType::Sibling,
