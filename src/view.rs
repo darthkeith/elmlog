@@ -140,11 +140,12 @@ fn load(load_state: &LoadState) -> Scroll {
     let lines = load_state.filename_iter()
         .enumerate()
         .map(|(i, filename)| {
-            let line_style = match i == selected {
+            let highlight = i == selected;
+            let line_style = match highlight {
                 true => style::DEFAULT_HL,
                 false => style::DEFAULT,
             };
-            let text = format!(" {i:>width$}   {filename}", width = index_len);
+            let text = format!(" {i:>width$}   {filename} ", width = index_len);
             Line::styled(text, line_style)
         });
     Scroll {
