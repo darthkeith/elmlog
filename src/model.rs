@@ -313,5 +313,13 @@ impl Model {
             mode: Mode::Load(load_state),
         }
     }
+
+    /// Return the filename if it exists.
+    pub fn get_filename(&self) -> Option<&str> {
+        match &self.state.maybe_file {
+            Some(open_file) => Some(open_file.get_name()),
+            None => None,
+        }
+    }
 }
 

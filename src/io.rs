@@ -144,6 +144,10 @@ impl OpenDataFile {
     pub fn is_changed(&self) -> bool {
         self.changed
     }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 // Return the application directory path, creating any missing directories.

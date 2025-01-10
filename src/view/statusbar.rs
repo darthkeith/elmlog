@@ -42,17 +42,18 @@ const SELECT: &str = "Selected index: ";
 const SELECTED: &str = "Enter command";
 const COMPARE: &str = "Select item to promote";
 const SAVE: &str = "Save changes?";
+const UNTITLED: &str = "Untitled";
 
 fn add_indent(text: &str) -> String {
-    format!(" {}", text)
+    format!(" {text}")
 }
 
-// Return a status bar Line with the `message`.
+// Status bar Line with the `message`.
 fn status(message: &str) -> Line {
     Line::from(add_indent(message))
 }
 
-// Return a status bar Line with the `message` and additional `info`.
+// Status bar Line with the `message` and additional `info`.
 fn status_info<'a>(message: &'a str, info: Option<&'a str>) -> Line<'a> {
     match info {
         Some(info) => Line::from(format!(" {message} | [{info}]")),
@@ -60,7 +61,20 @@ fn status_info<'a>(message: &'a str, info: Option<&'a str>) -> Line<'a> {
     }
 }
 
-// Return the status bar Line in Select mode with `index` selected.
+// Info status without a message.
+fn info(msg: &str) -> Line {
+    Line::from(format!(" [{msg}]"))
+}
+
+// Normal mode status bar Line with the filename, if it exists.
+fn status_normal(maybe_filename: Option<&str>) -> Line {
+    match maybe_filename {
+        Some(filename) => Line::from(format!(" {filename}").bold()),
+        None => info(UNTITLED),
+    }
+}
+
+// Select mode status bar Line showing the selected `index`.
 fn status_select(index: usize) -> Line<'static> {
     Line::from(vec![
         add_indent(SELECT).into(),
@@ -77,7 +91,7 @@ pub fn status_bar(model: &Model) -> Line {
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
         Mode::Load(_) => status(LOAD),
-        Mode::Normal => status(""),
+        Mode::Normal => status_normal(model.get_filename()),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
                 LabelAction::Add => input::ADD,
