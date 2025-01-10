@@ -1,6 +1,6 @@
 use ratatui::{
     style::{Styled, Stylize},
-    text::Line,
+    text::{Line, Span},
 };
 
 use crate::{
@@ -44,47 +44,42 @@ const COMPARE: &str = "Select item to promote";
 const SAVE: &str = "Save changes?";
 const UNTITLED: &str = "Untitled";
 
-fn add_indent(text: &str) -> String {
-    format!(" {text}")
+fn info(text: &str) -> Span {
+    format!("[{text}]").into()
 }
 
 // Status bar Line with the `message`.
-fn status(message: &str) -> Line {
-    Line::from(add_indent(message))
+fn status(text: &str) -> Vec<Span> {
+    vec![text.into()]
 }
 
-// Status bar Line with the `message` and additional `info`.
-fn status_info<'a>(message: &'a str, info: Option<&'a str>) -> Line<'a> {
-    match info {
-        Some(info) => Line::from(format!(" {message} | [{info}]")),
+// Status bar Line with the `message` and additional info if present.
+fn status_info<'a>(message: &'a str, maybe_info: Option<&'a str>) -> Vec<Span<'a>> {
+    match maybe_info {
+        Some(text) => vec![message.into(), " | ".into(), info(text)],
         None => status(message),
     }
 }
 
-// Info status without a message.
-fn info(msg: &str) -> Line {
-    Line::from(format!(" [{msg}]"))
-}
-
 // Normal mode status bar Line with the filename, if it exists.
-fn status_normal(maybe_filename: Option<&str>) -> Line {
-    match maybe_filename {
-        Some(filename) => Line::from(format!(" {filename}").bold()),
+fn status_normal(maybe_filename: Option<&str>) -> Vec<Span> {
+    vec![match maybe_filename {
+        Some(filename) => filename.bold(),
         None => info(UNTITLED),
-    }
+    }]
 }
 
 // Select mode status bar Line showing the selected `index`.
-fn status_select(index: usize) -> Line<'static> {
-    Line::from(vec![
-        add_indent(SELECT).into(),
+fn status_select(index: usize) -> Vec<Span<'static>> {
+    vec![
+        SELECT.into(),
         index.to_string().bold(),
-    ])
+    ]
 }
 
 /// Return the status bar widget based on the `model`.
 pub fn status_bar(model: &Model) -> Line {
-    match &model.mode {
+    let content = match &model.mode {
         Mode::Confirm(confirm_state) => match confirm_state {
             ConfirmState::NewSession => status(confirm::NEW),
             ConfirmState::DeleteItem(..) => status(confirm::DELETE_ITEM),
@@ -126,7 +121,10 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(SAVE, Some(info))
         }
-    }
+    };
+    let mut spans = vec![" ".into()];
+    spans.extend(content);
+    Line::from(spans)
     .left_aligned()
     .set_style(style::ACCENT)
 }
