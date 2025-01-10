@@ -4,9 +4,9 @@ use ratatui::{
 };
 
 use crate::{
-    heap::{
-        Heap,
-        HeapStatus,
+    forest::{
+        Node,
+        ForestStatus,
     },
     model::{
         ConfirmState,
@@ -55,11 +55,11 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(heap: &Heap) -> Vec<KeyPair> {
+fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     let mut pairs = vec![ADD];
-    if heap.size() > 0 {
+    if root.size() > 0 {
         pairs.push(SELECT);
-        if let HeapStatus::MultiRoot(..) = heap.status() {
+        if let ForestStatus::MultiRoot(..) = root.status() {
             pairs.push(COMPARE);
         }
     }
@@ -105,9 +105,9 @@ pub fn command_bar(model: &Model) -> Line {
     let pairs = match &model.mode {
         Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
-        Mode::Normal => normal_mode_commands(&model.state.heap),
+        Mode::Normal => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
-        Mode::Select(_) => select_mode_commands(model.state.heap.size()),
+        Mode::Select(_) => select_mode_commands(model.state.root.size()),
         Mode::Selected(_) => vec![EDIT, DELETE, CANCEL],
         Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };

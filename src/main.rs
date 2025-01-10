@@ -1,4 +1,4 @@
-mod heap;
+mod forest;
 mod io;
 mod message;
 mod model;

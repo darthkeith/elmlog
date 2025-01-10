@@ -7,7 +7,7 @@ use std::{
 use fs2::FileExt;
 
 use crate::{
-    heap::Heap,
+    forest::Node,
     message::Command,
     model::{
         FilenameAction,
@@ -186,8 +186,8 @@ fn lock(file: &File) {
         .expect("File is currently locked");
 }
 
-// Load a Heap from a serialized data `file`.
-fn load_heap(mut file: &File) -> Heap {
+// Load a forest from a serialized data `file`.
+fn load_forest(mut file: &File) -> Node {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
         .expect("Failed to read file");
@@ -203,14 +203,14 @@ fn init_session_state(file_entry: FileEntry) -> SessionState {
         .open(&path)
         .expect("Failed to open file");
     lock(&file);
-    let heap = load_heap(&file);
+    let root = load_forest(&file);
     let open_file = OpenDataFile {
         name,
         path,
         _file: file,
         changed: false,
     };
-    SessionState { heap, maybe_file: Some(open_file) }
+    SessionState { root, maybe_file: Some(open_file) }
 }
 
 // Check whether `filename` exists in the app directory.
@@ -219,13 +219,13 @@ fn filename_exists(filename: &str) -> bool {
     path.exists()
 }
 
-// Return the Heap and data file path (if present) from the session state.
-// The File is dropped to unlock it.
-fn unlock_state(state: SessionState) -> (Heap, Option<PathBuf>) {
-    let SessionState { heap, maybe_file } = state;
+// Return the root Node and data file path (if present) from the session state.
+// The locked File is implicitly dropped to unlock it.
+fn unlock_state(state: SessionState) -> (Node, Option<PathBuf>) {
+    let SessionState { root, maybe_file } = state;
     let maybe_path = maybe_file
         .map(|open_file| open_file.path);
-    (heap, maybe_path)
+    (root, maybe_path)
 }
 
 // Set whether the file's permissions are read only.
@@ -240,8 +240,8 @@ fn set_read_only(path: &Path, read_only: bool) {
         .expect("Failed to set file permissions");
 }
 
-// Write the `heap` to an existing file at `path`.
-fn write_to_file(heap: &Heap, path: &Path) {
+// Write the forest rooted at `root` to an existing file at `path`.
+fn write_to_file(root: &Node, path: &Path) {
     set_read_only(path, false);
     let file = OpenOptions::new()
         .write(true)
@@ -249,24 +249,24 @@ fn write_to_file(heap: &Heap, path: &Path) {
         .open(path)
         .expect("Failed to write to file");
     lock(&file);
-    bincode::serialize_into(&file, heap)
+    bincode::serialize_into(&file, root)
         .expect("Failed to serialize data");
     set_read_only(path, true);
 }
 
 // Save the current session `state`.
 fn save(state: SessionState) {
-    let (heap, maybe_path) = unlock_state(state);
+    let (root, maybe_path) = unlock_state(state);
     if let Some(path) = maybe_path {
-        write_to_file(&heap, &path);
+        write_to_file(&root, &path);
     }
 }
 
-// Save the `heap` with the `filename`.
-fn save_new(heap: &Heap, filename: &str) -> Result<()> {
+// Save the forest rooted at `root` to the file `filename`.
+fn save_new(root: &Node, filename: &str) -> Result<()> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
-    write_to_file(heap, &path);
+    write_to_file(root, &path);
     Ok(())
 }
 
@@ -314,7 +314,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::SaveNew(state, filename, post_save) => {
             let status = match filename_exists(&filename) {
                 true => FilenameStatus::Exists,
-                false => match save_new(&state.heap, &filename) {
+                false => match save_new(&state.root, &filename) {
                     Err(_) => FilenameStatus::Invalid,
                     Ok(()) => return match post_save {
                         PostSaveAction::Load => execute_command(Command::Load),

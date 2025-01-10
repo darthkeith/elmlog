@@ -1,5 +1,5 @@
 use crate::{
-    heap::Heap,
+    forest::Node,
     io::{LoadState, OpenDataFile},
 };
 
@@ -82,7 +82,7 @@ pub enum Mode {
 
 /// State that is persistent across modes within a given session.
 pub struct SessionState {
-    pub heap: Heap,
+    pub root: Node,
     pub maybe_file: Option<OpenDataFile>,
 }
 
@@ -245,10 +245,10 @@ impl SaveState {
 }
 
 impl SessionState {
-    // Create a SessionState with an empty heap and no saved file.
+    // Create a SessionState with an empty forest and no saved file.
     fn new() -> Self {
         SessionState {
-            heap: Heap::Empty,
+            root: Node::Empty,
             maybe_file: None,
         }
     }
@@ -264,34 +264,34 @@ impl SessionState {
     pub fn is_changed(&self) -> bool {
         match &self.maybe_file {
             Some(open_file) => open_file.is_changed(),
-            None => !matches!(self.heap, Heap::Empty),
+            None => !matches!(self.root, Node::Empty),
         }
     }
 
-    /// Add `label` at the front of the heap.
+    /// Prepend a top-level `label` at the start of the forest.
     pub fn add(mut self, label: String) -> Self {
-        self.heap = self.heap.prepend(label);
+        self.root = self.root.prepend(label);
         self.set_changed();
         self
     }
 
     /// Change the label of the item at `index` to `label`.
     pub fn edit(mut self, index: usize, label: String) -> Self {
-        self.heap.set_label(index, label);
+        self.root.set_label(index, label);
         self.set_changed();
         self
     }
 
     /// Delete the item at `index`.
     pub fn delete(mut self, index: usize) -> Self {
-        self.heap = self.heap.delete(index);
+        self.root = self.root.delete(index);
         self.set_changed();
         self
     }
 
-    /// Merge the first two roots in the heap.
+    /// Merge the first two roots in the forest.
     pub fn merge_pair(mut self, promote_first: bool) -> Self {
-        self.heap = self.heap.merge_pair(promote_first);
+        self.root = self.root.merge_pair(promote_first);
         self.set_changed();
         self
     }

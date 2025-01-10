@@ -1,5 +1,5 @@
 use crate::{
-    heap::HeapStatus,
+    forest::ForestStatus,
     io::LoadState,
     message::{
         Command,
@@ -83,13 +83,13 @@ fn update_load(
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let mode = match msg {
         NormalMsg::Input => Mode::Input(InputState::new_add()),
-        NormalMsg::Select => match state.heap.size() > 0 {
+        NormalMsg::Select => match state.root.size() > 0 {
             true => Mode::Select(0),
             false => Mode::Normal,
         }
         NormalMsg::Compare => {
-            match state.heap.status() {
-                HeapStatus::MultiRoot(item1, item2) => {
+            match state.root.status() {
+                ForestStatus::MultiRoot(item1, item2) => {
                     Mode::Compare(CompareState::new(item1, item2))
                 }
                 _ => Mode::Normal,
@@ -187,7 +187,7 @@ fn update_filename(
 fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
     let mode = match msg {
         SelectMsg::Append(c) => {
-            let i = util::append_index(index, c, state.heap.size());
+            let i = util::append_index(index, c, state.root.size());
             Mode::Select(i)
         }
         SelectMsg::Decrement => {
@@ -197,7 +197,7 @@ fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
             }
         }
         SelectMsg::Increment => {
-            match index + 1 < state.heap.size() {
+            match index + 1 < state.root.size() {
                 true => Mode::Select(index + 1),
                 false => Mode::Select(index),
             }
@@ -213,7 +213,7 @@ fn update_selected(
     index: usize,
     mut state: SessionState,
 ) -> Command {
-    let label = state.heap.label_at(index).to_string();
+    let label = state.root.label_at(index).to_string();
     let mode = match msg {
         SelectedMsg::Edit => {
             Mode::Input(InputState::new_edit(label, index))

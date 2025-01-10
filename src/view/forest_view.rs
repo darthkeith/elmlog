@@ -4,8 +4,8 @@ use ratatui::{
 };
 
 use crate::{
-    heap::{
-        Heap,
+    forest::{
+        Node,
         NodePosition,
         NodeType,
         PreOrderIter,
@@ -30,10 +30,10 @@ struct ForestIter<'a> {
 }
 
 impl<'a> ForestIter<'a> {
-    fn new(heap: &'a Heap) -> Self {
+    fn new(root: &'a Node) -> Self {
         ForestIter {
             prefix: Vec::new(),
-            label_iter: heap.iter(),
+            label_iter: root.iter(),
         }
     }
 }
@@ -73,8 +73,8 @@ impl<'a> Iterator for ForestIter<'a> {
 }
 
 /// Return the forest widget in normal mode.
-pub fn forest_normal(heap: &Heap) -> Paragraph {
-    let lines = ForestIter::new(heap)
+pub fn forest_normal(root: &Node) -> Paragraph {
+    let lines = ForestIter::new(root)
         .map(|(tree_row, label)| {
             Line::from(vec![
                 Span::styled(tree_row, style::TREE),
@@ -85,9 +85,9 @@ pub fn forest_normal(heap: &Heap) -> Paragraph {
 }
 
 /// Return the forest widget in select mode.
-pub fn forest_select(heap: &Heap, current_idx: usize) -> Paragraph {
-    let index_len = util::max_index_length(heap.size());
-    let lines = ForestIter::new(heap)
+pub fn forest_select(root: &Node, current_idx: usize) -> Paragraph {
+    let index_len = util::max_index_length(root.size());
+    let lines = ForestIter::new(root)
         .enumerate()
         .map(|(i, (tree_row, label))| {
             let fmt_index = format!(" {i:>width$}   ", width = index_len);
@@ -111,8 +111,8 @@ pub fn forest_select(heap: &Heap, current_idx: usize) -> Paragraph {
 }
 
 /// Return the forest widget in selected mode.
-pub fn forest_selected(heap: &Heap, current_idx: usize) -> Paragraph {
-    let lines = ForestIter::new(heap)
+pub fn forest_selected(root: &Node, current_idx: usize) -> Paragraph {
+    let lines = ForestIter::new(root)
         .enumerate()
         .map(|(i, (tree_row, label))| {
             let highlight = i == current_idx;

@@ -1,5 +1,5 @@
 mod cmdbar;
-mod forest;
+mod forest_view;
 mod statusbar;
 mod style;
 
@@ -34,7 +34,7 @@ use crate::{
 
 use self::{
     cmdbar::command_bar,
-    forest::{
+    forest_view::{
         forest_normal,
         forest_select,
         forest_selected,
@@ -210,7 +210,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
     ] = top_mid_bottom(frame.area());
     frame.render_widget(status_bar(model), status_bar_area);
     let Model { state, mode } = model;
-    let SessionState { heap, .. } = state;
+    let SessionState { root, .. } = state;
     match mode {
         Mode::Confirm(confirm_state) => {
             frame.render_widget(confirm(confirm_state), main_area);
@@ -219,16 +219,16 @@ pub fn view(model: &Model, frame: &mut Frame) {
             frame.render_widget(load(load_state), main_area);
         }
         Mode::Normal => {
-            frame.render_widget(forest_normal(heap), main_area);
+            frame.render_widget(forest_normal(root), main_area);
         }
         Mode::Input(input_state) => {
             frame.render_widget(text_input(input_state.input()), main_area);
         }
         Mode::Select(index) => {
-            frame.render_widget(forest_select(heap, *index), main_area);
+            frame.render_widget(forest_select(root, *index), main_area);
         }
         Mode::Selected(index) => {
-            frame.render_widget(forest_selected(heap, *index), main_area);
+            frame.render_widget(forest_selected(root, *index), main_area);
         }
         Mode::Compare(compare_state) => {
             frame.render_widget(compare(compare_state), main_area);

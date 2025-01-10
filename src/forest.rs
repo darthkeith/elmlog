@@ -1,45 +1,42 @@
 use serde::{Serialize, Deserialize};
 
-/// A node in a left-child right-sibling binary tree containing a string.
+/// A node in a left-child right-sibling binary tree, containing a string.
 ///
-/// This represents an ordered forest of multi-way trees, where each node can
-/// have any number of children and siblings (the roots are siblings of each
-/// other).  `size` is the number of nodes in a node's (binary) subtree.
-/// When referring to a forest, "the root" is the root of its left-most tree,
-/// which is also the root node of its binary tree representation.
+/// The `size` field stores the size of the node's binary subtree.
+/// The binary tree represents a forest of multi-way trees, where each node can
+/// have any number of children and siblings (the roots are siblings).
 #[derive(Serialize, Deserialize)]
-pub enum Heap {
+pub enum Node {
     Empty,
     Node {
         label: String,
-        child: Box<Heap>,
-        sibling: Box<Heap>,
+        child: Box<Node>,
+        sibling: Box<Node>,
         size: usize,
     }
 }
 
-// A heap with a single tree.
 struct Tree {
     label: String,
-    child: Heap,
+    child: Node,
 }
 
-// Represents the direction taken through a node in a path through a heap.
+// Represents the direction taken through a node in a path from the root.
 enum Direction {
-    Child { label: String, sibling: Heap },
-    Sibling { label: String, child: Heap },
+    Child { label: String, sibling: Node },
+    Sibling { label: String, child: Node },
 }
 
 // Zipper represention of a forest focused on a node.
 struct ForestZipper {
-    focus: Heap,
+    focus: Node,
     path: Vec<Direction>,
 }
 
-// Represents an attempt to separate the first two trees from a heap.
+// Represents an attempt to separate the first two trees in a forest.
 enum TwoTrees {
-    Success { tree_1: Tree, tree_2: Tree, rest: Heap},
-    Fail(Heap),
+    Success { tree_1: Tree, tree_2: Tree, rest: Node},
+    Fail(Node),
 }
 
 /// Describes whether a node is a root, first child, or non-root right sibling.
@@ -49,7 +46,7 @@ pub enum NodeType {
     Sibling,
 }
 
-/// Describes the position of a node in a heap (used for display).
+/// Describes the position of a node in a forest (used for display).
 pub struct NodePosition {
     pub node_type: NodeType,
     pub is_last: bool,
@@ -58,110 +55,109 @@ pub struct NodePosition {
 // Represents a node containing references and tree position info.
 struct NodeRef<'a> {
     label: &'a str,
-    child: &'a Heap,
-    sibling: &'a Heap,
+    child: &'a Node,
+    sibling: &'a Node,
     pos: NodePosition,
 }
 
-/// Represents the number of roots in a heap (zero, one, or multiple).
+/// Represents the number of roots in a forest (zero, one, or multiple).
 ///
 /// If multiple, include references to the first two labels.
-pub enum HeapStatus<'a> {
+pub enum ForestStatus<'a> {
     Empty,
     SingleRoot,
     MultiRoot(&'a str, &'a str),
 }
 
-// Return a reference to the label at the given pre-order `index` in the heap.
-fn find_label(root: &mut Heap, index: usize) -> Option<&mut String> {
-    let mut heap = root;
+// Return a reference to the label at the given pre-order `index` in the forest.
+fn find_label(root: &mut Node, index: usize) -> Option<&mut String> {
+    let mut node = root;
     let mut i = index;
     while i > 0 {
-        if let  Heap::Node { child, sibling, .. } = heap {
+        if let  Node::Node { child, sibling, .. } = node {
             if i <= child.size() {
                 i -= 1;
-                heap = &mut **child;
+                node = &mut **child;
             } else {
                 i -= 1 + child.size();
-                heap = &mut **sibling;
+                node = &mut **sibling;
             }
         } else {
             return None;
         }
     }
-    match heap {
-        Heap::Node { label, .. } => Some(label),
-        Heap::Empty => None,
+    match node {
+        Node::Node { label, .. } => Some(label),
+        Node::Empty => None,
     }
 }
 
-// Return a path to the subheap at the pre-order `index` in the heap.
-//
-// If the index is invalid, a path to an empty sub-heap is returned.
-fn find_subheap(root: Heap, index: usize) -> ForestZipper {
-    let mut heap = root;
+// Return a zipper focused on the node at the pre-order `index` in the forest.
+// If the index is invalid, the zipper will be focused on an empty node.
+fn find_node(root: Node, index: usize) -> ForestZipper {
+    let mut node = root;
     let mut i = index;
     let mut path = Vec::new();
     while i > 0 {
-        if let Heap::Node { label, child, sibling, .. } = heap {
+        if let Node::Node { label, child, sibling, .. } = node {
             if i <= child.size() {
                 i -= 1;
                 path.push(Direction::Child { label, sibling: *sibling });
-                heap = *child;
+                node = *child;
             } else {
                 i -= 1 + child.size();
                 path.push(Direction::Sibling { label, child: *child });
-                heap = *sibling;
+                node = *sibling;
             }
         } else {
             break;
         }
     }
-    ForestZipper { focus: heap, path }
+    ForestZipper { focus: node, path }
 }
 
-// Reconstruct a heap given a path to a subheap.
-fn reconstruct_heap(forest_zipper: ForestZipper) -> Heap {
+// Reconstruct a forest from a ForestZipper.
+fn reconstruct_forest(forest_zipper: ForestZipper) -> Node {
     let ForestZipper { focus, mut path } = forest_zipper;
-    let mut current_heap = focus;
+    let mut current_node = focus;
     while let Some(direction) = path.pop() {
-        current_heap = match direction {
+        current_node = match direction {
             Direction::Child { label, sibling } => {
-                Heap::new(label, current_heap, sibling)
+                Node::new(label, current_node, sibling)
             }
             Direction::Sibling { label, child } => {
-                Heap::new(label, child, current_heap)
+                Node::new(label, child, current_node)
             }
         };
     }
-    current_heap
+    current_node
 }
 
-// Concatenate two heaps, making their roots siblings.
-fn concat(left_heap: Heap, right_heap: Heap) -> Heap {
-    if let Heap::Empty = right_heap {
-        return left_heap;
+// Concatenate two trees, making their roots siblings.
+fn concat(left_root: Node, right_root: Node) -> Node {
+    if let Node::Empty = right_root {
+        return left_root;
     }
     let mut path = Vec::new();
-    let mut current_heap = left_heap;
-    while let Heap::Node { label, child, sibling, .. } = current_heap {
+    let mut current_node = left_root;
+    while let Node::Node { label, child, sibling, .. } = current_node {
         path.push(Direction::Sibling{ label, child: *child });
-        current_heap = *sibling;
+        current_node = *sibling;
     }
-    let new_heap = ForestZipper { focus: right_heap, path };
-    reconstruct_heap(new_heap)
+    let forest = ForestZipper { focus: right_root, path };
+    reconstruct_forest(forest)
 }
 
-// Attempt to separate the first two trees from a heap.
-fn pop_two_trees(heap: Heap) -> TwoTrees {
-    match heap {
-        Heap::Node {
+// Attempt to separate the first two trees from a forest.
+fn pop_two_trees(root: Node) -> TwoTrees {
+    match root {
+        Node::Node {
             label: label_1,
             child: child_1,
             sibling: sibling_1,
             ..
         } => match *sibling_1 {
-            Heap::Node {
+            Node::Node {
                 label: label_2,
                 child: child_2,
                 sibling: sibling_2,
@@ -171,17 +167,17 @@ fn pop_two_trees(heap: Heap) -> TwoTrees {
                 let tree_2 = Tree { label: label_2, child: *child_2 };
                 TwoTrees::Success { tree_1, tree_2, rest: *sibling_2 }
             }
-            Heap::Empty => {
-                let old_heap = Heap::new(label_1, *child_1, Heap::Empty);
-                TwoTrees::Fail(old_heap)
+            Node::Empty => {
+                let old_forest = Node::new(label_1, *child_1, Node::Empty);
+                TwoTrees::Fail(old_forest)
             }
         }
-        Heap::Empty => TwoTrees::Fail(Heap::Empty),
+        Node::Empty => TwoTrees::Fail(Node::Empty),
     }
 }
 
-impl Heap {
-    // Construct a heap given the `label`, `child`, and `sibling` of its root.
+impl Node {
+    // Construct a new Node given its`label`, `child`, and `sibling`.
     fn new(label: String, child: Self, sibling: Self) -> Self {
         let size = 1 + child.size() + sibling.size();
         Self::Node {
@@ -192,7 +188,7 @@ impl Heap {
         }
     }
 
-    /// Return the number of nodes in the heap.
+    /// Return the number of nodes in the forest.
     pub fn size(&self) -> usize {
         match self {
             Self::Empty => 0,
@@ -200,23 +196,23 @@ impl Heap {
         }
     }
 
-    /// Insert a node with the given `label` before the first tree in the heap.
+    /// Insert a Node with the `label` at the start of the forest.
     pub fn prepend(self, label: String) -> Self {
         Self::new(label, Self::Empty, self)
     }
 
-    /// Delete the node with the pre-order `index` from the heap.
+    /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
-        let ForestZipper { focus, path } = find_subheap(self, index);
-        let new_subheap = match focus {
+        let ForestZipper { focus, path } = find_node(self, index);
+        let new_focus = match focus {
             Self::Node { child, sibling, .. } => concat(*child, *sibling),
             Self::Empty => Self::Empty,
         };
-        let new_heap = ForestZipper {
-            focus: new_subheap,
+        let forest = ForestZipper {
+            focus: new_focus,
             path,
         };
-        reconstruct_heap(new_heap)
+        reconstruct_forest(forest)
     }
 
     /// Merge the first two trees, appending the result as the final tree.
@@ -229,11 +225,11 @@ impl Heap {
                 };
                 let Tree { label: parent_label, child: old_child } = parent;
                 let Tree { label: child_label, child: grandchild } = child;
-                let new_child = Heap::new(child_label, grandchild, old_child);
-                let merged = Heap::new(parent_label, new_child, Heap::Empty);
+                let new_child = Node::new(child_label, grandchild, old_child);
+                let merged = Node::new(parent_label, new_child, Node::Empty);
                 concat(rest, merged)
             }
-            TwoTrees::Fail(heap) => heap
+            TwoTrees::Fail(root) => root,
         }
     }
 
@@ -250,27 +246,27 @@ impl Heap {
         *label = new_label;
     }
 
-    /// Return the status of the heap (if there is one root, include its label).
-    pub fn status(&self) -> HeapStatus {
+    /// Return the status of the forest roots.
+    pub fn status(&self) -> ForestStatus {
         match self {
-            Self::Empty => HeapStatus::Empty,
+            Self::Empty => ForestStatus::Empty,
             Self::Node { label, sibling, .. } => match &**sibling {
-                Self::Empty => HeapStatus::SingleRoot,
+                Self::Empty => ForestStatus::SingleRoot,
                 Self::Node { label: label2, .. } => {
-                    HeapStatus::MultiRoot(label, label2)
+                    ForestStatus::MultiRoot(label, label2)
                 }
             }
         }
     }
 
-    // Convert a Heap into a Node if non-empty.
+    // Create a corresponding NodeRef from a Node if non-empty.
     fn to_node(&self, node_type: NodeType) -> Option<NodeRef> {
         match self {
-            Heap::Empty => None,
-            Heap::Node { label, child, sibling, .. } => {
+            Node::Empty => None,
+            Node::Node { label, child, sibling, .. } => {
                 let is_last = match **sibling {
-                    Heap::Empty => true,
-                    Heap::Node { .. } => false,
+                    Node::Empty => true,
+                    Node::Node { .. } => false,
                 };
                 let pos = NodePosition { node_type, is_last };
                 Some(NodeRef { label, child, sibling, pos })
