@@ -1,10 +1,9 @@
 use ratatui::{
     style::{Styled, Stylize},
-    text::{Line, Span},
+    text::Line,
 };
 
 use crate::{
-    heap::HeapStatus,
     model::{
         ConfirmState,
         FilenameAction,
@@ -22,11 +21,6 @@ mod confirm {
     pub const NEW: &str = "No saved files, starting new session...";
     pub const DELETE_ITEM: &str = "Delete item?";
     pub const DELETE_FILE: &str = "Delete file?";
-}
-mod normal {
-    pub const EMPTY: &str = "Empty";
-    pub const SINGLE: &str = "Item selected";
-    pub const MULTI: &str = "Items to compare: ";
 }
 mod input {
     pub const ADD: &str = "Add item";
@@ -66,14 +60,6 @@ fn status_info<'a>(message: &'a str, info: Option<&'a str>) -> Line<'a> {
     }
 }
 
-// Return the status bar Line in Normal mode when there are `n` roots.
-fn status_normal_multi(n: usize) -> Line<'static> {
-    Line::from(vec![
-        add_indent(normal::MULTI).into(),
-        Span::styled(n.to_string(), style::NUMBER),
-    ])
-}
-
 // Return the status bar Line in Select mode with `index` selected.
 fn status_select(index: usize) -> Line<'static> {
     Line::from(vec![
@@ -91,14 +77,7 @@ pub fn status_bar(model: &Model) -> Line {
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
         Mode::Load(_) => status(LOAD),
-        Mode::Normal => match model.state.heap.status() {
-            HeapStatus::Empty => status(normal::EMPTY),
-            HeapStatus::SingleRoot => status(normal::SINGLE),
-            HeapStatus::MultiRoot(..) => {
-                let n = model.state.heap.root_count();
-                status_normal_multi(n)
-            }
-        }
+        Mode::Normal => status(""),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
                 LabelAction::Add => input::ADD,
