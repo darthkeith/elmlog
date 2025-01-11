@@ -21,16 +21,19 @@ struct Tree {
     child: Node,
 }
 
-// Represents the direction taken through a node in a path from the root.
-enum Direction {
-    Child { label: String, sibling: Node },
-    Sibling { label: String, child: Node },
+// Represents a node in the path from the root to the node in focus, indicating
+// the direction taken through the node. The structure forms part of a forest
+// with a linked chain leading to the root.
+enum ReturnNode {
+    Child { label: String, prev: Box<ReturnNode>, sibling: Node },
+    Sibling { label: String, prev: Box<ReturnNode>, child: Node },
+    Empty,
 }
 
 // Zipper represention of a forest focused on a node.
 struct ForestZipper {
     focus: Node,
-    path: Vec<Direction>,
+    prev: ReturnNode,
 }
 
 // Represents an attempt to separate the first two trees in a forest.
@@ -70,9 +73,9 @@ pub enum ForestStatus<'a> {
 }
 
 // Return a reference to the label at the given pre-order `index` in the forest.
-fn find_label(root: &mut Node, index: usize) -> Option<&mut String> {
-    let mut node = root;
+fn find_label(index: usize, root: &mut Node) -> Option<&mut String> {
     let mut i = index;
+    let mut node = root;
     while i > 0 {
         if let  Node::Node { child, sibling, .. } = node {
             if i <= child.size() {
@@ -94,43 +97,45 @@ fn find_label(root: &mut Node, index: usize) -> Option<&mut String> {
 
 // Return a zipper focused on the node at the pre-order `index` in the forest.
 // If the index is invalid, the zipper will be focused on an empty node.
-fn find_node(root: Node, index: usize) -> ForestZipper {
-    let mut node = root;
+fn focus_node(index: usize, root: Node) -> ForestZipper {
     let mut i = index;
-    let mut path = Vec::new();
+    let mut focus = root;
+    let mut prev = ReturnNode::Empty;
     while i > 0 {
-        if let Node::Node { label, child, sibling, .. } = node {
-            if i <= child.size() {
-                i -= 1;
-                path.push(Direction::Child { label, sibling: *sibling });
-                node = *child;
-            } else {
-                i -= 1 + child.size();
-                path.push(Direction::Sibling { label, child: *child });
-                node = *sibling;
+        match focus {
+            Node::Node { label, child, sibling, .. } => {
+                if i <= child.size() {
+                    i -= 1;
+                    focus = *child;
+                    prev = ReturnNode::new_child(label, prev, *sibling);
+                } else {
+                    i -= 1 + child.size();
+                    focus = *sibling;
+                    prev = ReturnNode::new_sibling(label, prev, *child);
+                }
             }
-        } else {
-            break;
+            Node::Empty => break,
         }
     }
-    ForestZipper { focus: node, path }
+    ForestZipper { focus, prev }
 }
 
 // Reconstruct a forest from a ForestZipper.
 fn reconstruct_forest(forest_zipper: ForestZipper) -> Node {
-    let ForestZipper { focus, mut path } = forest_zipper;
-    let mut current_node = focus;
-    while let Some(direction) = path.pop() {
-        current_node = match direction {
-            Direction::Child { label, sibling } => {
-                Node::new(label, current_node, sibling)
+    let ForestZipper { mut focus, mut prev } = forest_zipper;
+    loop {
+        prev = match prev {
+            ReturnNode::Child { label, prev, sibling } => {
+                focus = Node::new(label, focus, sibling);
+                *prev
             }
-            Direction::Sibling { label, child } => {
-                Node::new(label, child, current_node)
+            ReturnNode::Sibling { label, prev, child } => {
+                focus = Node::new(label, child, focus);
+                *prev
             }
-        };
+            ReturnNode::Empty => return focus,
+        }
     }
-    current_node
 }
 
 // Concatenate two trees, making their roots siblings.
@@ -138,13 +143,13 @@ fn concat(left_root: Node, right_root: Node) -> Node {
     if let Node::Empty = right_root {
         return left_root;
     }
-    let mut path = Vec::new();
-    let mut current_node = left_root;
-    while let Node::Node { label, child, sibling, .. } = current_node {
-        path.push(Direction::Sibling{ label, child: *child });
-        current_node = *sibling;
+    let mut focus = left_root;
+    let mut prev = ReturnNode::Empty;
+    while let Node::Node { label, child, sibling, .. } = focus {
+        focus = *sibling;
+        prev = ReturnNode::new_sibling(label, prev, *child);
     }
-    let forest = ForestZipper { focus: right_root, path };
+    let forest = ForestZipper { focus: right_root, prev };
     reconstruct_forest(forest)
 }
 
@@ -177,7 +182,6 @@ fn pop_two_trees(root: Node) -> TwoTrees {
 }
 
 impl Node {
-    // Construct a new Node given its`label`, `child`, and `sibling`.
     fn new(label: String, child: Self, sibling: Self) -> Self {
         let size = 1 + child.size() + sibling.size();
         Self::Node {
@@ -203,14 +207,14 @@ impl Node {
 
     /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
-        let ForestZipper { focus, path } = find_node(self, index);
+        let ForestZipper { focus, prev } = focus_node(index, self);
         let new_focus = match focus {
             Self::Node { child, sibling, .. } => concat(*child, *sibling),
             Self::Empty => Self::Empty,
         };
         let forest = ForestZipper {
             focus: new_focus,
-            path,
+            prev,
         };
         reconstruct_forest(forest)
     }
@@ -235,13 +239,13 @@ impl Node {
 
     /// Return a reference to the label at the given pre-order `index`.
     pub fn label_at(&mut self, index: usize) -> &str {
-        find_label(self, index)
+        find_label(index, self)
             .expect("Invalid index")
     }
 
     /// Set the label at the given `index` to the `new_label`.
     pub fn set_label(&mut self, index: usize, new_label: String) {
-        let label = find_label(self, index)
+        let label = find_label(index, self)
             .expect("Invalid index");
         *label = new_label;
     }
@@ -281,6 +285,24 @@ impl Node {
             stack.push(node);
         }
         PreOrderIter { stack }
+    }
+}
+
+impl ReturnNode {
+    fn new_child(label: String, prev: Self, sibling: Node) -> Self {
+        Self::Child {
+            label,
+            prev: Box::new(prev),
+            sibling,
+        }
+    }
+
+    fn new_sibling(label: String, prev: Self, child: Node) -> Self {
+        Self::Sibling {
+            label,
+            prev: Box::new(prev),
+            child,
+        }
     }
 }
 
