@@ -16,11 +16,6 @@ pub enum Node {
     }
 }
 
-struct Tree {
-    label: String,
-    child: Node,
-}
-
 // Represents a node in the path from the root to the node in focus, indicating
 // the direction taken through the node. The structure forms part of a forest
 // with a linked chain leading to the root.
@@ -34,6 +29,11 @@ enum ReturnNode {
 struct ForestZipper {
     focus: Node,
     prev: ReturnNode,
+}
+
+struct Tree {
+    label: String,
+    child: Node,
 }
 
 // Represents an attempt to separate the first two trees in a forest.
@@ -120,24 +120,6 @@ fn focus_node(index: usize, root: Node) -> ForestZipper {
     ForestZipper { focus, prev }
 }
 
-// Reconstruct a forest from a ForestZipper.
-fn reconstruct_forest(forest_zipper: ForestZipper) -> Node {
-    let ForestZipper { mut focus, mut prev } = forest_zipper;
-    loop {
-        prev = match prev {
-            ReturnNode::Child { label, prev, sibling } => {
-                focus = Node::new(label, focus, sibling);
-                *prev
-            }
-            ReturnNode::Sibling { label, prev, child } => {
-                focus = Node::new(label, child, focus);
-                *prev
-            }
-            ReturnNode::Empty => return focus,
-        }
-    }
-}
-
 // Concatenate two trees, making their roots siblings.
 fn concat(left_root: Node, right_root: Node) -> Node {
     if let Node::Empty = right_root {
@@ -149,8 +131,8 @@ fn concat(left_root: Node, right_root: Node) -> Node {
         focus = *sibling;
         prev = ReturnNode::new_sibling(label, prev, *child);
     }
-    let forest = ForestZipper { focus: right_root, prev };
-    reconstruct_forest(forest)
+    ForestZipper { focus: right_root, prev }
+        .reconstruct()
 }
 
 // Attempt to separate the first two trees from a forest.
@@ -205,6 +187,20 @@ impl Node {
         Self::new(label, Self::Empty, self)
     }
 
+    /// Swap the subtree at `index` with its next sibling.
+    pub fn move_forward(self, index: usize) -> Self {
+        focus_node(index, self)
+            .move_forward()
+            .reconstruct()
+    }
+
+    /// Swap the subtree at `index` with its previous sibling.
+    pub fn move_backward(self, index: usize) -> Self {
+        focus_node(index, self)
+            .move_backward()
+            .reconstruct()
+    }
+
     /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
         let ForestZipper { focus, prev } = focus_node(index, self);
@@ -212,11 +208,8 @@ impl Node {
             Self::Node { child, sibling, .. } => concat(*child, *sibling),
             Self::Empty => Self::Empty,
         };
-        let forest = ForestZipper {
-            focus: new_focus,
-            prev,
-        };
-        reconstruct_forest(forest)
+        ForestZipper { focus: new_focus, prev, }
+            .reconstruct()
     }
 
     /// Merge the first two trees, appending the result as the final tree.
@@ -229,8 +222,8 @@ impl Node {
                 };
                 let Tree { label: parent_label, child: old_child } = parent;
                 let Tree { label: child_label, child: grandchild } = child;
-                let new_child = Node::new(child_label, grandchild, old_child);
-                let merged = Node::new(parent_label, new_child, Node::Empty);
+                let new_child = Self::new(child_label, grandchild, old_child);
+                let merged = Self::new(parent_label, new_child, Self::Empty);
                 concat(rest, merged)
             }
             TwoTrees::Fail(root) => root,
@@ -266,11 +259,11 @@ impl Node {
     // Create a corresponding NodeRef from a Node if non-empty.
     fn to_node(&self, node_type: NodeType) -> Option<NodeRef> {
         match self {
-            Node::Empty => None,
-            Node::Node { label, child, sibling, .. } => {
+            Self::Empty => None,
+            Self::Node { label, child, sibling, .. } => {
                 let is_last = match **sibling {
-                    Node::Empty => true,
-                    Node::Node { .. } => false,
+                    Self::Empty => true,
+                    Self::Node { .. } => false,
                 };
                 let pos = NodePosition { node_type, is_last };
                 Some(NodeRef { label, child, sibling, pos })
@@ -302,6 +295,67 @@ impl ReturnNode {
             label,
             prev: Box::new(prev),
             child,
+        }
+    }
+}
+
+impl ForestZipper {
+    // Reconstruct a forest from a ForestZipper.
+    fn reconstruct(self) -> Node {
+        let Self { mut focus, mut prev } = self;
+        loop {
+            prev = match prev {
+                ReturnNode::Child { label, prev, sibling } => {
+                    focus = Node::new(label, focus, sibling);
+                    *prev
+                }
+                ReturnNode::Sibling { label, prev, child } => {
+                    focus = Node::new(label, child, focus);
+                    *prev
+                }
+                ReturnNode::Empty => return focus,
+            }
+        }
+    }
+
+    // Swap the subtree in focus with its next sibling.
+    fn move_forward(self) -> Self {
+        let Self { focus, prev } = self;
+        let focus = match focus {
+            Node::Node { label, child, sibling, .. } => match *sibling {
+                Node::Node {
+                    label: label2,
+                    child: child2,
+                    sibling: sibling2,
+                    ..
+                } => {
+                    let new_sibling = Node::new(label, *child, *sibling2);
+                    Node::new(label2, *child2, new_sibling)
+                }
+                Node::Empty => Node::new(label, *child, *sibling),
+            }
+            Node::Empty => focus,
+        };
+        Self { focus, prev }
+    }
+
+    // Swap the subtree in focus with its previous sibling.
+    fn move_backward(self) -> Self {
+        let Self { focus, prev } = self;
+        if let ReturnNode::Sibling { label, prev, child } = prev {
+            match focus {
+                Node::Node { label: label1, child: child1, sibling, .. } => {
+                    let focus = Node::new(label, child, *sibling);
+                    let prev = ReturnNode::new_sibling(label1, *prev, *child1);
+                    Self { focus, prev }
+                }
+                Node::Empty => Self {
+                    focus,
+                    prev: ReturnNode::new_sibling(label, *prev, child),
+                },
+            }
+        } else {
+            Self { focus, prev }
         }
     }
 }
