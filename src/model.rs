@@ -76,6 +76,7 @@ pub enum Mode {
     Input(InputState),
     Select(usize),
     Selected(usize),
+    Move(usize),
     Compare(CompareState),
     Save(SaveState),
 }
@@ -278,6 +279,20 @@ impl SessionState {
     /// Change the label of the item at `index` to `label`.
     pub fn edit(mut self, index: usize, label: String) -> Self {
         self.root.set_label(index, label);
+        self.set_changed();
+        self
+    }
+
+    /// Swap the subtree at `index` with its next sibling.
+    pub fn move_forward(mut self, index: usize) -> Self {
+        self.root = self.root.move_forward(index);
+        self.set_changed();
+        self
+    }
+
+    /// Swap the subtree at `index` with its previous sibling.
+    pub fn move_backward(mut self, index: usize) -> Self {
+        self.root = self.root.move_backward(index);
         self.set_changed();
         self
     }

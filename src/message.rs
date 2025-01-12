@@ -64,7 +64,14 @@ pub enum SelectMsg {
 /// A message sent in Selected mode.
 pub enum SelectedMsg {
     Edit,
+    Move,
     Delete,
+}
+
+/// A message sent in Move mode.
+pub enum MoveMsg {
+    Forward,
+    Backward,
 }
 
 /// A message sent in Compare mode.
@@ -87,6 +94,7 @@ pub enum Message {
     Input(InputMsg, InputState),
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
+    Move(MoveMsg, usize),
     Compare(CompareMsg, CompareState),
     Save(SaveMsg, SaveState),
     Continue(Mode),
@@ -188,10 +196,21 @@ fn to_select_msg(key: KeyCode, index: usize) -> Message {
 fn to_selected_msg(key: KeyCode, index: usize) -> Message {
     let selected_msg = match key {
         KeyCode::Char('e') => SelectedMsg::Edit,
+        KeyCode::Char('m') => SelectedMsg::Move,
         KeyCode::Char('d') => SelectedMsg::Delete,
         _ => return default(key, Mode::Selected(index)),
     };
     Message::Selected(selected_msg, index)
+}
+
+// Map a `key` to a Message in Move mode.
+fn to_move_msg(key: KeyCode, index: usize) -> Message {
+    let move_msg = match key {
+        KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
+        KeyCode::Char('k')| KeyCode::Up => MoveMsg::Backward,
+        _ => return default(key, Mode::Move(index)),
+    };
+    Message::Move(move_msg, index)
 }
 
 // Map a `key` to a Message in Compare mode.
@@ -223,6 +242,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Input(input) => to_input_msg(key, input),
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
+        Mode::Move(index) => to_move_msg(key, index),
         Mode::Compare(compare_state) => to_compare_msg(key, compare_state),
         Mode::Save(save_state) => to_save_msg(key, save_state),
     }

@@ -8,6 +8,7 @@ use crate::{
         InputMsg,
         LoadMsg,
         Message,
+        MoveMsg,
         NormalMsg,
         SaveMsg,
         SelectedMsg,
@@ -218,11 +219,25 @@ fn update_selected(
         SelectedMsg::Edit => {
             Mode::Input(InputState::new_edit(label, index))
         }
+        SelectedMsg::Move => Mode::Move(index),
         SelectedMsg::Delete => {
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
     };
     Command::None(Model { state, mode })
+}
+
+// Update the Model based on a Move mode message.
+fn update_move(
+    msg: MoveMsg,
+    index: usize,
+    state: SessionState,
+) -> Command {
+    let state = match msg {
+        MoveMsg::Forward => state.move_forward(index),
+        MoveMsg::Backward => state.move_backward(index),
+    };
+    Command::None(Model { state, mode: Mode::Normal })
 }
 
 // Update the Model based on a Compare mode message.
@@ -286,6 +301,7 @@ pub fn update(message: Message, state: SessionState) -> Command {
         }
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
+        Message::Move(msg, index) => update_move(msg, index, state),
         Message::Compare(msg, compare_state) => {
             update_compare(msg, compare_state, state)
         }

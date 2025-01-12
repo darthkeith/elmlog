@@ -227,7 +227,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Select(index) => {
             frame.render_widget(forest_select(root, *index), main_area);
         }
-        Mode::Selected(index) => {
+        Mode::Selected(index) | Mode::Move(index) => {
             frame.render_widget(forest_selected(root, *index), main_area);
         }
         Mode::Compare(compare_state) => {

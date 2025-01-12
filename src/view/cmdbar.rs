@@ -31,6 +31,7 @@ const ADD: KeyPair = ("A", "Add");
 const SELECT: KeyPair = ("S", "Select");
 const COMPARE: KeyPair = ("C", "Compare");
 const EDIT: KeyPair = ("E", "Edit");
+const MOVE: KeyPair = ("M", "Move");
 const RENAME: KeyPair = ("R", "Rename");
 const DELETE: KeyPair = ("D", "Delete");
 const TOGGLE: KeyPair = ("Space", "Toggle");
@@ -108,7 +109,8 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Normal => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Select(_) => select_mode_commands(model.state.root.size()),
-        Mode::Selected(_) => vec![EDIT, DELETE, CANCEL],
+        Mode::Selected(_) => vec![EDIT, MOVE, DELETE, CANCEL],
+        Mode::Move(_) => vec![DOWN_UP, CANCEL],
         Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)

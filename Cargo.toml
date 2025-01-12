@@ -1,6 +1,6 @@
 [package]
 name = "elmlog"
-version = "2.6.0-alpha"
+version = "2.7.0-alpha"
 edition = "2021"
 
 [dependencies]
