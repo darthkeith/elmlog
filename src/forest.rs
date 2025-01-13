@@ -132,7 +132,7 @@ fn concat(left_root: Node, right_root: Node) -> Node {
         prev = ReturnNode::new_sibling(label, prev, *child);
     }
     ForestZipper { focus: right_root, prev }
-        .reconstruct()
+        .restore()
 }
 
 // Attempt to separate the first two trees from a forest.
@@ -188,17 +188,17 @@ impl Node {
     }
 
     /// Swap the subtree at `index` with its next sibling.
-    pub fn move_forward(self, index: usize) -> Self {
+    pub fn move_forward(self, index: usize) -> (Self, usize) {
         focus_node(index, self)
             .move_forward()
-            .reconstruct()
+            .restore_with_index()
     }
 
     /// Swap the subtree at `index` with its previous sibling.
-    pub fn move_backward(self, index: usize) -> Self {
+    pub fn move_backward(self, index: usize) -> (Self, usize) {
         focus_node(index, self)
             .move_backward()
-            .reconstruct()
+            .restore_with_index()
     }
 
     /// Delete the node of pre-order `index` from the forest.
@@ -209,7 +209,7 @@ impl Node {
             Self::Empty => Self::Empty,
         };
         ForestZipper { focus: new_focus, prev, }
-            .reconstruct()
+            .restore()
     }
 
     /// Merge the first two trees, appending the result as the final tree.
@@ -300,8 +300,8 @@ impl ReturnNode {
 }
 
 impl ForestZipper {
-    // Reconstruct a forest from a ForestZipper.
-    fn reconstruct(self) -> Node {
+    // Restore the zipper's corresponding forest.
+    fn restore(self) -> Node {
         let Self { mut focus, mut prev } = self;
         loop {
             prev = match prev {
@@ -318,6 +318,27 @@ impl ForestZipper {
         }
     }
 
+    // Restore the forest and return the focused node's pre-order index.
+    fn restore_with_index(self) -> (Node, usize) {
+        let Self { mut focus, mut prev } = self;
+        let mut i = 0;
+        loop {
+            prev = match prev {
+                ReturnNode::Child { label, prev, sibling } => {
+                    i += 1;
+                    focus = Node::new(label, focus, sibling);
+                    *prev
+                }
+                ReturnNode::Sibling { label, prev, child } => {
+                    i += 1 + child.size();
+                    focus = Node::new(label, child, focus);
+                    *prev
+                }
+                ReturnNode::Empty => return (focus, i),
+            }
+        }
+    }
+
     // Swap the subtree in focus with its next sibling.
     fn move_forward(self) -> Self {
         let Self { focus, prev } = self;
@@ -329,8 +350,9 @@ impl ForestZipper {
                     sibling: sibling2,
                     ..
                 } => {
-                    let new_sibling = Node::new(label, *child, *sibling2);
-                    Node::new(label2, *child2, new_sibling)
+                    let focus = Node::new(label, *child, *sibling2);
+                    let prev = ReturnNode::new_sibling(label2, prev, *child2);
+                    return Self { focus, prev };
                 }
                 Node::Empty => Node::new(label, *child, *sibling),
             }
@@ -344,10 +366,15 @@ impl ForestZipper {
         let Self { focus, prev } = self;
         if let ReturnNode::Sibling { label, prev, child } = prev {
             match focus {
-                Node::Node { label: label1, child: child1, sibling, .. } => {
-                    let focus = Node::new(label, child, *sibling);
-                    let prev = ReturnNode::new_sibling(label1, *prev, *child1);
-                    Self { focus, prev }
+                Node::Node {
+                    label: label2,
+                    child: child2,
+                    sibling: sibling2,
+                    ..
+                } => {
+                    let sibling = Node::new(label, child, *sibling2);
+                    let focus = Node::new(label2, *child2, sibling);
+                    Self { focus, prev: *prev }
                 }
                 Node::Empty => Self {
                     focus,

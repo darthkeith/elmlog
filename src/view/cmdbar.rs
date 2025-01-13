@@ -24,6 +24,7 @@ const DOWN_UP: KeyPair = ("J/K │ ↓/↑", "Down/Up");
 const OPEN: KeyPair = ("Enter", "Open");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
+const DONE: KeyPair = ("Enter", "Done");
 const NEW: KeyPair = ("N", "New");
 const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
@@ -110,7 +111,7 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Select(_) => select_mode_commands(model.state.root.size()),
         Mode::Selected(_) => vec![EDIT, MOVE, DELETE, CANCEL],
-        Mode::Move(_) => vec![DOWN_UP, CANCEL],
+        Mode::Move(_) => vec![DOWN_UP, DONE, CANCEL],
         Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)

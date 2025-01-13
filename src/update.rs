@@ -233,11 +233,20 @@ fn update_move(
     index: usize,
     state: SessionState,
 ) -> Command {
-    let state = match msg {
-        MoveMsg::Forward => state.move_forward(index),
-        MoveMsg::Backward => state.move_backward(index),
+    let model = match msg {
+        MoveMsg::Forward => {
+            let (state, index) = state.move_forward(index);
+            let mode = Mode::Move(index);
+            Model { state, mode }
+        }
+        MoveMsg::Backward => {
+            let (state, index) = state.move_backward(index);
+            let mode = Mode::Move(index);
+            Model { state, mode }
+        }
+        MoveMsg::Done => Model { state, mode: Mode::Select(index) },
     };
-    Command::None(Model { state, mode: Mode::Normal })
+    Command::None(model)
 }
 
 // Update the Model based on a Compare mode message.

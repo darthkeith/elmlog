@@ -284,17 +284,19 @@ impl SessionState {
     }
 
     /// Swap the subtree at `index` with its next sibling.
-    pub fn move_forward(mut self, index: usize) -> Self {
-        self.root = self.root.move_forward(index);
+    pub fn move_forward(mut self, index: usize) -> (Self, usize) {
+        let (new_root, index) = self.root.move_forward(index);
+        self.root = new_root;
         self.set_changed();
-        self
+        (self, index)
     }
 
     /// Swap the subtree at `index` with its previous sibling.
-    pub fn move_backward(mut self, index: usize) -> Self {
-        self.root = self.root.move_backward(index);
+    pub fn move_backward(mut self, index: usize) -> (Self, usize) {
+        let (new_root, index) = self.root.move_backward(index);
+        self.root = new_root;
         self.set_changed();
-        self
+        (self, index)
     }
 
     /// Delete the item at `index`.

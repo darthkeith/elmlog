@@ -72,6 +72,7 @@ pub enum SelectedMsg {
 pub enum MoveMsg {
     Forward,
     Backward,
+    Done,
 }
 
 /// A message sent in Compare mode.
@@ -208,6 +209,7 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
     let move_msg = match key {
         KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
         KeyCode::Char('k')| KeyCode::Up => MoveMsg::Backward,
+        KeyCode::Enter => MoveMsg::Done,
         _ => return default(key, Mode::Move(index)),
     };
     Message::Move(move_msg, index)
