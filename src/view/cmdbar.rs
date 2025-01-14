@@ -4,10 +4,7 @@ use ratatui::{
 };
 
 use crate::{
-    forest::{
-        Node,
-        ForestStatus,
-    },
+    forest::Node,
     model::{
         ConfirmState,
         InputState,
@@ -30,7 +27,6 @@ const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
 const ADD: KeyPair = ("A", "Add");
 const SELECT: KeyPair = ("S", "Select");
-const COMPARE: KeyPair = ("C", "Compare");
 const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
 const RENAME: KeyPair = ("R", "Rename");
@@ -61,9 +57,6 @@ fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     let mut pairs = vec![ADD];
     if root.size() > 0 {
         pairs.push(SELECT);
-        if let ForestStatus::MultiRoot(..) = root.status() {
-            pairs.push(COMPARE);
-        }
     }
     pairs.extend(&[LOAD, QUIT]);
     pairs
@@ -112,7 +105,7 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Select(_) => select_mode_commands(model.state.root.size()),
         Mode::Selected(_) => vec![EDIT, MOVE, DELETE, CANCEL],
         Mode::Move(_) => vec![DOWN_UP, DONE, CANCEL],
-        Mode::Compare(_) | Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
+        Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)
 }

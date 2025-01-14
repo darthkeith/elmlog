@@ -23,7 +23,6 @@ use ratatui::{
 use crate::{
     io::LoadState,
     model::{
-        CompareState,
         ConfirmState,
         Mode,
         Model,
@@ -166,24 +165,6 @@ fn text_input(input: &str) -> Paragraph {
         .wrap(Wrap { trim: false })
 }
 
-// Return the compare widget given a choice between two items.
-fn compare<'a>(cmp_state: &CompareState) -> Paragraph<'a> {
-    let CompareState { item1, item2, first } = cmp_state;
-    let line1 = Line::from(format!(" {item1} "));
-    let line2 = Line::from(format!(" {item2} "));
-    let lines = match first {
-        true => vec![
-            line1.set_style(style::DEFAULT_HL),
-            line2,
-        ],
-        false => vec![
-            line1,
-            line2.set_style(style::DEFAULT_HL),
-        ],
-    };
-    main_paragraph(Text::from(lines))
-}
-
 // Return the save query widget.
 fn save_query(save: bool) -> Paragraph<'static> {
     let line1 = Line::from(" Save ");
@@ -229,9 +210,6 @@ pub fn view(model: &Model, frame: &mut Frame) {
         }
         Mode::Selected(index) | Mode::Move(index) => {
             frame.render_widget(forest_selected(root, *index), main_area);
-        }
-        Mode::Compare(compare_state) => {
-            frame.render_widget(compare(compare_state), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);

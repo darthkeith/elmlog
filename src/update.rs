@@ -1,9 +1,7 @@
 use crate::{
-    forest::ForestStatus,
     io::LoadState,
     message::{
         Command,
-        CompareMsg,
         InputEdit,
         InputMsg,
         LoadMsg,
@@ -15,7 +13,6 @@ use crate::{
         SelectMsg,
     },
     model::{
-        CompareState,
         ConfirmState,
         FilenameAction,
         FilenameState,
@@ -87,14 +84,6 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         NormalMsg::Select => match state.root.size() > 0 {
             true => Mode::Select(0),
             false => Mode::Normal,
-        }
-        NormalMsg::Compare => {
-            match state.root.status() {
-                ForestStatus::MultiRoot(item1, item2) => {
-                    Mode::Compare(CompareState::new(item1, item2))
-                }
-                _ => Mode::Normal,
-            }
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
@@ -249,24 +238,6 @@ fn update_move(
     Command::None(model)
 }
 
-// Update the Model based on a Compare mode message.
-fn update_compare(
-    msg: CompareMsg,
-    compare_state: CompareState,
-    mut state: SessionState,
-) -> Command {
-    let mode = match msg {
-        CompareMsg::Toggle => {
-            Mode::Compare(compare_state.toggle())
-        }
-        CompareMsg::Confirm => {
-            state = state.merge_pair(compare_state.first);
-            Mode::Normal
-        }
-    };
-    Command::None(Model { state, mode })
-}
-
 // Update the Model based on a Save mode message.
 fn update_save(
     msg: SaveMsg,
@@ -311,9 +282,6 @@ pub fn update(message: Message, state: SessionState) -> Command {
         Message::Select(msg, index) => update_select(msg, index, state),
         Message::Selected(msg, index) => update_selected(msg, index, state),
         Message::Move(msg, index) => update_move(msg, index, state),
-        Message::Compare(msg, compare_state) => {
-            update_compare(msg, compare_state, state)
-        }
         Message::Save(msg, save_state) => update_save(msg, save_state, state),
         Message::Continue(mode) => Command::None(Model { state, mode }),
     }

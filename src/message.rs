@@ -7,7 +7,6 @@ use crossterm::event::{self, KeyCode, KeyEventKind};
 use crate::{
     io::{FileEntry, LoadState},
     model::{
-        CompareState,
         ConfirmState,
         FilenameState,
         InputState,
@@ -35,7 +34,6 @@ pub enum LoadMsg {
 pub enum NormalMsg {
     Input,
     Select,
-    Compare,
     Load,
     Quit,
 }
@@ -75,12 +73,6 @@ pub enum MoveMsg {
     Done,
 }
 
-/// A message sent in Compare mode.
-pub enum CompareMsg {
-    Toggle,
-    Confirm,
-}
-
 /// A message sent in Save mode.
 pub enum SaveMsg {
     Toggle,
@@ -96,7 +88,6 @@ pub enum Message {
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Move(MoveMsg, usize),
-    Compare(CompareMsg, CompareState),
     Save(SaveMsg, SaveState),
     Continue(Mode),
 }
@@ -149,7 +140,6 @@ fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
         KeyCode::Char('a') => NormalMsg::Input,
         KeyCode::Char('s') => NormalMsg::Select,
-        KeyCode::Char('c') => NormalMsg::Compare,
         KeyCode::Char('l') => NormalMsg::Load,
         KeyCode::Char('q') => NormalMsg::Quit,
         _ => return Message::Continue(Mode::Normal),
@@ -215,16 +205,6 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
     Message::Move(move_msg, index)
 }
 
-// Map a `key` to a Message in Compare mode.
-fn to_compare_msg(key: KeyCode, compare_state: CompareState) -> Message {
-    let compare_msg = match key {
-        KeyCode::Char(' ') => CompareMsg::Toggle,
-        KeyCode::Enter => CompareMsg::Confirm,
-        _ => return default(key, Mode::Compare(compare_state)),
-    };
-    Message::Compare(compare_msg, compare_state)
-}
-
 // Map a `key` to a Message in Save mode.
 fn to_save_msg(key: KeyCode, save_state: SaveState) -> Message {
     let save_msg = match key {
@@ -245,7 +225,6 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
         Mode::Move(index) => to_move_msg(key, index),
-        Mode::Compare(compare_state) => to_compare_msg(key, compare_state),
         Mode::Save(save_state) => to_save_msg(key, save_state),
     }
 }

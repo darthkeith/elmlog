@@ -41,7 +41,6 @@ const LOAD: &str = "Open a file or start a new session";
 const SELECT: &str = "Selected index: ";
 const SELECTED: &str = "Enter command";
 const MOVE: &str = "Move subtree";
-const COMPARE: &str = "Select item to promote";
 const SAVE: &str = "Save changes?";
 const UNTITLED: &str = "Untitled";
 
@@ -115,7 +114,6 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::Select(index) => status_select(*index),
         Mode::Selected(_) => status(SELECTED),
         Mode::Move(_) => status(MOVE),
-        Mode::Compare(_) => status(COMPARE),
         Mode::Save(save_state) => {
             let info = match save_state.post_save {
                 PostSaveAction::Load => post_save::LOAD,

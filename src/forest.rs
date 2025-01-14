@@ -31,17 +31,6 @@ struct ForestZipper {
     prev: ReturnNode,
 }
 
-struct Tree {
-    label: String,
-    child: Node,
-}
-
-// Represents an attempt to separate the first two trees in a forest.
-enum TwoTrees {
-    Success { tree_1: Tree, tree_2: Tree, rest: Node},
-    Fail(Node),
-}
-
 /// Describes whether a node is a root, first child, or non-root right sibling.
 pub enum NodeType {
     Root,
@@ -61,15 +50,6 @@ struct NodeRef<'a> {
     child: &'a Node,
     sibling: &'a Node,
     pos: NodePosition,
-}
-
-/// Represents the number of roots in a forest (zero, one, or multiple).
-///
-/// If multiple, include references to the first two labels.
-pub enum ForestStatus<'a> {
-    Empty,
-    SingleRoot,
-    MultiRoot(&'a str, &'a str),
 }
 
 // Return a reference to the label at the given pre-order `index` in the forest.
@@ -135,34 +115,6 @@ fn concat(left_root: Node, right_root: Node) -> Node {
         .restore()
 }
 
-// Attempt to separate the first two trees from a forest.
-fn pop_two_trees(root: Node) -> TwoTrees {
-    match root {
-        Node::Node {
-            label: label_1,
-            child: child_1,
-            sibling: sibling_1,
-            ..
-        } => match *sibling_1 {
-            Node::Node {
-                label: label_2,
-                child: child_2,
-                sibling: sibling_2,
-                ..
-            } => {
-                let tree_1 = Tree { label: label_1, child: *child_1 };
-                let tree_2 = Tree { label: label_2, child: *child_2 };
-                TwoTrees::Success { tree_1, tree_2, rest: *sibling_2 }
-            }
-            Node::Empty => {
-                let old_forest = Node::new(label_1, *child_1, Node::Empty);
-                TwoTrees::Fail(old_forest)
-            }
-        }
-        Node::Empty => TwoTrees::Fail(Node::Empty),
-    }
-}
-
 impl Node {
     fn new(label: String, child: Self, sibling: Self) -> Self {
         let size = 1 + child.size() + sibling.size();
@@ -212,24 +164,6 @@ impl Node {
             .restore()
     }
 
-    /// Merge the first two trees, appending the result as the final tree.
-    pub fn merge_pair(self, promote_first: bool) -> Self {
-        match pop_two_trees(self) {
-            TwoTrees::Success { tree_1, tree_2, rest } => {
-                let (parent, child) = match promote_first {
-                    true => (tree_1, tree_2),
-                    false => (tree_2, tree_1),
-                };
-                let Tree { label: parent_label, child: old_child } = parent;
-                let Tree { label: child_label, child: grandchild } = child;
-                let new_child = Self::new(child_label, grandchild, old_child);
-                let merged = Self::new(parent_label, new_child, Self::Empty);
-                concat(rest, merged)
-            }
-            TwoTrees::Fail(root) => root,
-        }
-    }
-
     /// Return a reference to the label at the given pre-order `index`.
     pub fn label_at(&mut self, index: usize) -> &str {
         find_label(index, self)
@@ -241,19 +175,6 @@ impl Node {
         let label = find_label(index, self)
             .expect("Invalid index");
         *label = new_label;
-    }
-
-    /// Return the status of the forest roots.
-    pub fn status(&self) -> ForestStatus {
-        match self {
-            Self::Empty => ForestStatus::Empty,
-            Self::Node { label, sibling, .. } => match &**sibling {
-                Self::Empty => ForestStatus::SingleRoot,
-                Self::Node { label: label2, .. } => {
-                    ForestStatus::MultiRoot(label, label2)
-                }
-            }
-        }
     }
 
     // Create a corresponding NodeRef from a Node if non-empty.

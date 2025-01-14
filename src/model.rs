@@ -55,13 +55,6 @@ pub enum InputState {
     Filename(FilenameState),
 }
 
-/// A choice between two items with one selected.
-pub struct CompareState {
-    pub item1: String,
-    pub item2: String,
-    pub first: bool,
-}
-
 /// User's current save choice and subsequent action.
 pub struct SaveState {
     pub save: bool,
@@ -77,7 +70,6 @@ pub enum Mode {
     Select(usize),
     Selected(usize),
     Move(usize),
-    Compare(CompareState),
     Save(SaveState),
 }
 
@@ -210,23 +202,6 @@ impl InputState {
     }
 }
 
-impl CompareState {
-    /// Create a new CompareState with the first item selected by default.
-    pub fn new(item1: &str, item2: &str) -> Self {
-        CompareState {
-            item1: item1.to_string(),
-            item2: item2.to_string(),
-            first: true,
-        }
-    }
-
-    /// Toggle which item is selected.
-    pub fn toggle(mut self) -> Self {
-        self.first = !self.first;
-        self
-    }
-}
-
 impl SaveState {
     /// Create a SaveState for subsequently loading.
     pub fn new_load() -> Self {
@@ -302,13 +277,6 @@ impl SessionState {
     /// Delete the item at `index`.
     pub fn delete(mut self, index: usize) -> Self {
         self.root = self.root.delete(index);
-        self.set_changed();
-        self
-    }
-
-    /// Merge the first two roots in the forest.
-    pub fn merge_pair(mut self, promote_first: bool) -> Self {
-        self.root = self.root.merge_pair(promote_first);
         self.set_changed();
         self
     }

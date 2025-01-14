@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [2.9.0-alpha] - 2025-01-13
+
+### Removed
+- **Compare** command.
+
 ## [2.8.0-alpha] - 2025-01-13
 
 ### Added
@@ -108,7 +113,8 @@
   - **Edit**: Modify item text.
   - **Delete**: Delete an item.
 
-[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.8.0-alpha...HEAD
+[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.9.0-alpha...HEAD
+[2.9.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.8.0-alpha...v2.9.0-alpha
 [2.8.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.7.0-alpha...v2.8.0-alpha
 [2.7.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.6.0-alpha...v2.7.0-alpha
 [2.6.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.5.1-alpha...v2.6.0-alpha
