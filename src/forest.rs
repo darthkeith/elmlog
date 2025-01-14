@@ -16,18 +16,10 @@ pub enum Node {
     },
 }
 
-// Represents a node in the path from the root to the node in focus, indicating
-// the direction taken through the node. The structure forms part of a forest
-// with a linked chain leading to the root.
+// Represents a node in the path from the focused node to the root.
 enum ReturnNode {
-    Child { label: String, prev: Box<ReturnNode>, sibling: Node },
+    Parent { label: String, prev: Box<ReturnNode>, sibling: Node },
     Sibling { label: String, prev: Box<ReturnNode>, child: Node },
-    Empty,
-}
-
-// The root of a single tree.
-enum Tree {
-    Root { label: String, child: Node },
     Empty,
 }
 
@@ -35,6 +27,12 @@ enum Tree {
 struct ForestZipper {
     focus: Node,
     prev: ReturnNode,
+}
+
+// The root of a single tree.
+enum Tree {
+    Root { label: String, child: Node },
+    Empty,
 }
 
 /// Describes whether a node is a root, first child, or non-root right sibling.
@@ -93,7 +91,7 @@ fn focus_node(index: usize, root: Node) -> ForestZipper {
                 if i <= child.size() {
                     i -= 1;
                     focus = *child;
-                    prev = ReturnNode::new_child(label, prev, *sibling);
+                    prev = ReturnNode::new_parent(label, prev, *sibling);
                 } else {
                     i -= 1 + child.size();
                     focus = *sibling;
@@ -159,6 +157,15 @@ impl Node {
             .restore_with_index()
     }
 
+    /// Move the subtree at `index` to be the next sibling of its parent.
+    ///
+    /// If it has no parent move it to be the first tree in the forest.
+    pub fn promote(self, index: usize) -> (Self, usize) {
+        focus_node(index, self)
+            .promote()
+            .restore_with_index()
+    }
+
     /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
         let ForestZipper { focus, prev } = focus_node(index, self);
@@ -209,8 +216,8 @@ impl Node {
 }
 
 impl ReturnNode {
-    fn new_child(label: String, prev: Self, sibling: Node) -> Self {
-        Self::Child {
+    fn new_parent(label: String, prev: Self, sibling: Node) -> Self {
+        Self::Parent {
             label,
             prev: Box::new(prev),
             sibling,
@@ -232,7 +239,7 @@ impl ForestZipper {
         let Self { mut focus, mut prev } = self;
         loop {
             prev = match prev {
-                ReturnNode::Child { label, prev, sibling } => {
+                ReturnNode::Parent { label, prev, sibling } => {
                     focus = Node::new(label, focus, sibling);
                     *prev
                 }
@@ -246,12 +253,13 @@ impl ForestZipper {
     }
 
     // Restore the forest and return the focused node's pre-order index.
+    // Behavior is undefined when the focused node is empty.
     fn restore_with_index(self) -> (Node, usize) {
         let Self { mut focus, mut prev } = self;
         let mut i = 0;
         loop {
             prev = match prev {
-                ReturnNode::Child { label, prev, sibling } => {
+                ReturnNode::Parent { label, prev, sibling } => {
                     i += 1;
                     focus = Node::new(label, focus, sibling);
                     *prev
@@ -266,7 +274,7 @@ impl ForestZipper {
         }
     }
 
-    // Swap the subtree in focus with its next sibling.
+    // Swap the subtree in focus with its next sibling (if present).
     fn move_forward(self) -> Self {
         let Self { focus, prev } = self;
         let focus = match focus {
@@ -288,7 +296,7 @@ impl ForestZipper {
         Self { focus, prev }
     }
 
-    // Swap the subtree in focus with its previous sibling.
+    // Swap the subtree in focus with its previous sibling (if present).
     fn move_backward(self) -> Self {
         let Self { focus, prev } = self;
         if let ReturnNode::Sibling { label, prev, child } = prev {
@@ -326,6 +334,34 @@ impl ForestZipper {
                 let zipper = Self { focus, prev };
                 (zipper, Tree::Empty)
             }
+        }
+    }
+
+    // Move the focused node's subtree to be the next sibling of its parent.
+    // If it has no parent move it to be the first tree in the forest.
+    fn promote(self) -> Self {
+        let (zipper, tree) = self.extract_tree();
+        let (root_label, root_child) = match tree {
+            Tree::Root { label, child } => (label, child),
+            Tree::Empty => return zipper,
+        };
+        let Self { mut focus, mut prev } = zipper;
+        loop {
+            match prev {
+                ReturnNode::Sibling { label, prev: prev2, child } => {
+                    focus = Node::new(label, child, focus);
+                    prev = *prev2;
+                }
+                ReturnNode::Parent { label, prev, sibling } => {
+                    let prev = ReturnNode::new_sibling(label, *prev, focus);
+                    let focus = Node::new(root_label, root_child, sibling);
+                    return Self { focus, prev };
+                }
+                ReturnNode::Empty => {
+                    let focus = Node::new(root_label, root_child, focus);
+                    return Self { focus, prev };
+                }
+            };
         }
     }
 }
