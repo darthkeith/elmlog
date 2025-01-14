@@ -13,7 +13,7 @@ pub enum Node {
         child: Box<Node>,
         sibling: Box<Node>,
         size: usize,
-    }
+    },
 }
 
 // Represents a node in the path from the root to the node in focus, indicating
@@ -22,6 +22,12 @@ pub enum Node {
 enum ReturnNode {
     Child { label: String, prev: Box<ReturnNode>, sibling: Node },
     Sibling { label: String, prev: Box<ReturnNode>, child: Node },
+    Empty,
+}
+
+// The root of a single tree.
+enum Tree {
+    Root { label: String, child: Node },
     Empty,
 }
 
@@ -304,6 +310,22 @@ impl ForestZipper {
             }
         } else {
             Self { focus, prev }
+        }
+    }
+
+    // Extract the subtree of the focused node from the forest.
+    fn extract_tree(self) -> (Self, Tree) {
+        let Self { focus, prev } = self;
+        match focus {
+            Node::Node { label, child, sibling, .. } => {
+                let zipper = Self { focus: *sibling, prev };
+                let tree = Tree::Root { label, child: *child };
+                (zipper, tree)
+            }
+            Node::Empty => {
+                let zipper = Self { focus, prev };
+                (zipper, Tree::Empty)
+            }
         }
     }
 }
