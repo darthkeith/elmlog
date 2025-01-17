@@ -70,6 +70,7 @@ pub enum SelectedMsg {
 pub enum MoveMsg {
     Forward,
     Backward,
+    Promote,
     Done,
 }
 
@@ -199,6 +200,7 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
     let move_msg = match key {
         KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
         KeyCode::Char('k')| KeyCode::Up => MoveMsg::Backward,
+        KeyCode::Char('h')| KeyCode::Left => MoveMsg::Promote,
         KeyCode::Enter => MoveMsg::Done,
         _ => return default(key, Mode::Move(index)),
     };

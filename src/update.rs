@@ -233,6 +233,11 @@ fn update_move(
             let mode = Mode::Move(index);
             Model { state, mode }
         }
+        MoveMsg::Promote => {
+            let (state, index) = state.promote(index);
+            let mode = Mode::Move(index);
+            Model { state, mode }
+        }
         MoveMsg::Done => Model { state, mode: Mode::Select(index) },
     };
     Command::None(model)
