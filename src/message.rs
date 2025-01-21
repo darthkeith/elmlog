@@ -71,6 +71,7 @@ pub enum MoveMsg {
     Forward,
     Backward,
     Promote,
+    Demote,
     Done,
 }
 
@@ -201,6 +202,7 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
         KeyCode::Char('k')| KeyCode::Up => MoveMsg::Backward,
         KeyCode::Char('h')| KeyCode::Left => MoveMsg::Promote,
+        KeyCode::Char('l')| KeyCode::Right => MoveMsg::Demote,
         KeyCode::Enter => MoveMsg::Done,
         _ => return default(key, Mode::Move(index)),
     };

@@ -274,11 +274,19 @@ impl SessionState {
         (self, index)
     }
 
-    /// Move the subtree at `index` to be the next sibling of its parent.
+    /// Move subtree at `index` to be its parent's next sibling.
     ///
-    /// If it has no parent move it to be the first tree in the forest.
+    /// If it has no parent, move it to be the first tree in the forest.
     pub fn promote(mut self, index: usize) -> (Self, usize) {
         let (new_root, index) = self.root.promote(index);
+        self.root = new_root;
+        self.set_changed();
+        (self, index)
+    }
+
+    /// Move subtree at `index` to be its previous sibling's last child.
+    pub fn demote(mut self, index: usize) -> (Self, usize) {
+        let (new_root, index) = self.root.demote(index);
         self.root = new_root;
         self.set_changed();
         (self, index)
