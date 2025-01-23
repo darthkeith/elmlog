@@ -58,29 +58,6 @@ struct NodeRef<'a> {
     pos: NodePosition,
 }
 
-// Return a reference to the label at the given pre-order `index` in the forest.
-fn find_label(index: usize, root: &mut Node) -> Option<&mut String> {
-    let mut i = index;
-    let mut node = root;
-    while i > 0 {
-        if let  Node::Node { child, sibling, .. } = node {
-            if i <= child.size() {
-                i -= 1;
-                node = &mut **child;
-            } else {
-                i -= 1 + child.size();
-                node = &mut **sibling;
-            }
-        } else {
-            return None;
-        }
-    }
-    match node {
-        Node::Node { label, .. } => Some(label),
-        Node::Empty => None,
-    }
-}
-
 // Return a zipper focused on the node at the pre-order `index` in the forest.
 // If the index is invalid, the zipper will be focused on an empty node.
 fn focus_node(index: usize, root: Node) -> ForestZipper {
@@ -140,6 +117,43 @@ impl Node {
         }
     }
 
+    /// Return the label at pre-order `index` (panic if invalid).
+    pub fn find_label(&self, index: usize) -> String {
+        let mut i = index;
+        let mut node = self;
+        while i > 0 {
+            match node {
+                Self::Node { child, sibling, .. } => {
+                    if i <= child.size() {
+                        i -= 1;
+                        node = child;
+                    } else {
+                        i -= 1 + child.size();
+                        node = sibling;
+                    }
+                }
+                Self::Empty => break,
+            }
+        }
+        match node {
+            Self::Node { label, .. } => label.clone(),
+            Self::Empty => panic!("Invalid index"),
+        }
+    }
+
+    /// Assign the `label` to the node at `index`.
+    pub fn set_label(self, index: usize, label: String) -> Self {
+        let ForestZipper { focus, prev } = focus_node(index, self);
+        let focus = match focus {
+            Self::Node { child, sibling, size, .. } => {
+                Self::Node { label, child, sibling, size }
+            }
+            Self::Empty => Self::Empty,
+        };
+        ForestZipper { focus, prev }
+            .restore()
+    }
+
     /// Insert a Node with the `label` at the start of the forest.
     pub fn prepend(self, label: String) -> Self {
         Self::new(label, Self::Empty, self)
@@ -184,19 +198,6 @@ impl Node {
         };
         ForestZipper { focus: new_focus, prev, }
             .restore()
-    }
-
-    /// Return a reference to the label at the given pre-order `index`.
-    pub fn label_at(&mut self, index: usize) -> &str {
-        find_label(index, self)
-            .expect("Invalid index")
-    }
-
-    /// Set the label at the given `index` to the `new_label`.
-    pub fn set_label(&mut self, index: usize, new_label: String) {
-        let label = find_label(index, self)
-            .expect("Invalid index");
-        *label = new_label;
     }
 
     // Create a corresponding NodeRef from a Node if non-empty.

@@ -201,9 +201,9 @@ fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
 fn update_selected(
     msg: SelectedMsg,
     index: usize,
-    mut state: SessionState,
+    state: SessionState,
 ) -> Command {
-    let label = state.root.label_at(index).to_string();
+    let label = state.root.find_label(index);
     let mode = match msg {
         SelectedMsg::Edit => {
             Mode::Input(InputState::new_edit(label, index))

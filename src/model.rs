@@ -253,7 +253,7 @@ impl SessionState {
 
     /// Change the label of the item at `index` to `label`.
     pub fn edit(mut self, index: usize, label: String) -> Self {
-        self.root.set_label(index, label);
+        self.root = self.root.set_label(index, label);
         self.set_changed();
         self
     }
