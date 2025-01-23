@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 /// The `size` field stores the size of the node's binary subtree.
 /// The binary tree represents a forest of multi-way trees, where each node can
 /// have any number of children and siblings (the roots are siblings).
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum Node {
     Empty,
     Node {
@@ -17,6 +17,7 @@ pub enum Node {
 }
 
 // Represents a node in the path from the focused node to the root.
+#[derive(PartialEq, Eq, Debug)]
 enum ReturnNode {
     Parent { label: String, prev: Box<ReturnNode>, sibling: Node },
     Sibling { label: String, prev: Box<ReturnNode>, child: Node },
@@ -24,6 +25,7 @@ enum ReturnNode {
 }
 
 // Zipper represention of a forest focused on a node.
+#[derive(PartialEq, Eq, Debug)]
 struct ForestZipper {
     focus: Node,
     prev: ReturnNode,
@@ -413,6 +415,23 @@ impl<'a> Iterator for PreOrderIter<'a> {
             self.stack.push(node);
         }
         Some((label, pos))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn focus_empty_forest() {
+        let result_0 = focus_node(0, Node::Empty);
+        let result_1 = focus_node(1, Node::Empty);
+        let empty_zipper = ForestZipper {
+            focus: Node::Empty,
+            prev: ReturnNode::Empty,
+        };
+        assert_eq!(result_0, empty_zipper);
+        assert_eq!(result_1, empty_zipper);
     }
 }
 
