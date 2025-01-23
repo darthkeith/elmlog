@@ -58,31 +58,6 @@ struct NodeRef<'a> {
     pos: NodePosition,
 }
 
-// Return a zipper focused on the node at the pre-order `index` in the forest.
-// If the index is invalid, the zipper will be focused on an empty node.
-fn focus_node(index: usize, root: Node) -> ForestZipper {
-    let mut i = index;
-    let mut focus = root;
-    let mut prev = ReturnNode::Empty;
-    while i > 0 {
-        match focus {
-            Node::Node { label, child, sibling, .. } => {
-                if i <= child.size() {
-                    i -= 1;
-                    focus = *child;
-                    prev = ReturnNode::new_parent(label, prev, *sibling);
-                } else {
-                    i -= 1 + child.size();
-                    focus = *sibling;
-                    prev = ReturnNode::new_sibling(label, prev, *child);
-                }
-            }
-            Node::Empty => break,
-        }
-    }
-    ForestZipper { focus, prev }
-}
-
 // Concatenate two trees, making their roots siblings.
 fn concat(left_root: Node, right_root: Node) -> Node {
     if let Node::Empty = right_root {
@@ -117,6 +92,32 @@ impl Node {
         }
     }
 
+    // Return a zipper focused on the node of pre-order `index` in the forest.
+    // If the index is invalid, the zipper will be focused on an empty node
+    // and behavior is undefined.
+    fn focus_node(self: Node, index: usize) -> ForestZipper {
+        let mut i = index;
+        let mut focus = self;
+        let mut prev = ReturnNode::Empty;
+        while i > 0 {
+            match focus {
+                Node::Node { label, child, sibling, .. } => {
+                    if i <= child.size() {
+                        i -= 1;
+                        focus = *child;
+                        prev = ReturnNode::new_parent(label, prev, *sibling);
+                    } else {
+                        i -= 1 + child.size();
+                        focus = *sibling;
+                        prev = ReturnNode::new_sibling(label, prev, *child);
+                    }
+                }
+                Node::Empty => break,
+            }
+        }
+        ForestZipper { focus, prev }
+    }
+
     /// Return the label at pre-order `index` (panic if invalid).
     pub fn find_label(&self, index: usize) -> String {
         let mut i = index;
@@ -143,7 +144,7 @@ impl Node {
 
     /// Assign the `label` to the node at `index`.
     pub fn set_label(self, index: usize, label: String) -> Self {
-        let ForestZipper { focus, prev } = focus_node(index, self);
+        let ForestZipper { focus, prev } = self.focus_node(index);
         let focus = match focus {
             Self::Node { child, sibling, size, .. } => {
                 Self::Node { label, child, sibling, size }
@@ -161,14 +162,14 @@ impl Node {
 
     /// Swap the subtree at `index` with its next sibling.
     pub fn move_forward(self, index: usize) -> (Self, usize) {
-        focus_node(index, self)
+        self.focus_node(index)
             .move_forward()
             .restore_with_index()
     }
 
     /// Swap the subtree at `index` with its previous sibling.
     pub fn move_backward(self, index: usize) -> (Self, usize) {
-        focus_node(index, self)
+        self.focus_node(index)
             .move_backward()
             .restore_with_index()
     }
@@ -177,21 +178,21 @@ impl Node {
     ///
     /// If it has no parent, move it to be the first tree in the forest.
     pub fn promote(self, index: usize) -> (Self, usize) {
-        focus_node(index, self)
+        self.focus_node(index)
             .promote()
             .restore_with_index()
     }
 
     /// Move subtree at `index` to be its previous sibling's last child.
     pub fn demote(self, index: usize) -> (Self, usize) {
-        focus_node(index, self)
+        self.focus_node(index)
             .demote()
             .restore_with_index()
     }
 
     /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
-        let ForestZipper { focus, prev } = focus_node(index, self);
+        let ForestZipper { focus, prev } = self.focus_node(index);
         let new_focus = match focus {
             Self::Node { child, sibling, .. } => concat(*child, *sibling),
             Self::Empty => Self::Empty,
@@ -425,8 +426,8 @@ mod tests {
 
     #[test]
     fn focus_empty_forest() {
-        let result_0 = focus_node(0, Node::Empty);
-        let result_1 = focus_node(1, Node::Empty);
+        let result_0 = Node::Empty.focus_node(0);
+        let result_1 = Node::Empty.focus_node(1);
         let empty_zipper = ForestZipper {
             focus: Node::Empty,
             prev: ReturnNode::Empty,
