@@ -223,17 +223,18 @@ impl SaveState {
 impl SessionState {
     // Create a SessionState with an empty forest and no saved file.
     fn new() -> Self {
-        SessionState {
+        Self {
             root: Node::Empty,
             maybe_file: None,
         }
     }
 
     // Mark the session state as modified if a saved file exists.
-    fn set_changed(&mut self) {
+    fn into_changed(mut self) -> Self {
         if let Some(ref mut open_file) = self.maybe_file {
             open_file.set_changed();
         }
+        self
     }
 
     /// Return whether data was changed in the current session.
@@ -247,31 +248,27 @@ impl SessionState {
     /// Prepend a top-level `label` at the start of the forest.
     pub fn add(mut self, label: String) -> Self {
         self.root = self.root.prepend(label);
-        self.set_changed();
-        self
+        self.into_changed()
     }
 
     /// Change the label of the item at `index` to `label`.
     pub fn edit(mut self, index: usize, label: String) -> Self {
         self.root = self.root.set_label(index, label);
-        self.set_changed();
-        self
+        self.into_changed()
     }
 
     /// Swap the subtree at `index` with its next sibling.
     pub fn move_forward(mut self, index: usize) -> (Self, usize) {
         let (new_root, index) = self.root.move_forward(index);
         self.root = new_root;
-        self.set_changed();
-        (self, index)
+        (self.into_changed(), index)
     }
 
     /// Swap the subtree at `index` with its previous sibling.
     pub fn move_backward(mut self, index: usize) -> (Self, usize) {
         let (new_root, index) = self.root.move_backward(index);
         self.root = new_root;
-        self.set_changed();
-        (self, index)
+        (self.into_changed(), index)
     }
 
     /// Move subtree at `index` to be its parent's next sibling.
@@ -280,23 +277,20 @@ impl SessionState {
     pub fn promote(mut self, index: usize) -> (Self, usize) {
         let (new_root, index) = self.root.promote(index);
         self.root = new_root;
-        self.set_changed();
-        (self, index)
+        (self.into_changed(), index)
     }
 
     /// Move subtree at `index` to be its previous sibling's last child.
     pub fn demote(mut self, index: usize) -> (Self, usize) {
         let (new_root, index) = self.root.demote(index);
         self.root = new_root;
-        self.set_changed();
-        (self, index)
+        (self.into_changed(), index)
     }
 
     /// Delete the item at `index`.
     pub fn delete(mut self, index: usize) -> Self {
         self.root = self.root.delete(index);
-        self.set_changed();
-        self
+        self.into_changed()
     }
 }
 
