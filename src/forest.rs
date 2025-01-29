@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 /// The `size` field stores the size of the node's binary subtree.
 /// The binary tree represents a forest of multi-way trees, where each node can
 /// have any number of children and siblings (the roots are siblings).
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum Node {
     Empty,
     Node {
@@ -424,6 +424,33 @@ impl<'a> Iterator for PreOrderIter<'a> {
 mod tests {
     use super::*;
 
+    // Create a forest from a list of trees.
+    fn forest(mut trees: Vec<Tree>) -> Node {
+        let mut root = Node::Empty;
+        while let Some(tree) = trees.pop() {
+            if let Tree::Root { label, child } = tree {
+                root = Node::new(label, child, root);
+            }
+        }
+        root
+    }
+
+    // Create a tree given the root `label` and list of child subtrees.
+    fn tree(label: &str, children: Vec<Tree>) -> Tree {
+        Tree::Root {
+            label: label.to_string(),
+            child: forest(children),
+        }
+    }
+
+    // Create a single-node tree.
+    fn leaf(label: &str) -> Tree {
+        Tree::Root {
+            label: label.to_string(),
+            child: Node::Empty,
+        }
+    }
+
     #[test]
     fn focus_empty_forest() {
         let result_0 = Node::Empty.focus_node(0);
@@ -432,8 +459,39 @@ mod tests {
             focus: Node::Empty,
             prev: ReturnNode::Empty,
         };
+
         assert_eq!(result_0, empty_zipper);
         assert_eq!(result_1, empty_zipper);
+    }
+
+    #[test]
+    fn focus_and_restore_forest() {
+        let forest_a = forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        let focus_a1 = forest(vec![
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        let focus_a2 = forest(vec![
+            leaf("2"),
+            leaf("3"),
+        ]);
+        let zipper_a1 = forest_a.clone().focus_node(1);
+        let zipper_a2 = forest_a.clone().focus_node(2);
+
+        assert_eq!(zipper_a1.focus, focus_a1);
+        assert_eq!(zipper_a2.focus, focus_a2);
+        assert_eq!(zipper_a1.restore(), forest_a);
+        assert_eq!(zipper_a2.restore(), forest_a);
     }
 }
 
