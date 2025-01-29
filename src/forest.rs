@@ -58,21 +58,6 @@ struct NodeRef<'a> {
     pos: NodePosition,
 }
 
-// Concatenate two trees, making their roots siblings.
-fn concat(left_root: Node, right_root: Node) -> Node {
-    if let Node::Empty = right_root {
-        return left_root;
-    }
-    let mut focus = left_root;
-    let mut prev = ReturnNode::Empty;
-    while let Node::Node { label, child, sibling, .. } = focus {
-        focus = *sibling;
-        prev = ReturnNode::new_sibling(label, prev, *child);
-    }
-    ForestZipper { focus: right_root, prev }
-        .restore()
-}
-
 impl Node {
     fn new(label: String, child: Self, sibling: Self) -> Self {
         let size = 1 + child.size() + sibling.size();
@@ -190,11 +175,26 @@ impl Node {
             .restore_with_index()
     }
 
+    // Concatenate the roots of a forest as siblings of the roots of `self`.
+    fn concat(self, root: Node) -> Node {
+        if let Node::Empty = root {
+            return self;
+        }
+        let mut focus = self;
+        let mut prev = ReturnNode::Empty;
+        while let Node::Node { label, child, sibling, .. } = focus {
+            focus = *sibling;
+            prev = ReturnNode::new_sibling(label, prev, *child);
+        }
+        ForestZipper { focus: root, prev }
+            .restore()
+    }
+
     /// Delete the node of pre-order `index` from the forest.
     pub fn delete(self, index: usize) -> Self {
         let ForestZipper { focus, prev } = self.focus_node(index);
         let new_focus = match focus {
-            Self::Node { child, sibling, .. } => concat(*child, *sibling),
+            Self::Node { child, sibling, .. } => child.concat(*sibling),
             Self::Empty => Self::Empty,
         };
         ForestZipper { focus: new_focus, prev, }
