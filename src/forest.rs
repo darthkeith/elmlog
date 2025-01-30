@@ -480,24 +480,34 @@ mod tests {
 
     #[test]
     fn focus_and_restore_forest() {
-        let focus_a1 = forest(vec![
+        let zipper = FOREST_A.clone().focus_node(1);
+        let focus = forest(vec![
             tree("1", vec![
                 leaf("2"),
                 leaf("3"),
             ]),
             leaf("4"),
         ]);
-        let focus_a2 = forest(vec![
+
+        assert_eq!(zipper.focus, focus);
+        assert_eq!(zipper.restore(), *FOREST_A);
+
+        let zipper = FOREST_A.clone().focus_node(2);
+        let focus = forest(vec![
             leaf("2"),
             leaf("3"),
         ]);
-        let zipper_a1 = FOREST_A.clone().focus_node(1);
-        let zipper_a2 = FOREST_A.clone().focus_node(2);
 
-        assert_eq!(zipper_a1.focus, focus_a1);
-        assert_eq!(zipper_a2.focus, focus_a2);
-        assert_eq!(zipper_a1.restore(), *FOREST_A);
-        assert_eq!(zipper_a2.restore(), *FOREST_A);
+        assert_eq!(zipper.focus, focus);
+        assert_eq!(zipper.restore(), *FOREST_A);
+    }
+
+    #[test]
+    fn restore_forest_invalid_focus() {
+        let zipper = FOREST_A.clone().focus_node(9);
+
+        assert_eq!(zipper.focus, Node::Empty);
+        assert_eq!(zipper.restore(), *FOREST_A);
     }
 }
 
