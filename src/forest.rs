@@ -422,6 +422,8 @@ impl<'a> Iterator for PreOrderIter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use once_cell::sync::Lazy;
+
     use super::*;
 
     // Create a forest from a list of trees.
@@ -451,6 +453,17 @@ mod tests {
         }
     }
 
+    static FOREST_A: Lazy<Node> = Lazy::new(|| {
+        forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ])
+    });
+
     #[test]
     fn focus_empty_forest() {
         let result_0 = Node::Empty.focus_node(0);
@@ -462,18 +475,11 @@ mod tests {
 
         assert_eq!(result_0, empty_zipper);
         assert_eq!(result_1, empty_zipper);
+        assert_eq!(empty_zipper.restore(), Node::Empty);
     }
 
     #[test]
     fn focus_and_restore_forest() {
-        let forest_a = forest(vec![
-            leaf("0"),
-            tree("1", vec![
-                leaf("2"),
-                leaf("3"),
-            ]),
-            leaf("4"),
-        ]);
         let focus_a1 = forest(vec![
             tree("1", vec![
                 leaf("2"),
@@ -485,13 +491,13 @@ mod tests {
             leaf("2"),
             leaf("3"),
         ]);
-        let zipper_a1 = forest_a.clone().focus_node(1);
-        let zipper_a2 = forest_a.clone().focus_node(2);
+        let zipper_a1 = FOREST_A.clone().focus_node(1);
+        let zipper_a2 = FOREST_A.clone().focus_node(2);
 
         assert_eq!(zipper_a1.focus, focus_a1);
         assert_eq!(zipper_a2.focus, focus_a2);
-        assert_eq!(zipper_a1.restore(), forest_a);
-        assert_eq!(zipper_a2.restore(), forest_a);
+        assert_eq!(zipper_a1.restore(), *FOREST_A);
+        assert_eq!(zipper_a2.restore(), *FOREST_A);
     }
 }
 
