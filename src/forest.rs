@@ -175,6 +175,11 @@ impl Node {
             .restore_with_index()
     }
 
+    /// Make the node at `index` the parent of all of its siblings.
+    pub fn raise(self, index: usize) -> (Self, usize) {
+        (Self::Empty, 0)
+    }
+
     // Concatenate the roots of a forest as siblings of the roots of `self`.
     fn concat(self, root: Node) -> Node {
         if let Node::Empty = root {
@@ -426,7 +431,7 @@ mod tests {
 
     use super::*;
 
-    // Create a forest from a list of trees.
+    // Create a forest from a list of `trees`.
     fn forest(mut trees: Vec<Tree>) -> Node {
         let mut root = Node::Empty;
         while let Some(tree) = trees.pop() {
@@ -437,7 +442,7 @@ mod tests {
         root
     }
 
-    // Create a tree given the root `label` and list of child subtrees.
+    // Create a tree with root `label` and list of `children` subtrees.
     fn tree(label: &str, children: Vec<Tree>) -> Tree {
         Tree::Root {
             label: label.to_string(),
@@ -445,7 +450,7 @@ mod tests {
         }
     }
 
-    // Create a single-node tree.
+    // Create a single-node tree with root `label`.
     fn leaf(label: &str) -> Tree {
         Tree::Root {
             label: label.to_string(),
@@ -472,7 +477,6 @@ mod tests {
             focus: Node::Empty,
             prev: ReturnNode::Empty,
         };
-
         assert_eq!(result_0, empty_zipper);
         assert_eq!(result_1, empty_zipper);
         assert_eq!(empty_zipper.restore(), Node::Empty);
@@ -488,7 +492,6 @@ mod tests {
             ]),
             leaf("4"),
         ]);
-
         assert_eq!(zipper.focus, focus);
         assert_eq!(zipper.restore(), *FOREST_A);
 
@@ -497,7 +500,6 @@ mod tests {
             leaf("2"),
             leaf("3"),
         ]);
-
         assert_eq!(zipper.focus, focus);
         assert_eq!(zipper.restore(), *FOREST_A);
     }
@@ -505,9 +507,43 @@ mod tests {
     #[test]
     fn restore_forest_invalid_focus() {
         let zipper = FOREST_A.clone().focus_node(9);
-
         assert_eq!(zipper.focus, Node::Empty);
         assert_eq!(zipper.restore(), *FOREST_A);
+    }
+
+    #[test]
+    fn test_raise() {
+        let (result, index) = FOREST_A.clone().raise(0);
+        let (result2, index2) = result.clone().raise(index);
+        let expected = forest(vec![
+            tree("0", vec![
+                tree("1", vec![
+                    leaf("2"),
+                    leaf("3"),
+                ]),
+                leaf("4"),
+            ]),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(result2, expected);
+        assert_eq!(index, 0);
+        assert_eq!(index2, 0);
+
+        let (result, index) = FOREST_A.clone().raise(3);
+        let (result2, index2) = result.clone().raise(index);
+        let expected = forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                tree("3", vec![
+                    leaf("2"),
+                ]),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(result2, expected);
+        assert_eq!(index, 2);
+        assert_eq!(index2, 2);
     }
 }
 
