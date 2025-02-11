@@ -201,15 +201,21 @@ fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
 fn update_selected(
     msg: SelectedMsg,
     index: usize,
-    state: SessionState,
+    mut state: SessionState,
 ) -> Command {
-    let label = state.root.find_label(index);
     let mode = match msg {
         SelectedMsg::Edit => {
+            let label = state.root.find_label(index);
             Mode::Input(InputState::new_edit(label, index))
         }
         SelectedMsg::Move => Mode::Move(index),
+        SelectedMsg::Raise => {
+            let (new_state, new_index) = state.raise(index);
+            state = new_state;
+            Mode::Select(new_index)
+        }
         SelectedMsg::Delete => {
+            let label = state.root.find_label(index);
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
     };

@@ -63,6 +63,7 @@ pub enum SelectMsg {
 pub enum SelectedMsg {
     Edit,
     Move,
+    Raise,
     Delete,
 }
 
@@ -190,6 +191,7 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
     let selected_msg = match key {
         KeyCode::Char('e') => SelectedMsg::Edit,
         KeyCode::Char('m') => SelectedMsg::Move,
+        KeyCode::Char('r') => SelectedMsg::Raise,
         KeyCode::Char('d') => SelectedMsg::Delete,
         _ => return default(key, Mode::Selected(index)),
     };

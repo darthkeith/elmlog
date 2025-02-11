@@ -259,32 +259,39 @@ impl SessionState {
 
     /// Swap the subtree at `index` with its next sibling.
     pub fn move_forward(mut self, index: usize) -> (Self, usize) {
-        let (new_root, index) = self.root.move_forward(index);
+        let (new_root, new_index) = self.root.move_forward(index);
         self.root = new_root;
-        (self.into_changed(), index)
+        (self.into_changed(), new_index)
     }
 
     /// Swap the subtree at `index` with its previous sibling.
     pub fn move_backward(mut self, index: usize) -> (Self, usize) {
-        let (new_root, index) = self.root.move_backward(index);
+        let (new_root, new_index) = self.root.move_backward(index);
         self.root = new_root;
-        (self.into_changed(), index)
+        (self.into_changed(), new_index)
     }
 
     /// Move subtree at `index` to be its parent's next sibling.
     ///
     /// If it has no parent, move it to be the first tree in the forest.
     pub fn promote(mut self, index: usize) -> (Self, usize) {
-        let (new_root, index) = self.root.promote(index);
+        let (new_root, new_index) = self.root.promote(index);
         self.root = new_root;
-        (self.into_changed(), index)
+        (self.into_changed(), new_index)
     }
 
     /// Move subtree at `index` to be its previous sibling's last child.
     pub fn demote(mut self, index: usize) -> (Self, usize) {
-        let (new_root, index) = self.root.demote(index);
+        let (new_root, new_index) = self.root.demote(index);
         self.root = new_root;
-        (self.into_changed(), index)
+        (self.into_changed(), new_index)
+    }
+
+    /// Make the node at `index` the parent of all of its siblings.
+    pub fn raise(mut self, index: usize) -> (Self, usize) {
+        let (new_root, new_index) = self.root.raise(index);
+        self.root = new_root;
+        (self.into_changed(), new_index)
     }
 
     /// Delete the item at `index`.
