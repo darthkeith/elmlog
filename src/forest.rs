@@ -177,7 +177,9 @@ impl Node {
 
     /// Make the node at `index` the parent of all of its siblings.
     pub fn raise(self, index: usize) -> (Self, usize) {
-        (Self::Empty, 0)
+        self.focus_node(index)
+            .raise()
+            .restore_with_index()
     }
 
     // Concatenate the roots of a forest as siblings of the roots of `self`.
@@ -396,6 +398,30 @@ impl ForestZipper {
             Self { focus, prev }
         } else {
             let focus = Node::new(root_label, root_child, focus);
+            Self { focus, prev }
+        }
+    }
+
+    // Return a zipper focused on the first sibling of the focused node.
+    fn focus_first_sibling(self) -> Self {
+        let Self { mut focus, mut prev } = self;
+        while let ReturnNode::Sibling { label, prev: prev2, child } = prev {
+            focus = Node::new(label, child, focus);
+            prev = *prev2;
+        }
+        Self { focus, prev }
+    }
+
+    // Make the focused node the parent of all of its siblings.
+    fn raise(self) -> Self {
+        let Self { focus, prev } = self;
+        if let Node::Node { label, child, sibling, .. } = focus {
+            let focus = child.concat(*sibling);
+            let Self { focus, prev } = Self { focus, prev }
+                .focus_first_sibling();
+            let focus = Node::new(label, focus, Node::Empty);
+            Self { focus, prev }
+        } else {
             Self { focus, prev }
         }
     }
