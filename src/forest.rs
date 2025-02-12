@@ -182,6 +182,13 @@ impl Node {
             .restore_with_index()
     }
 
+    /// Move the children of the node at `index` to be its subsequent siblings.
+    pub fn flatten(self, index: usize) -> (Self, usize) {
+        self.focus_node(index)
+            .flatten()
+            .restore_with_index()
+    }
+
     // Concatenate the roots of a forest as siblings of the roots of `self`.
     fn concat(self, root: Node) -> Node {
         if let Node::Empty = root {
@@ -425,6 +432,11 @@ impl ForestZipper {
             Self { focus, prev }
         }
     }
+
+    /// Move the children of the focused node to be its subsequent siblings.
+    fn flatten(self) -> Self {
+        self
+    }
 }
 
 /// Iterator type returning node labels/positions in pre-order.
@@ -492,6 +504,21 @@ mod tests {
                 leaf("3"),
             ]),
             leaf("4"),
+        ])
+    });
+
+    static FOREST_B: Lazy<Node> = Lazy::new(|| {
+        forest(vec![
+            tree("0", vec![
+                tree("1", vec!{
+                    leaf("2"),
+                    leaf("3"),
+                }),
+                tree("4", vec!{
+                    leaf("5"),
+                }),
+            ]),
+            leaf("6"),
         ])
     });
 
@@ -570,6 +597,45 @@ mod tests {
         assert_eq!(result2, expected);
         assert_eq!(index, 2);
         assert_eq!(index2, 2);
+    }
+
+    #[test]
+    fn test_flatten() {
+        let (result, index) = FOREST_B.clone().flatten(0);
+        let (result2, index2) = result.clone().flatten(index);
+        let expected = forest(vec![
+            leaf("0"),
+            tree("1", vec!{
+                leaf("2"),
+                leaf("3"),
+            }),
+            tree("4", vec!{
+                leaf("5"),
+            }),
+            leaf("6"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(result2, expected);
+        assert_eq!(index, 0);
+        assert_eq!(index2, 0);
+        
+        let (result, index) = FOREST_B.clone().flatten(1);
+        let (result2, index2) = result.clone().flatten(index);
+        let expected = forest(vec![
+            tree("0", vec![
+                leaf("1"),
+                leaf("2"),
+                leaf("3"),
+                tree("4", vec!{
+                    leaf("5"),
+                }),
+            ]),
+            leaf("6"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(result2, expected);
+        assert_eq!(index, 0);
+        assert_eq!(index2, 0);
     }
 }
 
