@@ -433,9 +433,16 @@ impl ForestZipper {
         }
     }
 
-    /// Move the children of the focused node to be its subsequent siblings.
+    // Move the children of the focused node to be its subsequent siblings.
     fn flatten(self) -> Self {
-        self
+        let Self { focus, prev } = self;
+        let focus = match focus {
+            Node::Node { label, child, sibling, .. } => {
+                Node::new(label, Node::Empty, child.concat(*sibling))
+            }
+            Node::Empty => Node::Empty,
+        };
+        Self { focus, prev }
     }
 }
 
@@ -634,8 +641,8 @@ mod tests {
         ]);
         assert_eq!(result, expected);
         assert_eq!(result2, expected);
-        assert_eq!(index, 0);
-        assert_eq!(index2, 0);
+        assert_eq!(index, 1);
+        assert_eq!(index2, 1);
     }
 }
 
