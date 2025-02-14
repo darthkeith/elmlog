@@ -189,6 +189,13 @@ impl Node {
             .restore_with_index()
     }
 
+    // Insert a node with `label` as the parent of the node at `index`.
+    fn insert_parent(self, index: usize, label: String) -> (Self, usize) {
+        self.focus_node(index)
+            .insert_parent(label)
+            .restore_with_index()
+    }
+    
     // Concatenate the roots of a forest as siblings of the roots of `self`.
     fn concat(self, root: Node) -> Node {
         if let Node::Empty = root {
@@ -444,6 +451,11 @@ impl ForestZipper {
         };
         Self { focus, prev }
     }
+
+    // Insert a node with `label` as the parent of the focused node.
+    fn insert_parent(self, label: String) -> Self {
+        self
+    }
 }
 
 /// Iterator type returning node labels/positions in pre-order.
@@ -643,6 +655,37 @@ mod tests {
         assert_eq!(result2, expected);
         assert_eq!(index, 1);
         assert_eq!(index2, 1);
+    }
+
+    #[test]
+    fn test_insert_parent() {
+        let (result, index) = FOREST_A.clone().insert_parent(0, "x".to_string());
+        let expected = forest(vec![
+            tree("x", vec![
+                leaf("0"),
+            ]),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 0);
+
+        let (result, index) = FOREST_A.clone().insert_parent(3, "x".to_string());
+        let expected = forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                tree("x", vec![
+                    leaf("3"),
+                ]),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 3);
     }
 }
 
