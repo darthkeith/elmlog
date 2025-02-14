@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [2.11.0-alpha] - 2025-02-13
+
+### Added
+- **Raise** command to move a node's siblings to be its children.
+- **Flatten** command to move a node's children to be its siblings.
+
 ## [2.10.0-alpha] - 2025-01-20
 
 ### Added
@@ -119,7 +125,8 @@
   - **Edit**: Modify item text.
   - **Delete**: Delete an item.
 
-[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.10.0-alpha...HEAD
+[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.11.0-alpha...HEAD
+[2.11.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.10.0-alpha...v2.11.0-alpha
 [2.10.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.9.0-alpha...v2.10.0-alpha
 [2.9.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.8.0-alpha...v2.9.0-alpha
 [2.8.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.7.0-alpha...v2.8.0-alpha

@@ -175,7 +175,7 @@ impl Node {
             .restore_with_index()
     }
 
-    /// Make the node at `index` the parent of all of its siblings.
+    /// Move the siblings of the node at `index` to be its children.
     pub fn raise(self, index: usize) -> (Self, usize) {
         self.focus_node(index)
             .raise()
@@ -419,7 +419,7 @@ impl ForestZipper {
         Self { focus, prev }
     }
 
-    // Make the focused node the parent of all of its siblings.
+    // Move the siblings of the focused node to be its children.
     fn raise(self) -> Self {
         let Self { focus, prev } = self;
         if let Node::Node { label, child, sibling, .. } = focus {

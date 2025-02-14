@@ -287,9 +287,16 @@ impl SessionState {
         (self.into_changed(), new_index)
     }
 
-    /// Make the node at `index` the parent of all of its siblings.
+    /// Move the siblings of the node at `index` to be its children.
     pub fn raise(mut self, index: usize) -> (Self, usize) {
         let (new_root, new_index) = self.root.raise(index);
+        self.root = new_root;
+        (self.into_changed(), new_index)
+    }
+
+    /// Move the children of the node at `index` to be its subsequent siblings.
+    pub fn flatten(mut self, index: usize) -> (Self, usize) {
+        let (new_root, new_index) = self.root.flatten(index);
         self.root = new_root;
         (self.into_changed(), new_index)
     }

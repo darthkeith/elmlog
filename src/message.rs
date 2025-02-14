@@ -64,6 +64,7 @@ pub enum SelectedMsg {
     Edit,
     Move,
     Raise,
+    Flatten,
     Delete,
 }
 
@@ -192,6 +193,7 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('e') => SelectedMsg::Edit,
         KeyCode::Char('m') => SelectedMsg::Move,
         KeyCode::Char('r') => SelectedMsg::Raise,
+        KeyCode::Char('f') => SelectedMsg::Flatten,
         KeyCode::Char('d') => SelectedMsg::Delete,
         _ => return default(key, Mode::Selected(index)),
     };

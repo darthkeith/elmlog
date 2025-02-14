@@ -214,6 +214,11 @@ fn update_selected(
             state = new_state;
             Mode::Select(new_index)
         }
+        SelectedMsg::Flatten => {
+            let (new_state, new_index) = state.flatten(index);
+            state = new_state;
+            Mode::Select(new_index)
+        }
         SelectedMsg::Delete => {
             let label = state.root.find_label(index);
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
