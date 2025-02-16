@@ -454,7 +454,15 @@ impl ForestZipper {
 
     // Insert a node with `label` as the parent of the focused node.
     fn insert_parent(self, label: String) -> Self {
-        self
+        let Self { focus, prev } = self;
+        let focus = match focus {
+            Node::Node { label: label2, child, sibling, .. } => {
+                let new_child = Node::new(label2, *child, Node::Empty);
+                Node::new(label, new_child, *sibling)
+            }
+            Node::Empty => Node::Empty,
+        };
+        Self { focus, prev }
     }
 }
 
