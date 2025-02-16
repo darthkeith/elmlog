@@ -189,13 +189,20 @@ impl Node {
             .restore_with_index()
     }
 
-    // Insert a node with `label` as the parent of the node at `index`.
-    fn insert_parent(self, index: usize, label: String) -> (Self, usize) {
+    /// Insert a node with `label` as the parent of the node at `index`.
+    pub fn insert_parent(self, index: usize, label: String) -> (Self, usize) {
         self.focus_node(index)
             .insert_parent(label)
             .restore_with_index()
     }
     
+    /// Insert a node with `label` as the child of the node at `index`.
+    pub fn insert_child(self, index: usize, label: String) -> (Self, usize) {
+        self.focus_node(index)
+            .insert_child(label)
+            .restore_with_index()
+    }
+
     // Concatenate the roots of a forest as siblings of the roots of `self`.
     fn concat(self, root: Node) -> Node {
         if let Node::Empty = root {
@@ -464,6 +471,12 @@ impl ForestZipper {
         };
         Self { focus, prev }
     }
+
+    // Insert a node with `label` as the new child of the focused node.
+    // The original child will become the child of the inserted node.
+    fn insert_child(self, label: String) -> Self {
+        self
+    }
 }
 
 /// Iterator type returning node labels/positions in pre-order.
@@ -694,6 +707,37 @@ mod tests {
         ]);
         assert_eq!(result, expected);
         assert_eq!(index, 3);
+    }
+
+    #[test]
+    fn test_insert_child() {
+        let (result, index) = FOREST_A.clone().insert_child(0, "x".to_string());
+        let expected = forest(vec![
+            tree("0", vec![
+                leaf("x"),
+            ]),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 1);
+
+        let (result, index) = FOREST_A.clone().insert_child(1, "x".to_string());
+        let expected = forest(vec![
+            leaf("0"),
+            tree("x", vec![
+                tree("1", vec![
+                    leaf("2"),
+                    leaf("3"),
+                ]),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 1);
     }
 }
 
