@@ -460,12 +460,12 @@ impl ForestZipper {
     }
 
     // Insert a node with `label` as the parent of the focused node.
-    fn insert_parent(self, label: String) -> Self {
+    fn insert_parent(self, new_label: String) -> Self {
         let Self { focus, prev } = self;
         let focus = match focus {
-            Node::Node { label: label2, child, sibling, .. } => {
-                let new_child = Node::new(label2, *child, Node::Empty);
-                Node::new(label, new_child, *sibling)
+            Node::Node { label, child, sibling, .. } => {
+                let new_child = Node::new(label, *child, Node::Empty);
+                Node::new(new_label, new_child, *sibling)
             }
             Node::Empty => Node::Empty,
         };
@@ -473,9 +473,17 @@ impl ForestZipper {
     }
 
     // Insert a node with `label` as the new child of the focused node.
-    // The original child will become the child of the inserted node.
-    fn insert_child(self, label: String) -> Self {
-        self
+    // The original children will become the children of the inserted node.
+    fn insert_child(self, new_label: String) -> Self {
+        let Self { focus, prev } = self;
+        match focus {
+            Node::Node { label, child, sibling, .. } => {
+                let focus = Node::new(new_label, *child, Node::Empty);
+                let prev = ReturnNode::new_parent(label, prev, *sibling);
+                Self { focus, prev }
+            }
+            Node::Empty => Self { focus, prev },
+        }
     }
 }
 
@@ -728,8 +736,8 @@ mod tests {
         let (result, index) = FOREST_A.clone().insert_child(1, "x".to_string());
         let expected = forest(vec![
             leaf("0"),
-            tree("x", vec![
-                tree("1", vec![
+            tree("1", vec![
+                tree("x", vec![
                     leaf("2"),
                     leaf("3"),
                 ]),
@@ -737,7 +745,7 @@ mod tests {
             leaf("4"),
         ]);
         assert_eq!(result, expected);
-        assert_eq!(index, 1);
+        assert_eq!(index, 2);
     }
 }
 
