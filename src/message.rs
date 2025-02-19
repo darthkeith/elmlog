@@ -32,7 +32,7 @@ pub enum LoadMsg {
 
 /// A message sent in Normal mode.
 pub enum NormalMsg {
-    Input,
+    Add,
     Select,
     Load,
     Quit,
@@ -65,6 +65,7 @@ pub enum SelectedMsg {
     Move,
     Raise,
     Flatten,
+    Insert,
     Delete,
 }
 
@@ -75,6 +76,12 @@ pub enum MoveMsg {
     Promote,
     Demote,
     Done,
+}
+
+/// A message sent in Insert mode.
+pub enum InsertMsg {
+    Parent,
+    Child,
 }
 
 /// A message sent in Save mode.
@@ -92,6 +99,7 @@ pub enum Message {
     Select(SelectMsg, usize),
     Selected(SelectedMsg, usize),
     Move(MoveMsg, usize),
+    Insert(InsertMsg, usize),
     Save(SaveMsg, SaveState),
     Continue(Mode),
 }
@@ -142,7 +150,7 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 // Map a `key` to a Message in Normal mode.
 fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
-        KeyCode::Char('a') => NormalMsg::Input,
+        KeyCode::Char('a') => NormalMsg::Add,
         KeyCode::Char('s') => NormalMsg::Select,
         KeyCode::Char('l') => NormalMsg::Load,
         KeyCode::Char('q') => NormalMsg::Quit,
@@ -194,6 +202,7 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('m') => SelectedMsg::Move,
         KeyCode::Char('r') => SelectedMsg::Raise,
         KeyCode::Char('f') => SelectedMsg::Flatten,
+        KeyCode::Char('i') => SelectedMsg::Insert,
         KeyCode::Char('d') => SelectedMsg::Delete,
         _ => return default(key, Mode::Selected(index)),
     };
@@ -204,13 +213,23 @@ fn to_selected_msg(key: KeyCode, index: usize) -> Message {
 fn to_move_msg(key: KeyCode, index: usize) -> Message {
     let move_msg = match key {
         KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
-        KeyCode::Char('k')| KeyCode::Up => MoveMsg::Backward,
-        KeyCode::Char('h')| KeyCode::Left => MoveMsg::Promote,
-        KeyCode::Char('l')| KeyCode::Right => MoveMsg::Demote,
+        KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
+        KeyCode::Char('h') | KeyCode::Left => MoveMsg::Promote,
+        KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
         KeyCode::Enter => MoveMsg::Done,
         _ => return default(key, Mode::Move(index)),
     };
     Message::Move(move_msg, index)
+}
+
+// Map a `key` to a Message in Insert mode.
+fn to_insert_msg(key: KeyCode, index: usize) -> Message {
+    let insert_msg = match key {
+        KeyCode::Char('p') => InsertMsg::Parent,
+        KeyCode::Char('c') => InsertMsg::Child,
+        _ => return default(key, Mode::Insert(index)),
+    };
+    Message::Insert(insert_msg, index)
 }
 
 // Map a `key` to a Message in Save mode.
@@ -233,6 +252,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Select(index) => to_select_msg(key, index),
         Mode::Selected(index) => to_selected_msg(key, index),
         Mode::Move(index) => to_move_msg(key, index),
+        Mode::Insert(index) => to_insert_msg(key, index),
         Mode::Save(save_state) => to_save_msg(key, save_state),
     }
 }

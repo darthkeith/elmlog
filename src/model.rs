@@ -10,10 +10,17 @@ pub enum ConfirmState {
     DeleteFile(LoadState),
 }
 
+/// Position to insert new node relative to selected node.
+pub enum InsertPosition {
+    Parent,
+    Child,
+}
+
 /// Action to perform with the user input label string.
 pub enum LabelAction {
     Add,
     Edit(usize),
+    Insert(usize, InsertPosition),
 }
 
 /// Current user input label and action to be performed with it.
@@ -70,6 +77,7 @@ pub enum Mode {
     Select(usize),
     Selected(usize),
     Move(usize),
+    Insert(usize),
     Save(SaveState),
 }
 
@@ -162,6 +170,14 @@ impl InputState {
         InputState::Label(LabelState {
             input: label,
             action: LabelAction::Edit(index),
+        })
+    }
+
+    /// Create an InputState to insert item at `position` relative to `index`.
+    pub fn new_insert(index: usize, position: InsertPosition) -> Self {
+        InputState::Label(LabelState {
+            input: String::new(),
+            action: LabelAction::Insert(index, position),
         })
     }
 
@@ -297,6 +313,21 @@ impl SessionState {
     /// Move the children of the node at `index` to be its subsequent siblings.
     pub fn flatten(mut self, index: usize) -> (Self, usize) {
         let (new_root, new_index) = self.root.flatten(index);
+        self.root = new_root;
+        (self.into_changed(), new_index)
+    }
+
+    /// Insert the `label` at `position` relative to `index`.
+    pub fn insert(
+        mut self,
+        index: usize,
+        position: InsertPosition,
+        label: String,
+    ) -> (Self, usize) {
+        let (new_root, new_index) = match position {
+            InsertPosition::Parent => self.root.insert_parent(index, label),
+            InsertPosition::Child => self.root.insert_child(index, label),
+        };
         self.root = new_root;
         (self.into_changed(), new_index)
     }

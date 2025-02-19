@@ -25,6 +25,7 @@ mod confirm {
 mod input {
     pub const ADD: &str = "Add item";
     pub const EDIT: &str = "Edit item";
+    pub const INSERT: &str = "Insert item";
     pub const RENAME: &str = "Rename file";
     pub const SAVENEW: &str = "Save new file";
 }
@@ -41,6 +42,7 @@ const LOAD: &str = "Open a file or start a new session";
 const SELECT: &str = "Selected index: ";
 const SELECTED: &str = "Enter command";
 const MOVE: &str = "Move subtree";
+const INSERT: &str = "Enter position to insert new item";
 const SAVE: &str = "Save changes?";
 const UNTITLED: &str = "Untitled";
 
@@ -91,6 +93,7 @@ pub fn status_bar(model: &Model) -> Line {
             let message = match label_state.action {
                 LabelAction::Add => input::ADD,
                 LabelAction::Edit(_) => input::EDIT,
+                LabelAction::Insert (..) => input::INSERT,
             };
             let info = match label_state.is_empty() {
                 true => Some(alert::EMPTY),
@@ -114,6 +117,7 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::Select(index) => status_select(*index),
         Mode::Selected(_) => status(SELECTED),
         Mode::Move(_) => status(MOVE),
+        Mode::Insert(_) => status(INSERT),
         Mode::Save(save_state) => {
             let info = match save_state.post_save {
                 PostSaveAction::Load => post_save::LOAD,

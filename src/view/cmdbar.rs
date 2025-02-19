@@ -36,6 +36,9 @@ const UP: KeyPair = ("K │ ↑", "Up");
 const PROMOTE: KeyPair = ("H │ ←", "Promote");
 const DEMOTE: KeyPair = ("L │ →", "Demote");
 const RENAME: KeyPair = ("R", "Rename");
+const INSERT: KeyPair = ("I", "Insert");
+const PARENT: KeyPair = ("P", "Parent");
+const CHILD: KeyPair = ("C", "Child");
 const DELETE: KeyPair = ("D", "Delete");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
@@ -109,8 +112,11 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Normal => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Select(_) => select_mode_commands(model.state.root.size()),
-        Mode::Selected(_) => vec![EDIT, MOVE, RAISE, FLATTEN, DELETE, CANCEL],
+        Mode::Selected(_) => {
+            vec![EDIT, MOVE, RAISE, FLATTEN, INSERT, DELETE, CANCEL]
+        }
         Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],
+        Mode::Insert(_) => vec![PARENT, CHILD, CANCEL],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)
