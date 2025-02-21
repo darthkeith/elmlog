@@ -39,6 +39,8 @@ const RENAME: KeyPair = ("R", "Rename");
 const INSERT: KeyPair = ("I", "Insert");
 const PARENT: KeyPair = ("P", "Parent");
 const CHILD: KeyPair = ("C", "Child");
+const BEFORE: KeyPair = ("K", "Before");
+const AFTER: KeyPair = ("J", "After");
 const DELETE: KeyPair = ("D", "Delete");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
@@ -116,7 +118,7 @@ pub fn command_bar(model: &Model) -> Line {
             vec![EDIT, MOVE, RAISE, FLATTEN, INSERT, DELETE, CANCEL]
         }
         Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],
-        Mode::Insert(_) => vec![PARENT, CHILD, CANCEL],
+        Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, CANCEL],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)

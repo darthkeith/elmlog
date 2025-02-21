@@ -14,6 +14,8 @@ pub enum ConfirmState {
 pub enum InsertPosition {
     Parent,
     Child,
+    Before,
+    After,
 }
 
 /// Action to perform with the user input label string.
@@ -327,6 +329,8 @@ impl SessionState {
         let (new_root, new_index) = match position {
             InsertPosition::Parent => self.root.insert_parent(index, label),
             InsertPosition::Child => self.root.insert_child(index, label),
+            InsertPosition::Before => self.root.insert_before(index, label),
+            InsertPosition::After => self.root.insert_after(index, label),
         };
         self.root = new_root;
         (self.into_changed(), new_index)

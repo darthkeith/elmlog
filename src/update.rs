@@ -280,6 +280,8 @@ fn update_insert(
     let position = match msg {
         InsertMsg::Parent => InsertPosition::Parent,
         InsertMsg::Child => InsertPosition::Child,
+        InsertMsg::Before => InsertPosition::Before,
+        InsertMsg::After => InsertPosition::After,
     };
     let mode = Mode::Input(InputState::new_insert(index, position));
     Command::None(Model { state, mode })

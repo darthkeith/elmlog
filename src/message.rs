@@ -82,6 +82,8 @@ pub enum MoveMsg {
 pub enum InsertMsg {
     Parent,
     Child,
+    Before,
+    After,
 }
 
 /// A message sent in Save mode.
@@ -227,6 +229,8 @@ fn to_insert_msg(key: KeyCode, index: usize) -> Message {
     let insert_msg = match key {
         KeyCode::Char('p') => InsertMsg::Parent,
         KeyCode::Char('c') => InsertMsg::Child,
+        KeyCode::Char('k') => InsertMsg::Before,
+        KeyCode::Char('j') => InsertMsg::After,
         _ => return default(key, Mode::Insert(index)),
     };
     Message::Insert(insert_msg, index)
