@@ -502,12 +502,25 @@ impl ForestZipper {
 
     // Insert a new node as the prior sibling of the focused node.
     fn insert_before(self, new_label: String) -> Self {
-        self
+        let Self { focus, prev } = self;
+        let focus = Node::new(new_label, Node::Empty, focus);
+        Self { focus, prev }
     }
 
     // Insert a new node as the next sibling of the focused node.
     fn insert_after(self, new_label: String) -> Self {
-        self
+        let Self { focus, prev } = self;
+        match focus {
+            Node::Node { label, child, sibling, .. } => {
+                let focus = Node::new(new_label, Node::Empty, *sibling);
+                let prev = ReturnNode::new_sibling(label, prev, *child);
+                Self { focus, prev }
+            }
+            Node::Empty => {
+                let focus = Node::new(new_label, Node::Empty, Node::Empty);
+                Self { focus, prev }
+            }
+        }
     }
 }
 
