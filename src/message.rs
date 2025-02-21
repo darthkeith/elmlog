@@ -227,8 +227,8 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
 // Map a `key` to a Message in Insert mode.
 fn to_insert_msg(key: KeyCode, index: usize) -> Message {
     let insert_msg = match key {
-        KeyCode::Char('p') => InsertMsg::Parent,
-        KeyCode::Char('c') => InsertMsg::Child,
+        KeyCode::Char('h') => InsertMsg::Parent,
+        KeyCode::Char('l') => InsertMsg::Child,
         KeyCode::Char('k') => InsertMsg::Before,
         KeyCode::Char('j') => InsertMsg::After,
         _ => return default(key, Mode::Insert(index)),

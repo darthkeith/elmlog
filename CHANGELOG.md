@@ -2,10 +2,17 @@
 
 ## [Unreleased]
 
+## [2.13.0-alpha] - 2025-02-20
+
+### Added
+- Subcommands to insert an item as the prior or next sibling of a node.
+### Changed
+- Updated app directory name to match app name.
+
 ## [2.12.0-alpha] - 2025-02-19
 
 ### Added
-- **Insert** command to insert a new label as the parent or child of a node.
+- **Insert** command to insert an item as the parent or child of a node.
 
 ## [2.11.0-alpha] - 2025-02-13
 
@@ -130,7 +137,8 @@
   - **Edit**: Modify item text.
   - **Delete**: Delete an item.
 
-[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.12.0-alpha...HEAD
+[Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v2.13.0-alpha...HEAD
+[2.13.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.12.0-alpha...v2.13.0-alpha
 [2.12.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.11.0-alpha...v2.12.0-alpha
 [2.11.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.10.0-alpha...v2.11.0-alpha
 [2.10.0-alpha]: https://github.com/darthkeith/sieve-selector/compare/v2.9.0-alpha...v2.10.0-alpha
