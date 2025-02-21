@@ -203,6 +203,20 @@ impl Node {
             .restore_with_index()
     }
 
+    /// Insert a node with 'label' as the prior sibling of the node at 'index'.
+    pub fn insert_before(self, index: usize, label: String) -> (Self, usize) {
+        self.focus_node(index)
+            .insert_before(label)
+            .restore_with_index()
+    }
+
+    /// Insert a node with 'label' as the next sibling of the node at 'index'.
+    pub fn insert_after(self, index: usize, label: String) -> (Self, usize) {
+        self.focus_node(index)
+            .insert_after(label)
+            .restore_with_index()
+    }
+
     // Concatenate the roots of a forest as siblings of the roots of `self`.
     fn concat(self, root: Node) -> Node {
         if let Node::Empty = root {
@@ -459,7 +473,7 @@ impl ForestZipper {
         Self { focus, prev }
     }
 
-    // Insert a node with `label` as the parent of the focused node.
+    // Insert a new node as the parent of the focused node.
     fn insert_parent(self, new_label: String) -> Self {
         let Self { focus, prev } = self;
         let focus = match focus {
@@ -472,7 +486,7 @@ impl ForestZipper {
         Self { focus, prev }
     }
 
-    // Insert a node with `label` as the new child of the focused node.
+    // Insert a new node as the new child of the focused node.
     // The original children will become the children of the inserted node.
     fn insert_child(self, new_label: String) -> Self {
         let Self { focus, prev } = self;
@@ -484,6 +498,16 @@ impl ForestZipper {
             }
             Node::Empty => Self { focus, prev },
         }
+    }
+
+    // Insert a new node as the prior sibling of the focused node.
+    fn insert_before(self, new_label: String) -> Self {
+        self
+    }
+
+    // Insert a new node as the next sibling of the focused node.
+    fn insert_after(self, new_label: String) -> Self {
+        self
     }
 }
 
@@ -746,6 +770,64 @@ mod tests {
         ]);
         assert_eq!(result, expected);
         assert_eq!(index, 2);
+    }
+
+    #[test]
+    fn test_insert_before() {
+        let (result, index) = FOREST_A.clone().insert_before(0, "x".to_string());
+        let expected = forest(vec![
+            leaf("x"),
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 0);
+
+        let (result, index) = FOREST_A.clone().insert_before(3, "x".to_string());
+        let expected = forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("x"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 3);
+    }
+
+    #[test]
+    fn test_insert_after() {
+        let (result, index) = FOREST_A.clone().insert_after(0, "x".to_string());
+        let expected = forest(vec![
+            leaf("0"),
+            leaf("x"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 1);
+
+        let (result, index) = FOREST_A.clone().insert_after(2, "x".to_string());
+        let expected = forest(vec![
+            leaf("0"),
+            tree("1", vec![
+                leaf("2"),
+                leaf("x"),
+                leaf("3"),
+            ]),
+            leaf("4"),
+        ]);
+        assert_eq!(result, expected);
+        assert_eq!(index, 3);
     }
 }
 
