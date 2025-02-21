@@ -21,7 +21,7 @@ use crate::{
     util,
 };
 
-const APP_DIR: &str = "sieve-selector";
+const APP_DIR: &str = "elmlog";
 
 /// The `name` and `path` of a file.
 pub struct FileEntry {
