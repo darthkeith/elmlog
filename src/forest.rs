@@ -140,11 +140,6 @@ impl Node {
             .restore()
     }
 
-    /// Insert a Node with the `label` at the start of the forest.
-    pub fn prepend(self, label: String) -> Self {
-        Self::new(label, Self::Empty, self)
-    }
-
     /// Swap the subtree at `index` with its next sibling.
     pub fn move_forward(self, index: usize) -> (Self, usize) {
         self.focus_node(index)

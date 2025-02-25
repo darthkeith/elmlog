@@ -23,7 +23,6 @@ mod confirm {
     pub const DELETE_FILE: &str = "Delete file?";
 }
 mod input {
-    pub const ADD: &str = "Add item";
     pub const EDIT: &str = "Edit item";
     pub const INSERT: &str = "Insert item";
     pub const RENAME: &str = "Rename file";
@@ -91,9 +90,8 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::Normal => status_normal(model.get_filename()),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
-                LabelAction::Add => input::ADD,
                 LabelAction::Edit(_) => input::EDIT,
-                LabelAction::Insert (..) => input::INSERT,
+                LabelAction::Insert(..) => input::INSERT,
             };
             let info = match label_state.is_empty() {
                 true => Some(alert::EMPTY),

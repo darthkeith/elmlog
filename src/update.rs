@@ -83,7 +83,7 @@ fn update_load(
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let mode = match msg {
         NormalMsg::Insert => match state.root.size() {
-            0 => Mode::Input(InputState::new_add()),
+            0 => Mode::Input(InputState::new_insert_empty()),
             _ => Mode::Normal,
         }
         NormalMsg::Select => match state.root.size() {
@@ -119,10 +119,6 @@ fn update_label(
                 let LabelState { input, action } = label_state;
                 let label = input.trim().to_string();
                 let model = match action {
-                    LabelAction::Add => Model {
-                        state: state.add(label),
-                        mode: Mode::Normal,
-                    },
                     LabelAction::Edit(index) => Model {
                         state: state.edit(index, label),
                         mode: Mode::Normal,

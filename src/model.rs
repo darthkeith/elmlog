@@ -20,7 +20,6 @@ pub enum InsertPosition {
 
 /// Action to perform with the user input label string.
 pub enum LabelAction {
-    Add,
     Edit(usize),
     Insert(usize, InsertPosition),
 }
@@ -159,14 +158,6 @@ impl FilenameState {
 }
 
 impl InputState {
-    /// Create an InputState to add an item.
-    pub fn new_add() -> Self {
-        InputState::Label(LabelState {
-            input: String::new(),
-            action: LabelAction::Add,
-        })
-    }
-
     /// Create an InputState to edit the `label` of the item at `index`.
     pub fn new_edit(label: String, index: usize) -> Self {
         InputState::Label(LabelState {
@@ -181,6 +172,11 @@ impl InputState {
             input: String::new(),
             action: LabelAction::Insert(index, position),
         })
+    }
+
+    /// Create an InputState to insert item in an empty forest.
+    pub fn new_insert_empty() -> Self {
+        Self::new_insert(0, InsertPosition::Before)
     }
 
     /// Create an InputState to rename a file.
@@ -261,12 +257,6 @@ impl SessionState {
             Some(open_file) => open_file.is_changed(),
             None => !matches!(self.root, Node::Empty),
         }
-    }
-
-    /// Prepend a top-level `label` at the start of the forest.
-    pub fn add(mut self, label: String) -> Self {
-        self.root = self.root.prepend(label);
-        self.into_changed()
     }
 
     /// Change the label of the item at `index` to `label`.
