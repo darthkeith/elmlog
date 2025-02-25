@@ -82,10 +82,13 @@ fn update_load(
 // Update the Model based on a Normal mode message.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let mode = match msg {
-        NormalMsg::Add => Mode::Input(InputState::new_add()),
-        NormalMsg::Select => match state.root.size() > 0 {
-            true => Mode::Select(0),
-            false => Mode::Normal,
+        NormalMsg::Insert => match state.root.size() {
+            0 => Mode::Input(InputState::new_add()),
+            _ => Mode::Normal,
+        }
+        NormalMsg::Select => match state.root.size() {
+            0 => Mode::Normal,
+            _ => Mode::Select(0),
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),

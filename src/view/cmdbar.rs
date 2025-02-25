@@ -25,7 +25,6 @@ const DONE: KeyPair = ("Enter", "Done");
 const NEW: KeyPair = ("N", "New");
 const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
-const ADD: KeyPair = ("A", "Add");
 const SELECT: KeyPair = ("S", "Select");
 const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
@@ -65,12 +64,11 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 
 // Return the normal mode key-command pairs.
 fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
-    let mut pairs = vec![ADD];
-    if root.size() > 0 {
-        pairs.push(SELECT);
-    }
-    pairs.extend(&[LOAD, QUIT]);
-    pairs
+    let cmd1 = match root.size() {
+        0 => INSERT,
+        _ => SELECT,
+    };
+    vec![cmd1, LOAD, QUIT]
 }
 
 // Return the input mode key-command pairs.
