@@ -38,8 +38,7 @@ mod post_save {
     pub const QUIT: &str = "Quitting";
 }
 const LOAD: &str = "Open a file or start a new session";
-const SELECT: &str = "Selected index: ";
-const SELECTED: &str = "Enter command";
+const EDIT: &str = "Select item / make changes";
 const MOVE: &str = "Move subtree";
 const INSERT: &str = "Enter position to insert new item";
 const SAVE: &str = "Save changes?";
@@ -68,14 +67,6 @@ fn status_normal(maybe_filename: Option<&str>) -> Vec<Span> {
         Some(filename) => filename.bold(),
         None => info(UNTITLED),
     }]
-}
-
-// Select mode status bar Line showing the selected `index`.
-fn status_select(index: usize) -> Vec<Span<'static>> {
-    vec![
-        SELECT.into(),
-        index.to_string().bold(),
-    ]
 }
 
 /// Return the status bar widget based on the `model`.
@@ -112,8 +103,7 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(message, info)
         }
-        Mode::Select(index) => status_select(*index),
-        Mode::Selected(_) => status(SELECTED),
+        Mode::Edit(_) => status(EDIT),
         Mode::Move(_) => status(MOVE),
         Mode::Insert(_) => status(INSERT),
         Mode::Save(save_state) => {

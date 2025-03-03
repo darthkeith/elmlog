@@ -75,8 +75,7 @@ pub enum Mode {
     Load(LoadState),
     Normal,
     Input(InputState),
-    Select(usize),
-    Selected(usize),
+    Edit(usize),
     Move(usize),
     Insert(usize),
     Save(SaveState),
@@ -219,12 +218,18 @@ impl InputState {
 impl SaveState {
     /// Create a SaveState for subsequently loading.
     pub fn new_load() -> Self {
-        SaveState { save: true, post_save: PostSaveAction::Load }
+        SaveState {
+            save: true,
+            post_save: PostSaveAction::Load,
+        }
     }
 
     /// Create a SaveState for subsequently quitting.
     pub fn new_quit() -> Self {
-        SaveState { save: true, post_save: PostSaveAction::Quit }
+        SaveState {
+            save: true,
+            post_save: PostSaveAction::Quit,
+        }
     }
 
     /// Toggle the boolean indicating whether the user intends to save.

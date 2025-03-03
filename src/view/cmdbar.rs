@@ -25,7 +25,6 @@ const DONE: KeyPair = ("Enter", "Done");
 const NEW: KeyPair = ("N", "New");
 const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
-const SELECT: KeyPair = ("S", "Select");
 const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
 const RAISE: KeyPair = ("R", "Raise");
@@ -66,7 +65,7 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     let cmd1 = match root.size() {
         0 => INSERT,
-        _ => SELECT,
+        _ => EDIT,
     };
     vec![cmd1, LOAD, QUIT]
 }
@@ -81,12 +80,12 @@ fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
 }
 
 // Return the select mode key-command pairs.
-fn select_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
+fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.extend(&[CONFIRM, CANCEL]);
+    pairs.extend(&[EDIT, MOVE, RAISE, FLATTEN, INSERT, DELETE, CANCEL]);
     pairs
 }
 
@@ -111,10 +110,7 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
         Mode::Normal => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
-        Mode::Select(_) => select_mode_commands(model.state.root.size()),
-        Mode::Selected(_) => {
-            vec![EDIT, MOVE, RAISE, FLATTEN, INSERT, DELETE, CANCEL]
-        }
+        Mode::Edit(_) => edit_mode_commands(model.state.root.size()),
         Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],
         Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, CANCEL],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],

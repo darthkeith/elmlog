@@ -35,8 +35,7 @@ use self::{
     cmdbar::command_bar,
     forest_view::{
         forest_normal,
-        forest_select,
-        forest_selected,
+        forest_indexed,
     },
     statusbar::status_bar,
 };
@@ -82,7 +81,7 @@ fn top_mid_bottom(area: Rect) -> [Rect; 3] {
     .areas(area)
 }
 
-impl<'a> Widget for Scroll<'a> {
+impl Widget for Scroll<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [top_line, mid_area, bottom_line] = top_mid_bottom(area);
         let Scroll { text, list_size, index } = self;
@@ -205,11 +204,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Input(input_state) => {
             frame.render_widget(text_input(input_state.input()), main_area);
         }
-        Mode::Select(index) => {
-            frame.render_widget(forest_select(root, *index), main_area);
-        }
-        Mode::Selected(index) | Mode::Move(index) | Mode::Insert(index) => {
-            frame.render_widget(forest_selected(root, *index), main_area);
+        Mode::Edit(index) | Mode::Move(index) | Mode::Insert(index) => {
+            frame.render_widget(forest_indexed(root, *index), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);

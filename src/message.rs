@@ -1,6 +1,4 @@
-use std::{
-    io::Result,
-};
+use std::io::Result;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
@@ -33,7 +31,7 @@ pub enum LoadMsg {
 /// A message sent in Normal mode.
 pub enum NormalMsg {
     Insert,
-    Select,
+    Edit,
     Load,
     Quit,
 }
@@ -51,16 +49,11 @@ pub enum InputMsg {
     Cancel,
 }
 
-/// A message sent in Select mode.
-pub enum SelectMsg {
+/// A message sent in Edit mode.
+pub enum EditMsg {
     Append(char),
     Decrement,
     Increment,
-    Confirm,
-}
-
-/// A message sent in Selected mode.
-pub enum SelectedMsg {
     Edit,
     Move,
     Raise,
@@ -98,8 +91,7 @@ pub enum Message {
     Load(LoadMsg, LoadState),
     Normal(NormalMsg),
     Input(InputMsg, InputState),
-    Select(SelectMsg, usize),
-    Selected(SelectedMsg, usize),
+    Edit(EditMsg, usize),
     Move(MoveMsg, usize),
     Insert(InsertMsg, usize),
     Save(SaveMsg, SaveState),
@@ -140,7 +132,7 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
             'd' => LoadMsg::Delete,
             'q' => LoadMsg::Quit,
             _ => LoadMsg::Append(c),
-        }
+        },
         KeyCode::Up => LoadMsg::Decrement,
         KeyCode::Down => LoadMsg::Increment,
         KeyCode::Enter => LoadMsg::Open,
@@ -153,7 +145,7 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
         KeyCode::Char('i') => NormalMsg::Insert,
-        KeyCode::Char('s') => NormalMsg::Select,
+        KeyCode::Char('e') => NormalMsg::Edit,
         KeyCode::Char('l') => NormalMsg::Load,
         KeyCode::Char('q') => NormalMsg::Quit,
         _ => return Message::Continue(Mode::Normal),
@@ -181,34 +173,25 @@ fn default(key: KeyCode, mode: Mode) -> Message {
     })
 }
 
-// Map a `key` to a Message in Select mode.
-fn to_select_msg(key: KeyCode, index: usize) -> Message {
-    let select_msg = match key {
+// Map a `key` to a Message in Edit mode.
+fn to_edit_msg(key: KeyCode, index: usize) -> Message {
+    let edit_msg = match key {
         KeyCode::Char(c) => match c {
-            'k' => SelectMsg::Decrement,
-            'j' => SelectMsg::Increment,
-            _ => SelectMsg::Append(c),
-        }
-        KeyCode::Up => SelectMsg::Decrement,
-        KeyCode::Down => SelectMsg::Increment,
-        KeyCode::Enter => SelectMsg::Confirm,
-        _ => return default(key, Mode::Select(index)),
+            'k' => EditMsg::Decrement,
+            'j' => EditMsg::Increment,
+            'e' => EditMsg::Edit,
+            'm' => EditMsg::Move,
+            'r' => EditMsg::Raise,
+            'f' => EditMsg::Flatten,
+            'i' => EditMsg::Insert,
+            'd' => EditMsg::Delete,
+            _ => EditMsg::Append(c),
+        },
+        KeyCode::Up => EditMsg::Decrement,
+        KeyCode::Down => EditMsg::Increment,
+        _ => return default(key, Mode::Edit(index)),
     };
-    Message::Select(select_msg, index)
-}
-
-// Map a `key` to a Message in Selected mode.
-fn to_selected_msg(key: KeyCode, index: usize) -> Message {
-    let selected_msg = match key {
-        KeyCode::Char('e') => SelectedMsg::Edit,
-        KeyCode::Char('m') => SelectedMsg::Move,
-        KeyCode::Char('r') => SelectedMsg::Raise,
-        KeyCode::Char('f') => SelectedMsg::Flatten,
-        KeyCode::Char('i') => SelectedMsg::Insert,
-        KeyCode::Char('d') => SelectedMsg::Delete,
-        _ => return default(key, Mode::Selected(index)),
-    };
-    Message::Selected(selected_msg, index)
+    Message::Edit(edit_msg, index)
 }
 
 // Map a `key` to a Message in Move mode.
@@ -253,8 +236,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Load(load_state) => to_load_msg(key, load_state),
         Mode::Normal => to_normal_msg(key),
         Mode::Input(input) => to_input_msg(key, input),
-        Mode::Select(index) => to_select_msg(key, index),
-        Mode::Selected(index) => to_selected_msg(key, index),
+        Mode::Edit(index) => to_edit_msg(key, index),
         Mode::Move(index) => to_move_msg(key, index),
         Mode::Insert(index) => to_insert_msg(key, index),
         Mode::Save(save_state) => to_save_msg(key, save_state),

@@ -72,7 +72,7 @@ impl<'a> Iterator for ForestIter<'a> {
     }
 }
 
-/// Return the forest widget in normal mode.
+/// Return the forest widget without indices.
 pub fn forest_normal(root: &Node) -> Paragraph {
     let lines = ForestIter::new(root)
         .map(|(tree_row, label)| {
@@ -84,8 +84,8 @@ pub fn forest_normal(root: &Node) -> Paragraph {
     main_paragraph(Text::from_iter(lines))
 }
 
-/// Return the forest widget in select mode.
-pub fn forest_select(root: &Node, current_idx: usize) -> Paragraph {
+/// Return the forest widget with indices.
+pub fn forest_indexed(root: &Node, current_idx: usize) -> Paragraph {
     let index_len = util::max_index_length(root.size());
     let lines = ForestIter::new(root)
         .enumerate()
@@ -106,24 +106,6 @@ pub fn forest_select(root: &Node, current_idx: usize) -> Paragraph {
                 ]
             };
             Line::from(spans)
-        });
-    main_paragraph(Text::from_iter(lines))
-}
-
-/// Return the forest widget in selected mode.
-pub fn forest_selected(root: &Node, current_idx: usize) -> Paragraph {
-    let lines = ForestIter::new(root)
-        .enumerate()
-        .map(|(i, (tree_row, label))| {
-            let highlight = i == current_idx;
-            let label_span = match highlight {
-                true => Span::styled(format!(" {label} "), style::DEFAULT_HL),
-                false => Span::raw(label),
-            };
-            Line::from(vec![
-                Span::styled(tree_row, style::TREE),
-                label_span,
-            ])
         });
     main_paragraph(Text::from_iter(lines))
 }

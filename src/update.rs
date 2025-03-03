@@ -2,6 +2,7 @@ use crate::{
     io::LoadState,
     message::{
         Command,
+        EditMsg,
         InputEdit,
         InputMsg,
         InsertMsg,
@@ -10,8 +11,6 @@ use crate::{
         MoveMsg,
         NormalMsg,
         SaveMsg,
-        SelectedMsg,
-        SelectMsg,
     },
     model::{
         ConfirmState,
@@ -86,9 +85,9 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
             0 => Mode::Input(InputState::new_insert_empty()),
             _ => Mode::Normal,
         }
-        NormalMsg::Select => match state.root.size() {
+        NormalMsg::Edit => match state.root.size() {
             0 => Mode::Normal,
-            _ => Mode::Select(0),
+            _ => Mode::Edit(0),
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
@@ -125,14 +124,20 @@ fn update_label(
                     },
                     LabelAction::Insert(index, pos) => {
                         let (state, index) = state.insert(index, pos, label);
-                        Model { state, mode: Mode::Select(index) }
+                        Model {
+                            state,
+                            mode: Mode::Edit(index),
+                        }
                     }
                 };
                 return Command::None(model);
             }
         }
         InputMsg::Cancel => {
-            let model = Model { state, mode: Mode::Normal };
+            let model = Model {
+                state,
+                mode: Mode::Normal,
+            };
             return Command::None(model);
         }
     };
@@ -183,54 +188,42 @@ fn update_filename(
     Command::None(Model { state, mode })
 }
 
-// Update the Model based on a Select mode message.
-fn update_select(msg: SelectMsg, index: usize, state: SessionState) -> Command {
-    let mode = match msg {
-        SelectMsg::Append(c) => {
-            let i = util::append_index(index, c, state.root.size());
-            Mode::Select(i)
-        }
-        SelectMsg::Decrement => {
-            match index > 0 {
-                true => Mode::Select(index - 1),
-                false => Mode::Select(index),
-            }
-        }
-        SelectMsg::Increment => {
-            match index + 1 < state.root.size() {
-                true => Mode::Select(index + 1),
-                false => Mode::Select(index),
-            }
-        }
-        SelectMsg::Confirm => Mode::Selected(index),
-    };
-    Command::None(Model { state, mode })
-}
-
-// Update the Model based on a Selected mode message.
-fn update_selected(
-    msg: SelectedMsg,
+// Update the Model based on an Edit mode message.
+fn update_edit(
+    msg: EditMsg,
     index: usize,
     mut state: SessionState,
 ) -> Command {
     let mode = match msg {
-        SelectedMsg::Edit => {
+        EditMsg::Append(c) => {
+            let i = util::append_index(index, c, state.root.size());
+            Mode::Edit(i)
+        }
+        EditMsg::Decrement => match index > 0 {
+            true => Mode::Edit(index - 1),
+            false => Mode::Edit(index),
+        }
+        EditMsg::Increment => match index + 1 < state.root.size() {
+            true => Mode::Edit(index + 1),
+            false => Mode::Edit(index),
+        }
+        EditMsg::Edit => {
             let label = state.root.find_label(index);
             Mode::Input(InputState::new_edit(label, index))
         }
-        SelectedMsg::Move => Mode::Move(index),
-        SelectedMsg::Raise => {
+        EditMsg::Move => Mode::Move(index),
+        EditMsg::Raise => {
             let (new_state, new_index) = state.raise(index);
             state = new_state;
-            Mode::Select(new_index)
+            Mode::Edit(new_index)
         }
-        SelectedMsg::Flatten => {
+        EditMsg::Flatten => {
             let (new_state, new_index) = state.flatten(index);
             state = new_state;
-            Mode::Select(new_index)
+            Mode::Edit(new_index)
         }
-        SelectedMsg::Insert => Mode::Insert(index),
-        SelectedMsg::Delete => {
+        EditMsg::Insert => Mode::Insert(index),
+        EditMsg::Delete => {
             let label = state.root.find_label(index);
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
@@ -265,7 +258,10 @@ fn update_move(
             let mode = Mode::Move(index);
             Model { state, mode }
         }
-        MoveMsg::Done => Model { state, mode: Mode::Select(index) },
+        MoveMsg::Done => Model {
+            state,
+            mode: Mode::Edit(index),
+        }
     };
     Command::None(model)
 }
@@ -299,7 +295,7 @@ fn update_save(
             match save {
                 true => match &state.maybe_file {
                     Some(_) => return Command::Save(state, post_save),
-                    None => Mode::Input(InputState::new_save(post_save))
+                    None => Mode::Input(InputState::new_save(post_save)),
                 }
                 false => match post_save {
                     PostSaveAction::Load => return Command::Load,
@@ -327,8 +323,7 @@ pub fn update(message: Message, state: SessionState) -> Command {
                 update_filename(msg, filename_state, state)
             }
         }
-        Message::Select(msg, index) => update_select(msg, index, state),
-        Message::Selected(msg, index) => update_selected(msg, index, state),
+        Message::Edit(msg, index) => update_edit(msg, index, state),
         Message::Move(msg, index) => update_move(msg, index, state),
         Message::Insert(msg, index) => update_insert(msg, index, state),
         Message::Save(msg, save_state) => update_save(msg, save_state, state),
