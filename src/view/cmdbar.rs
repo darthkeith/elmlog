@@ -27,7 +27,7 @@ const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
 const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
-const RAISE: KeyPair = ("R", "Raise");
+const NEST: KeyPair = ("N", "Nest");
 const FLATTEN: KeyPair = ("F", "Flatten");
 const DOWN: KeyPair = ("J │ ↓", "Down");
 const UP: KeyPair = ("K │ ↑", "Up");
@@ -85,7 +85,7 @@ fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.extend(&[EDIT, MOVE, RAISE, FLATTEN, INSERT, DELETE, CANCEL]);
+    pairs.extend(&[EDIT, MOVE, NEST, FLATTEN, INSERT, DELETE, CANCEL]);
     pairs
 }
 

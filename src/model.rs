@@ -301,8 +301,8 @@ impl SessionState {
     }
 
     /// Move the siblings of the node at `index` to be its children.
-    pub fn raise(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.raise(index);
+    pub fn nest(mut self, index: usize) -> (Self, usize) {
+        let (new_root, new_index) = self.root.nest(index);
         self.root = new_root;
         (self.into_changed(), new_index)
     }

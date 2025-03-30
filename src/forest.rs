@@ -171,9 +171,9 @@ impl Node {
     }
 
     /// Move the siblings of the node at `index` to be its children.
-    pub fn raise(self, index: usize) -> (Self, usize) {
+    pub fn nest(self, index: usize) -> (Self, usize) {
         self.focus_node(index)
-            .raise()
+            .nest()
             .restore_with_index()
     }
 
@@ -443,7 +443,7 @@ impl ForestZipper {
     }
 
     // Move the siblings of the focused node to be its children.
-    fn raise(self) -> Self {
+    fn nest(self) -> Self {
         let Self { focus, prev } = self;
         if let Node::Node { label, child, sibling, .. } = focus {
             let focus = child.concat(*sibling);
@@ -645,9 +645,9 @@ mod tests {
     }
 
     #[test]
-    fn test_raise() {
-        let (result, index) = FOREST_A.clone().raise(0);
-        let (result2, index2) = result.clone().raise(index);
+    fn test_nest() {
+        let (result, index) = FOREST_A.clone().nest(0);
+        let (result2, index2) = result.clone().nest(index);
         let expected = forest(vec![
             tree("0", vec![
                 tree("1", vec![
@@ -662,8 +662,8 @@ mod tests {
         assert_eq!(index, 0);
         assert_eq!(index2, 0);
 
-        let (result, index) = FOREST_A.clone().raise(3);
-        let (result2, index2) = result.clone().raise(index);
+        let (result, index) = FOREST_A.clone().nest(3);
+        let (result2, index2) = result.clone().nest(index);
         let expected = forest(vec![
             leaf("0"),
             tree("1", vec![

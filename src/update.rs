@@ -212,8 +212,8 @@ fn update_edit(
             Mode::Input(InputState::new_edit(label, index))
         }
         EditMsg::Move => Mode::Move(index),
-        EditMsg::Raise => {
-            let (new_state, new_index) = state.raise(index);
+        EditMsg::Nest => {
+            let (new_state, new_index) = state.nest(index);
             state = new_state;
             Mode::Edit(new_index)
         }
