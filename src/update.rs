@@ -71,7 +71,7 @@ fn update_load(
             return Command::InitSession(file_entry);
         }
         LoadMsg::New => Mode::Normal,
-        LoadMsg::Rename => Mode::Input(InputState::new_rename(load_state)),
+        LoadMsg::Rename => Mode::Input(InputState::new_rename_file(load_state)),
         LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
@@ -118,7 +118,7 @@ fn update_label(
                 let LabelState { input, action } = label_state;
                 let label = input.trim().to_string();
                 let model = match action {
-                    LabelAction::Edit(index) => Model {
+                    LabelAction::Rename(index) => Model {
                         state: state.edit(index, label),
                         mode: Mode::Normal,
                     },
@@ -207,9 +207,9 @@ fn update_edit(
             true => Mode::Edit(index + 1),
             false => Mode::Edit(index),
         }
-        EditMsg::Edit => {
+        EditMsg::Rename => {
             let label = state.root.find_label(index);
-            Mode::Input(InputState::new_edit(label, index))
+            Mode::Input(InputState::new_rename_label(label, index))
         }
         EditMsg::Move => Mode::Move(index),
         EditMsg::Nest => {

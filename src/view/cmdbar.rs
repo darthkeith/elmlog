@@ -85,7 +85,7 @@ fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.extend(&[EDIT, MOVE, NEST, FLATTEN, INSERT, DELETE, CANCEL]);
+    pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, CANCEL]);
     pairs
 }
 

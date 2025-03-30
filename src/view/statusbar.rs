@@ -23,9 +23,9 @@ mod confirm {
     pub const DELETE_FILE: &str = "Delete file?";
 }
 mod input {
-    pub const EDIT: &str = "Edit item";
+    pub const RENAME_ITEM: &str = "Rename item";
     pub const INSERT: &str = "Insert item";
-    pub const RENAME: &str = "Rename file";
+    pub const RENAME_FILE: &str = "Rename file";
     pub const SAVENEW: &str = "Save new file";
 }
 mod alert {
@@ -81,7 +81,7 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::Normal => status_normal(model.get_filename()),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
-                LabelAction::Edit(_) => input::EDIT,
+                LabelAction::Rename(_) => input::RENAME_ITEM,
                 LabelAction::Insert(..) => input::INSERT,
             };
             let info = match label_state.is_empty() {
@@ -92,7 +92,7 @@ pub fn status_bar(model: &Model) -> Line {
         }
         Mode::Input(InputState::Filename(filename_state)) => {
             let message = match filename_state.action {
-                FilenameAction::Rename(_) => input::RENAME,
+                FilenameAction::Rename(_) => input::RENAME_FILE,
                 FilenameAction::SaveNew(_) => input::SAVENEW,
             };
             let info = match filename_state.status {

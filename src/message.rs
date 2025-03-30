@@ -54,7 +54,7 @@ pub enum EditMsg {
     Append(char),
     Decrement,
     Increment,
-    Edit,
+    Rename,
     Move,
     Nest,
     Flatten,
@@ -179,7 +179,7 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char(c) => match c {
             'k' => EditMsg::Decrement,
             'j' => EditMsg::Increment,
-            'e' => EditMsg::Edit,
+            'r' => EditMsg::Rename,
             'm' => EditMsg::Move,
             'n' => EditMsg::Nest,
             'f' => EditMsg::Flatten,

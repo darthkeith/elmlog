@@ -20,7 +20,7 @@ pub enum InsertPosition {
 
 /// Action to perform with the user input label string.
 pub enum LabelAction {
-    Edit(usize),
+    Rename(usize),
     Insert(usize, InsertPosition),
 }
 
@@ -157,11 +157,11 @@ impl FilenameState {
 }
 
 impl InputState {
-    /// Create an InputState to edit the `label` of the item at `index`.
-    pub fn new_edit(label: String, index: usize) -> Self {
+    /// Create an InputState to rename the `label` of the item at `index`.
+    pub fn new_rename_label(label: String, index: usize) -> Self {
         InputState::Label(LabelState {
             input: label,
-            action: LabelAction::Edit(index),
+            action: LabelAction::Rename(index),
         })
     }
 
@@ -179,7 +179,7 @@ impl InputState {
     }
 
     /// Create an InputState to rename a file.
-    pub fn new_rename(load_state: LoadState) -> Self {
+    pub fn new_rename_file(load_state: LoadState) -> Self {
         InputState::Filename(FilenameState {
             input: String::new(),
             action: FilenameAction::Rename(load_state),
