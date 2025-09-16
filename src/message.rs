@@ -60,6 +60,7 @@ pub enum EditMsg {
     Flatten,
     Insert,
     Delete,
+    Back,
 }
 
 /// A message sent in Move mode.
@@ -77,12 +78,14 @@ pub enum InsertMsg {
     Child,
     Before,
     After,
+    Back,
 }
 
 /// A message sent in Save mode.
 pub enum SaveMsg {
     Toggle,
     Confirm,
+    Cancel,
 }
 
 /// A message indicating changes to be made to the model.
@@ -165,14 +168,6 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
     Message::Input(input_msg, input_state)
 }
 
-// Return to Normal mode on Esc, otherwise continue in the given `mode`.
-fn default(key: KeyCode, mode: Mode) -> Message {
-    Message::Continue(match key {
-        KeyCode::Esc => Mode::Normal,
-        _ => mode,
-    })
-}
-
 // Map a `key` to a Message in Edit mode.
 fn to_edit_msg(key: KeyCode, index: usize) -> Message {
     let edit_msg = match key {
@@ -189,7 +184,8 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
         },
         KeyCode::Up => EditMsg::Decrement,
         KeyCode::Down => EditMsg::Increment,
-        _ => return default(key, Mode::Edit(index)),
+        KeyCode::Backspace => EditMsg::Back,
+        _ => return Message::Continue(Mode::Edit(index)),
     };
     Message::Edit(edit_msg, index)
 }
@@ -202,7 +198,7 @@ fn to_move_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('h') | KeyCode::Left => MoveMsg::Promote,
         KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
         KeyCode::Enter => MoveMsg::Done,
-        _ => return default(key, Mode::Move(index)),
+        _ => return Message::Continue(Mode::Move(index)),
     };
     Message::Move(move_msg, index)
 }
@@ -214,7 +210,8 @@ fn to_insert_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('l') => InsertMsg::Child,
         KeyCode::Char('k') => InsertMsg::Before,
         KeyCode::Char('j') => InsertMsg::After,
-        _ => return default(key, Mode::Insert(index)),
+        KeyCode::Backspace => InsertMsg::Back,
+        _ => return Message::Continue(Mode::Insert(index)),
     };
     Message::Insert(insert_msg, index)
 }
@@ -224,7 +221,8 @@ fn to_save_msg(key: KeyCode, save_state: SaveState) -> Message {
     let save_msg = match key {
         KeyCode::Char(' ') => SaveMsg::Toggle,
         KeyCode::Enter => SaveMsg::Confirm,
-        _ => return default(key, Mode::Save(save_state)),
+        KeyCode::Esc => SaveMsg::Cancel,
+        _ => return Message::Continue(Mode::Save(save_state)),
     };
     Message::Save(save_msg, save_state)
 }

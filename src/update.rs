@@ -134,11 +134,12 @@ fn update_label(
             }
         }
         InputMsg::Cancel => {
-            let model = Model {
-                state,
-                mode: Mode::Normal,
+            let mode = match label_state.action {
+                LabelAction::Rename(index) | LabelAction::Insert(index, _) => {
+                    Mode::Edit(index)
+                }
             };
-            return Command::None(model);
+            return Command::None(Model { state, mode });
         }
     };
     let mode = label_state.into_mode();
@@ -227,6 +228,7 @@ fn update_edit(
             let label = state.root.find_label(index);
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
+        EditMsg::Back => Mode::Normal,
     };
     Command::None(Model { state, mode })
 }
@@ -277,6 +279,10 @@ fn update_insert(
         InsertMsg::Child => InsertPosition::Child,
         InsertMsg::Before => InsertPosition::Before,
         InsertMsg::After => InsertPosition::After,
+        InsertMsg::Back => {
+            let mode = Mode::Edit(index);
+            return Command::None(Model { state, mode });
+        }
     };
     let mode = Mode::Input(InputState::new_insert(index, position));
     Command::None(Model { state, mode })
@@ -303,6 +309,7 @@ fn update_save(
                 }
             }
         }
+        SaveMsg::Cancel => Mode::Normal,
     };
     Command::None(Model { state, mode })
 }

@@ -40,6 +40,7 @@ const CHILD: KeyPair = ("L", "Child");
 const BEFORE: KeyPair = ("K", "Before");
 const AFTER: KeyPair = ("J", "After");
 const DELETE: KeyPair = ("D", "Delete");
+const BACK: KeyPair = ("Bksp", "Back");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
 
@@ -85,7 +86,7 @@ fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     if size > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, CANCEL]);
+    pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]);
     pairs
 }
 
@@ -112,7 +113,7 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Edit(_) => edit_mode_commands(model.state.root.size()),
         Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],
-        Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, CANCEL],
+        Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)
