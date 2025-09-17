@@ -12,6 +12,7 @@ use crate::{
     },
     util,
     view::{
+        Scroll,
         style,
         main_paragraph,
     },
@@ -85,7 +86,7 @@ pub fn forest_normal(root: &Node) -> Paragraph {
 }
 
 /// Return the forest widget with indices.
-pub fn forest_indexed(root: &Node, current_idx: usize) -> Paragraph {
+pub fn forest_indexed(root: &Node, current_idx: usize) -> Scroll {
     let index_len = util::max_index_length(root.size());
     let lines = ForestIter::new(root)
         .enumerate()
@@ -107,6 +108,10 @@ pub fn forest_indexed(root: &Node, current_idx: usize) -> Paragraph {
             };
             Line::from(spans)
         });
-    main_paragraph(Text::from_iter(lines))
+    Scroll {
+        text: Text::from_iter(lines),
+        list_size: root.size(),
+        index: current_idx,
+    }
 }
 
