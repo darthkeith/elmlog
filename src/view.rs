@@ -56,11 +56,10 @@ struct Scroll<'a> {
 
 // Calculate the scroll offset and other scroll info.
 fn compute_scroll_info(
-    area_height: u16,
+    area_height: usize,
     list_size: usize,
     index: usize
 ) -> ScrollInfo {
-    let area_height = area_height as usize;
     let centered = index.saturating_sub(area_height / 2);
     let max_offset = list_size.saturating_sub(area_height);
     let offset = min(centered, max_offset);
@@ -86,7 +85,7 @@ impl Widget for Scroll<'_> {
         let [top_line, mid_area, bottom_line] = top_mid_bottom(area);
         let Scroll { text, list_size, index } = self;
         let ScrollInfo { offset, is_more_above, is_more_below } =
-            compute_scroll_info(mid_area.height, list_size, index);
+            compute_scroll_info(mid_area.height as usize, list_size, index);
         main_paragraph_scroll(text)
             .scroll((offset, 0))
             .render(mid_area, buf);
