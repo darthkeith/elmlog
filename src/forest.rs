@@ -77,6 +77,10 @@ impl Node {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.
