@@ -92,7 +92,7 @@ pub enum SaveMsg {
 pub enum Message {
     Confirm(bool, ConfirmState),
     Load(LoadMsg, LoadState),
-    Normal(NormalMsg),
+    Normal(NormalMsg, Option<usize>),
     Input(InputMsg, InputState),
     Edit(EditMsg, usize),
     Move(MoveMsg, usize),
@@ -145,15 +145,15 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 }
 
 // Map a `key` to a Message in Normal mode.
-fn to_normal_msg(key: KeyCode) -> Message {
+fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
         KeyCode::Char('i') => NormalMsg::Insert,
         KeyCode::Char('e') => NormalMsg::Edit,
         KeyCode::Char('l') => NormalMsg::Load,
         KeyCode::Char('q') => NormalMsg::Quit,
-        _ => return Message::Continue(Mode::Normal),
+        _ => return Message::Continue(Mode::Normal(index)),
     };
-    Message::Normal(normal_msg)
+    Message::Normal(normal_msg, index)
 }
 
 // Map a `key` to a Message in Input mode.
@@ -232,7 +232,7 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
     match mode {
         Mode::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
         Mode::Load(load_state) => to_load_msg(key, load_state),
-        Mode::Normal => to_normal_msg(key),
+        Mode::Normal(index) => to_normal_msg(key, index),
         Mode::Input(input) => to_input_msg(key, input),
         Mode::Edit(index) => to_edit_msg(key, index),
         Mode::Move(index) => to_move_msg(key, index),

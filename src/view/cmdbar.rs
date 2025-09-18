@@ -109,7 +109,7 @@ pub fn command_bar(model: &Model) -> Line {
     let pairs = match &model.mode {
         Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
-        Mode::Normal => normal_mode_commands(&model.state.root),
+        Mode::Normal(_) => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Edit(_) => edit_mode_commands(model.state.root.size()),
         Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],

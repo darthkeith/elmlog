@@ -73,7 +73,7 @@ pub struct SaveState {
 pub enum Mode {
     Confirm(ConfirmState),
     Load(LoadState),
-    Normal,
+    Normal(Option<usize>),
     Input(InputState),
     Edit(usize),
     Move(usize),
@@ -236,6 +236,16 @@ impl SaveState {
     pub fn toggle(mut self) -> Self {
         self.save = !self.save;
         self
+    }
+}
+
+impl Mode {
+    /// Create a Normal mode with valid index (clamped if needed)
+    pub fn new_normal(index: usize, root: &Node) -> Self {
+        Self::Normal(
+            if root.is_empty() { None }
+            else { Some(index.min(root.size() - 1)) }
+        )
     }
 }
 

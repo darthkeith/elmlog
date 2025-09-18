@@ -38,10 +38,10 @@ fn update_confirm(
 ) -> Command {
     let mode = match confirm {
         true => match confirm_state {
-            ConfirmState::NewSession => Mode::Normal,
+            ConfirmState::NewSession => Mode::Normal(None),
             ConfirmState::DeleteItem(_, index) => {
                 state = state.delete(index);
-                Mode::Normal
+                Mode::new_normal(index, &state.root)
             }
             ConfirmState::DeleteFile(load_state) => {
                 return Command::DeleteFile(load_state);
@@ -49,7 +49,7 @@ fn update_confirm(
         }
         false => match confirm_state {
             ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem(..) => Mode::Normal,
+            ConfirmState::DeleteItem(_, index) => Mode::Normal(Some(index)),
             ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
         }
     };
@@ -70,7 +70,7 @@ fn update_load(
             let file_entry = load_state.move_file_entry();
             return Command::InitSession(file_entry);
         }
-        LoadMsg::New => Mode::Normal,
+        LoadMsg::New => Mode::Normal(None),
         LoadMsg::Rename => Mode::Input(InputState::new_rename_file(load_state)),
         LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
@@ -79,14 +79,18 @@ fn update_load(
 }
 
 // Update the Model based on a Normal mode message.
-fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
+fn update_normal(
+    msg: NormalMsg,
+    index: Option<usize>,
+    state: SessionState,
+) -> Command {
     let mode = match msg {
         NormalMsg::Insert => match state.root.size() {
             0 => Mode::Input(InputState::new_insert_empty()),
-            _ => Mode::Normal,
+            _ => Mode::Normal(index),
         }
         NormalMsg::Edit => match state.root.size() {
-            0 => Mode::Normal,
+            0 => Mode::Normal(index),
             _ => Mode::Edit(0),
         }
         NormalMsg::Load => match state.is_changed() {
@@ -120,7 +124,7 @@ fn update_label(
                 let model = match action {
                     LabelAction::Rename(index) => Model {
                         state: state.edit(index, label),
-                        mode: Mode::Normal,
+                        mode: Mode::Normal(Some(index)),
                     },
                     LabelAction::Insert(index, pos) => {
                         let (state, index) = state.insert(index, pos, label);
@@ -180,7 +184,7 @@ fn update_filename(
         InputMsg::Cancel => {
             let mode = match filename_state.action {
                 FilenameAction::Rename(load_state) => Mode::Load(load_state),
-                FilenameAction::SaveNew(_) => Mode::Normal,
+                FilenameAction::SaveNew(_) => Mode::new_normal(0, &state.root),
             };
             return Command::None(Model { state, mode });
         }
@@ -228,7 +232,7 @@ fn update_edit(
             let label = state.root.find_label(index);
             Mode::Confirm(ConfirmState::DeleteItem(label, index))
         }
-        EditMsg::Back => Mode::Normal,
+        EditMsg::Back => Mode::Normal(Some(index)),
     };
     Command::None(Model { state, mode })
 }
@@ -309,7 +313,7 @@ fn update_save(
                 }
             }
         }
-        SaveMsg::Cancel => Mode::Normal,
+        SaveMsg::Cancel => Mode::new_normal(0, &state.root),
     };
     Command::None(Model { state, mode })
 }
@@ -321,7 +325,7 @@ pub fn update(message: Message, state: SessionState) -> Command {
             update_confirm(confirm, confirm_state, state)
         }
         Message::Load(msg, load_state) => update_load(msg, load_state, state),
-        Message::Normal(msg) => update_normal(msg, state),
+        Message::Normal(msg, index) => update_normal(msg, index, state),
         Message::Input(msg, input_state) => match input_state {
             InputState::Label(label_state) => {
                 update_label(msg, label_state, state)

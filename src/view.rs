@@ -197,7 +197,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Load(load_state) => {
             frame.render_widget(load(load_state), main_area);
         }
-        Mode::Normal => {
+        Mode::Normal(_) => {
             frame.render_widget(forest_normal(root), main_area);
         }
         Mode::Input(input_state) => {

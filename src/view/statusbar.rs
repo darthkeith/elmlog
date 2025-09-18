@@ -78,7 +78,7 @@ pub fn status_bar(model: &Model) -> Line {
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
         Mode::Load(_) => status(LOAD),
-        Mode::Normal => status_normal(model.get_filename()),
+        Mode::Normal(_) => status_normal(model.get_filename()),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
                 LabelAction::Rename(_) => input::RENAME_ITEM,

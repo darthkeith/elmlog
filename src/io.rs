@@ -195,8 +195,8 @@ fn load_forest(mut file: &File) -> Node {
         .expect("Failed to deserialize data")
 }
 
-// Initialize a session's state using the `path` to a data file.
-fn init_session_state(file_entry: FileEntry) -> SessionState {
+// Initialize a Model from a saved file.
+fn init_model(file_entry: FileEntry) -> Model {
     let FileEntry { name, path } = file_entry;
     let file = OpenOptions::new()
         .read(true)
@@ -210,7 +210,10 @@ fn init_session_state(file_entry: FileEntry) -> SessionState {
         _file: file,
         changed: false,
     };
-    SessionState { root, maybe_file: Some(open_file) }
+    Model {
+        mode: Mode::new_normal(0, &root),
+        state: SessionState { root, maybe_file: Some(open_file) },
+    }
 }
 
 // Check whether `filename` exists in the app directory.
@@ -278,12 +281,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
             Some(load_state) => Model::load(load_state),
             None => Model::default(),
         }
-        Command::InitSession(file_entry) => {
-            Model {
-                state: init_session_state(file_entry),
-                mode: Mode::Normal,
-            }
-        }
+        Command::InitSession(file_entry) => init_model(file_entry),
         Command::CheckFileExists(state, filename_state) => {
             let status = match filename_exists(filename_state.input()) {
                 true => FilenameStatus::Exists,
