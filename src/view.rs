@@ -34,8 +34,8 @@ use crate::{
 use self::{
     cmdbar::command_bar,
     forest_view::{
+        forest_edit,
         forest_normal,
-        forest_indexed,
     },
     statusbar::status_bar,
 };
@@ -197,14 +197,15 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Load(load_state) => {
             frame.render_widget(load(load_state), main_area);
         }
-        Mode::Normal(_) => {
-            frame.render_widget(forest_normal(root), main_area);
+        Mode::Normal(maybe_index) => {
+            let index = maybe_index.unwrap_or(0);
+            frame.render_widget(forest_normal(root, index), main_area);
         }
         Mode::Input(input_state) => {
             frame.render_widget(text_input(input_state.input()), main_area);
         }
         Mode::Edit(index) | Mode::Move(index) | Mode::Insert(index) => {
-            frame.render_widget(forest_indexed(root, *index), main_area);
+            frame.render_widget(forest_edit(root, *index), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);

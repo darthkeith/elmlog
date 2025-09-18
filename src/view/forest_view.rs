@@ -1,7 +1,4 @@
-use ratatui::{
-    text::{Line, Span, Text},
-    widgets::Paragraph,
-};
+use ratatui::text::{Line, Span, Text};
 
 use crate::{
     forest::{
@@ -14,7 +11,6 @@ use crate::{
     view::{
         Scroll,
         style,
-        main_paragraph,
     },
 };
 
@@ -73,26 +69,44 @@ impl<'a> Iterator for ForestIter<'a> {
     }
 }
 
-/// Return the forest widget without indices.
-pub fn forest_normal(root: &Node) -> Paragraph {
-    let lines = ForestIter::new(root)
-        .map(|(tree_row, label)| {
-            Line::from(vec![
-                Span::styled(tree_row, style::TREE),
-                Span::raw(label),
-            ])
-        });
-    main_paragraph(Text::from_iter(lines))
-}
-
-/// Return the forest widget with indices.
-pub fn forest_indexed(root: &Node, current_idx: usize) -> Scroll {
+/// Return the forest widget in Normal mode.
+pub fn forest_normal(root: &Node, index: usize) -> Scroll {
     let index_len = util::max_index_length(root.size());
     let lines = ForestIter::new(root)
         .enumerate()
         .map(|(i, (tree_row, label))| {
             let fmt_index = format!(" {i:>width$}   ", width = index_len);
-            let highlight = i == current_idx;
+            let highlight = i == index;
+            let spans = if highlight {
+                vec![
+                    Span::styled(fmt_index, style::DEFAULT_BOLD),
+                    Span::styled(tree_row, style::TREE),
+                    Span::styled(label, style::DEFAULT_BOLD),
+                ]
+            } else {
+                vec![
+                    Span::raw(fmt_index),
+                    Span::styled(tree_row, style::TREE),
+                    Span::raw(label),
+                ]
+            };
+            Line::from(spans)
+        });
+    Scroll {
+        text: Text::from_iter(lines),
+        list_size: root.size(),
+        index,
+    }
+}
+
+/// Return the forest widget while editing.
+pub fn forest_edit(root: &Node, index: usize) -> Scroll {
+    let index_len = util::max_index_length(root.size());
+    let lines = ForestIter::new(root)
+        .enumerate()
+        .map(|(i, (tree_row, label))| {
+            let fmt_index = format!(" {i:>width$}   ", width = index_len);
+            let highlight = i == index;
             let spans = if highlight {
                 vec![
                     Span::styled(fmt_index, style::DEFAULT_HL),
@@ -111,7 +125,7 @@ pub fn forest_indexed(root: &Node, current_idx: usize) -> Scroll {
     Scroll {
         text: Text::from_iter(lines),
         list_size: root.size(),
-        index: current_idx,
+        index,
     }
 }
 
