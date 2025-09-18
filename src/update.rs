@@ -85,6 +85,15 @@ fn update_normal(
     state: SessionState,
 ) -> Command {
     let mode = match msg {
+        NormalMsg::Append(c) => Mode::Normal(
+            index.map(|i| util::append_index(i, c, state.root.size()))
+        ),
+        NormalMsg::Decrement => Mode::Normal(
+            index.map(|i| i.saturating_sub(1))
+        ),
+        NormalMsg::Increment => Mode::Normal(
+            index.map(|i| (i + 1).min(state.root.size() - 1))
+        ),
         NormalMsg::Insert => match state.root.size() {
             0 => Mode::Input(InputState::new_insert_empty()),
             _ => Mode::Normal(index),
@@ -200,18 +209,13 @@ fn update_edit(
     mut state: SessionState,
 ) -> Command {
     let mode = match msg {
-        EditMsg::Append(c) => {
-            let i = util::append_index(index, c, state.root.size());
-            Mode::Edit(i)
-        }
-        EditMsg::Decrement => match index > 0 {
-            true => Mode::Edit(index - 1),
-            false => Mode::Edit(index),
-        }
-        EditMsg::Increment => match index + 1 < state.root.size() {
-            true => Mode::Edit(index + 1),
-            false => Mode::Edit(index),
-        }
+        EditMsg::Append(c) => Mode::Edit(
+            util::append_index(index, c, state.root.size())
+        ),
+        EditMsg::Decrement => Mode::Edit(index.saturating_sub(1)),
+        EditMsg::Increment => Mode::Edit(
+            (index + 1).min(state.root.size() - 1)
+        ),
         EditMsg::Rename => {
             let label = state.root.find_label(index);
             Mode::Input(InputState::new_rename_label(label, index))

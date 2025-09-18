@@ -30,6 +30,9 @@ pub enum LoadMsg {
 
 /// A message sent in Normal mode.
 pub enum NormalMsg {
+    Append(char),
+    Decrement,
+    Increment,
     Insert,
     Edit,
     Load,
@@ -147,10 +150,17 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 // Map a `key` to a Message in Normal mode.
 fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
-        KeyCode::Char('i') => NormalMsg::Insert,
-        KeyCode::Char('e') => NormalMsg::Edit,
-        KeyCode::Char('l') => NormalMsg::Load,
-        KeyCode::Char('q') => NormalMsg::Quit,
+        KeyCode::Char(c) => match c {
+            'k' => NormalMsg::Decrement,
+            'j' => NormalMsg::Increment,
+            'i' => NormalMsg::Insert,
+            'e' => NormalMsg::Edit,
+            'l' => NormalMsg::Load,
+            'q' => NormalMsg::Quit,
+            _ => NormalMsg::Append(c),
+        },
+        KeyCode::Up => NormalMsg::Decrement,
+        KeyCode::Down => NormalMsg::Increment,
         _ => return Message::Continue(Mode::Normal(index)),
     };
     Message::Normal(normal_msg, index)

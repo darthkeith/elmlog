@@ -64,11 +64,16 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 
 // Return the normal mode key-command pairs.
 fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
+    let mut pairs = Vec::new();
+    if root.size() > 1 {
+        pairs.extend(&[JUMP, DOWN_UP]);
+    }
     let cmd1 = match root.size() {
         0 => INSERT,
         _ => EDIT,
     };
-    vec![cmd1, LOAD, QUIT]
+    pairs.extend(&[cmd1, LOAD, QUIT]);
+    pairs
 }
 
 // Return the input mode key-command pairs.
