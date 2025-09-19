@@ -1,7 +1,7 @@
 use ratatui::text::{Line, Span, Text};
 
 use crate::{
-    forest::{
+    node::{
         Node,
         NodePosition,
         NodeType,

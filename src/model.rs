@@ -1,6 +1,6 @@
 use crate::{
-    forest::Node,
     io::{LoadState, OpenDataFile},
+    node::Node,
 };
 
 /// Action to be confirmed in Confirm mode.

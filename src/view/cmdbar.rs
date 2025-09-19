@@ -4,13 +4,13 @@ use ratatui::{
 };
 
 use crate::{
-    forest::Node,
     model::{
         ConfirmState,
         InputState,
         Mode,
         Model,
     },
+    node::Node,
     view::style,
 };
 

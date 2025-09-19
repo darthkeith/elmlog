@@ -7,7 +7,6 @@ use std::{
 use fs2::FileExt;
 
 use crate::{
-    forest::Node,
     message::Command,
     model::{
         FilenameAction,
@@ -18,6 +17,7 @@ use crate::{
         PostSaveAction,
         SessionState,
     },
+    node::Node,
     util,
 };
 
