@@ -68,11 +68,7 @@ fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     if root.size() > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    let cmd1 = match root.size() {
-        0 => INSERT,
-        _ => EDIT,
-    };
-    pairs.extend(&[cmd1, LOAD, QUIT]);
+    pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, LOAD, QUIT]);
     pairs
 }
 
