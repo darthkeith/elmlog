@@ -117,7 +117,7 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Normal(_) => normal_mode_commands(&model.state.root),
         Mode::Input(input_state) => input_mode_commands(input_state),
         Mode::Edit(_) => edit_mode_commands(model.state.root.size()),
-        Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE, CANCEL],
+        Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
