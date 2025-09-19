@@ -23,7 +23,6 @@ const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
 const DONE: KeyPair = ("Enter", "Done");
 const NEW: KeyPair = ("N", "New");
-const LOAD: KeyPair = ("L", "Load");
 const QUIT: KeyPair = ("Q", "Quit");
 const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
@@ -68,7 +67,7 @@ fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     if root.size() > 1 {
         pairs.extend(&[JUMP, DOWN_UP]);
     }
-    pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, LOAD, QUIT]);
+    pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, BACK, QUIT]);
     pairs
 }
 

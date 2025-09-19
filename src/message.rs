@@ -155,12 +155,12 @@ fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
             'j' => NormalMsg::Increment,
             'i' => NormalMsg::Insert,
             'e' => NormalMsg::Edit,
-            'l' => NormalMsg::Load,
             'q' => NormalMsg::Quit,
             _ => NormalMsg::Append(c),
         },
         KeyCode::Up => NormalMsg::Decrement,
         KeyCode::Down => NormalMsg::Increment,
+        KeyCode::Backspace => NormalMsg::Load,
         _ => return Message::Continue(Mode::Normal(index)),
     };
     Message::Normal(normal_msg, index)
