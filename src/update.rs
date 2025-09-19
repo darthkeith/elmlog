@@ -41,7 +41,7 @@ fn update_confirm(
             ConfirmState::NewSession => Mode::Normal(None),
             ConfirmState::DeleteItem(_, index) => {
                 state = state.delete(index);
-                Mode::new_normal(index, &state.root)
+                Mode::new_edit(index, &state.root)
             }
             ConfirmState::DeleteFile(load_state) => {
                 return Command::DeleteFile(load_state);
@@ -49,7 +49,7 @@ fn update_confirm(
         }
         false => match confirm_state {
             ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem(_, index) => Mode::Normal(Some(index)),
+            ConfirmState::DeleteItem(_, index) => Mode::Edit(index),
             ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
         }
     };

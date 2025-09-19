@@ -240,12 +240,18 @@ impl SaveState {
 }
 
 impl Mode {
-    /// Create a Normal mode with valid index (clamped if needed)
+    /// Create a Normal mode with valid clamped index.
     pub fn new_normal(index: usize, root: &Node) -> Self {
         Self::Normal(
             if root.is_empty() { None }
             else { Some(index.min(root.size() - 1)) }
         )
+    }
+
+    /// Create an Edit mode with valid clamped index, or Normal if root empty.
+    pub fn new_edit(index: usize, root: &Node) -> Self {
+        if root.is_empty() { Self::Normal(None) }
+        else { Self::Edit(index.min(root.size() - 1)) }
     }
 }
 
