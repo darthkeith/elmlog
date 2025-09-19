@@ -1,5 +1,5 @@
 mod cmdbar;
-mod forest_view;
+mod forest;
 mod statusbar;
 mod style;
 
@@ -33,7 +33,7 @@ use crate::{
 
 use self::{
     cmdbar::command_bar,
-    forest_view::{
+    forest::{
         forest_edit,
         forest_normal,
     },
