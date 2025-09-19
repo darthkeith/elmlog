@@ -133,7 +133,7 @@ fn update_label(
                 let model = match action {
                     LabelAction::Rename(index) => Model {
                         state: state.edit(index, label),
-                        mode: Mode::Normal(Some(index)),
+                        mode: Mode::Edit(index),
                     },
                     LabelAction::Insert(index, pos) => {
                         let (state, index) = state.insert(index, pos, label);
