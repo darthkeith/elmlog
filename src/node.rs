@@ -81,10 +81,32 @@ impl Node {
         matches!(self, Self::Empty)
     }
 
+    /// Return the index of the parent node, if any.
+    pub fn parent_index(&self, index: usize) -> Option<usize> {
+        let mut parent_idx: Option<usize> = None;
+        let mut current_idx = 0;
+        let mut node = self;
+        while current_idx < index {
+            if let Self::Node { child, sibling, .. } = node {
+                if index <= current_idx + child.size() {
+                    parent_idx = Some(current_idx);
+                    current_idx += 1;
+                    node = child;
+                } else {
+                    current_idx += 1 + child.size();
+                    node = sibling;
+                }
+            } else {
+                panic!("Invalid index");
+            }
+        }
+        parent_idx
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.
-    fn focus_node(self: Node, index: usize) -> ForestZipper {
+    fn focus_node(self, index: usize) -> ForestZipper {
         let mut i = index;
         let mut focus = self;
         let mut prev = ReturnNode::Empty;

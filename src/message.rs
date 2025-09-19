@@ -33,6 +33,7 @@ pub enum NormalMsg {
     Append(char),
     Decrement,
     Increment,
+    Ascend,
     Insert,
     Edit,
     Load,
@@ -57,6 +58,7 @@ pub enum EditMsg {
     Append(char),
     Decrement,
     Increment,
+    Ascend,
     Rename,
     Move,
     Nest,
@@ -153,6 +155,7 @@ fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
         KeyCode::Char(c) => match c {
             'k' => NormalMsg::Decrement,
             'j' => NormalMsg::Increment,
+            'h' => NormalMsg::Ascend,
             'i' => NormalMsg::Insert,
             'e' => NormalMsg::Edit,
             'q' => NormalMsg::Quit,
@@ -160,6 +163,7 @@ fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
         },
         KeyCode::Up => NormalMsg::Decrement,
         KeyCode::Down => NormalMsg::Increment,
+        KeyCode::Left => NormalMsg::Ascend,
         KeyCode::Backspace => NormalMsg::Load,
         _ => return Message::Continue(Mode::Normal(index)),
     };
@@ -184,6 +188,7 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char(c) => match c {
             'k' => EditMsg::Decrement,
             'j' => EditMsg::Increment,
+            'h' => EditMsg::Ascend,
             'r' => EditMsg::Rename,
             'm' => EditMsg::Move,
             'n' => EditMsg::Nest,
@@ -194,6 +199,7 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
         },
         KeyCode::Up => EditMsg::Decrement,
         KeyCode::Down => EditMsg::Increment,
+        KeyCode::Left => EditMsg::Ascend,
         KeyCode::Backspace => EditMsg::Back,
         _ => return Message::Continue(Mode::Edit(index)),
     };
