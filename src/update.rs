@@ -98,9 +98,9 @@ fn update_normal(
             0 => Mode::Input(InputState::new_insert_empty()),
             _ => Mode::Normal(index),
         }
-        NormalMsg::Edit => match state.root.size() {
-            0 => Mode::Normal(index),
-            _ => Mode::Edit(0),
+        NormalMsg::Edit => match index {
+            None => Mode::Normal(None),
+            Some(i) => Mode::Edit(i),
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
