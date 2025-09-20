@@ -103,6 +103,29 @@ impl Node {
         parent_idx
     }
 
+    /// Return the index of the previous sibling node, if any.
+    pub fn prev_sibling_index(&self, index: usize) -> Option<usize> {
+        let mut prev_sib_idx: Option<usize> = None;
+        let mut current_idx = 0;
+        let mut node = self;
+        while current_idx < index {
+            if let Self::Node { child, sibling, .. } = node {
+                if index <= current_idx + child.size() {
+                    prev_sib_idx = None;
+                    current_idx += 1;
+                    node = child;
+                } else {
+                    prev_sib_idx = Some(current_idx);
+                    current_idx += 1 + child.size();
+                    node = sibling;
+                }
+            } else {
+                panic!("Invalid index");
+            }
+        }
+        prev_sib_idx
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.

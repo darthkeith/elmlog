@@ -97,6 +97,9 @@ fn update_normal(
         NormalMsg::Ascend => Mode::Normal(
             index.map(|i| state.root.parent_index(i).unwrap_or(i))
         ),
+        NormalMsg::Previous => Mode::Normal(
+            index.map(|i| state.root.prev_sibling_index(i).unwrap_or(i))
+        ),
         NormalMsg::Insert => match state.root.size() {
             0 => Mode::Input(InputState::new_insert_empty()),
             _ => Mode::Normal(index),
@@ -221,6 +224,9 @@ fn update_edit(
         ),
         EditMsg::Ascend => Mode::Edit(
             state.root.parent_index(index).unwrap_or(index)
+        ),
+        EditMsg::Previous => Mode::Edit(
+            state.root.prev_sibling_index(index).unwrap_or(index)
         ),
         EditMsg::Rename => {
             let label = state.root.find_label(index);
