@@ -171,6 +171,14 @@ impl Node {
         }
     }
 
+    /// Return the label at `index`.
+    pub fn find_label(&self, index: usize) -> String {
+        match self.find_node(index) {
+            Self::Node { label, .. } => label.clone(),
+            Self::Empty => panic!("Invalid index"),
+        }
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.
@@ -195,30 +203,6 @@ impl Node {
             }
         }
         ForestZipper { focus, prev }
-    }
-
-    /// Return the label at pre-order `index` (panic if invalid).
-    pub fn find_label(&self, index: usize) -> String {
-        let mut i = index;
-        let mut node = self;
-        while i > 0 {
-            match node {
-                Self::Node { child, sibling, .. } => {
-                    if i <= child.size() {
-                        i -= 1;
-                        node = child;
-                    } else {
-                        i -= 1 + child.size();
-                        node = sibling;
-                    }
-                }
-                Self::Empty => break,
-            }
-        }
-        match node {
-            Self::Node { label, .. } => label.clone(),
-            Self::Empty => panic!("Invalid index"),
-        }
     }
 
     /// Assign the `label` to the node at `index`.
