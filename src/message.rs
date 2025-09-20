@@ -153,8 +153,8 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
         KeyCode::Char(c) => match c {
-            'k' => NormalMsg::Decrement,
-            'j' => NormalMsg::Increment,
+            ',' => NormalMsg::Decrement,
+            '.' => NormalMsg::Increment,
             'h' => NormalMsg::Ascend,
             'i' => NormalMsg::Insert,
             'e' => NormalMsg::Edit,
@@ -186,8 +186,8 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
 fn to_edit_msg(key: KeyCode, index: usize) -> Message {
     let edit_msg = match key {
         KeyCode::Char(c) => match c {
-            'k' => EditMsg::Decrement,
-            'j' => EditMsg::Increment,
+            ',' => EditMsg::Decrement,
+            '.' => EditMsg::Increment,
             'h' => EditMsg::Ascend,
             'r' => EditMsg::Rename,
             'm' => EditMsg::Move,
