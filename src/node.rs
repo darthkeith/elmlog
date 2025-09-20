@@ -158,6 +158,19 @@ impl Node {
         }
     }
 
+    /// Return the index of the first child node, if any.
+    pub fn first_child_index(&self, index: usize) -> Option<usize> {
+        if let Self::Node { child, .. } = self.find_node(index) {
+            if let Self::Node { .. } = **child {
+                Some(index + 1)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.
