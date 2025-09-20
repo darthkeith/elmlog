@@ -126,6 +126,38 @@ impl Node {
         prev_sib_idx
     }
 
+    /// Return a reference to the Node at `index`.
+    fn find_node(&self, mut index: usize) -> &Self {
+        let mut node = self;
+        while index > 0 {
+            if let Self::Node { child, sibling, .. } = node {
+                if index <= child.size() {
+                    index -= 1;
+                    node = child;
+                } else {
+                    index -= 1 + child.size();
+                    node = sibling;
+                }
+            } else {
+                panic!("Invalid index");
+            }
+        }
+        node
+    }
+
+    /// Return the index of the next sibling node, if any.
+    pub fn next_sibling_index(&self, index: usize) -> Option<usize> {
+        if let Self::Node { child, sibling, .. } = self.find_node(index) {
+            if let Self::Node { .. } = **sibling {
+                Some(index + child.size() + 1)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     // Return a zipper focused on the node of pre-order `index` in the forest.
     // If the index is invalid, the zipper will be focused on an empty node
     // and behavior is undefined.

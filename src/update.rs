@@ -97,6 +97,9 @@ fn update_normal(
         NormalMsg::Ascend => Mode::Normal(
             index.map(|i| state.root.parent_index(i).unwrap_or(i))
         ),
+        NormalMsg::Next => Mode::Normal(
+            index.map(|i| state.root.next_sibling_index(i).unwrap_or(i))
+        ),
         NormalMsg::Previous => Mode::Normal(
             index.map(|i| state.root.prev_sibling_index(i).unwrap_or(i))
         ),
@@ -224,6 +227,9 @@ fn update_edit(
         ),
         EditMsg::Ascend => Mode::Edit(
             state.root.parent_index(index).unwrap_or(index)
+        ),
+        EditMsg::Next => Mode::Edit(
+            state.root.next_sibling_index(index).unwrap_or(index)
         ),
         EditMsg::Previous => Mode::Edit(
             state.root.prev_sibling_index(index).unwrap_or(index)
