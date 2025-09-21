@@ -16,9 +16,9 @@ use crate::{
 
 type KeyPair<'a> = (&'a str, &'a str);
 
-const JUMP: KeyPair = ("0-9", "Jump");
-const LOAD_SCROLL: KeyPair = ("J/K │ ↓/↑", "Scroll");
-const SCROLL: KeyPair = ("./, │ ↓/↑", "Scroll");
+const LOAD_NAVIGATE: KeyPair = ("0-9/JK/↓↑", "Navigate");
+const NAVIGATE: KeyPair = ("0-9/HJKL/←↓↑→", "Navigate");
+const SCROLL: KeyPair = ("Space/U", "Scroll");
 const OPEN: KeyPair = ("Enter", "Open");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
@@ -56,7 +56,7 @@ fn confirm_mode_commands(confirm_state: &ConfirmState) -> Vec<KeyPair<'static>> 
 fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if file_count > 1 {
-        pairs.extend(&[JUMP, LOAD_SCROLL]);
+        pairs.push(LOAD_NAVIGATE);
     }
     pairs.extend(&[OPEN, NEW, RENAME, DELETE, QUIT]);
     pairs
@@ -66,7 +66,7 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     let mut pairs = Vec::new();
     if root.size() > 1 {
-        pairs.extend(&[JUMP, SCROLL]);
+        pairs.extend(&[NAVIGATE, SCROLL]);
     }
     pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, BACK, QUIT]);
     pairs
@@ -85,7 +85,7 @@ fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
 fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if size > 1 {
-        pairs.extend(&[JUMP, SCROLL]);
+        pairs.extend(&[NAVIGATE, SCROLL]);
     }
     pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]);
     pairs

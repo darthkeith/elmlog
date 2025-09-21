@@ -159,8 +159,8 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
         KeyCode::Char(c) => match c {
-            ',' => NormalMsg::Decrement,
-            '.' => NormalMsg::Increment,
+            'u' => NormalMsg::Decrement,
+            ' ' => NormalMsg::Increment,
             'h' => NormalMsg::Ascend,
             'j' => NormalMsg::Next,
             'k' => NormalMsg::Previous,
@@ -170,9 +170,9 @@ fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
             'q' => NormalMsg::Quit,
             _ => NormalMsg::Append(c),
         },
-        KeyCode::Up => NormalMsg::Decrement,
-        KeyCode::Down => NormalMsg::Increment,
         KeyCode::Left => NormalMsg::Ascend,
+        KeyCode::Down => NormalMsg::Next,
+        KeyCode::Up => NormalMsg::Previous,
         KeyCode::Right => NormalMsg::Descend,
         KeyCode::Backspace => NormalMsg::Load,
         _ => return Message::Continue(Mode::Normal(index)),
@@ -196,8 +196,8 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
 fn to_edit_msg(key: KeyCode, index: usize) -> Message {
     let edit_msg = match key {
         KeyCode::Char(c) => match c {
-            ',' => EditMsg::Decrement,
-            '.' => EditMsg::Increment,
+            'u' => EditMsg::Decrement,
+            ' ' => EditMsg::Increment,
             'h' => EditMsg::Ascend,
             'j' => EditMsg::Next,
             'k' => EditMsg::Previous,
@@ -210,9 +210,9 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
             'd' => EditMsg::Delete,
             _ => EditMsg::Append(c),
         },
-        KeyCode::Up => EditMsg::Decrement,
-        KeyCode::Down => EditMsg::Increment,
         KeyCode::Left => EditMsg::Ascend,
+        KeyCode::Down => EditMsg::Next,
+        KeyCode::Up => EditMsg::Previous,
         KeyCode::Right => EditMsg::Descend,
         KeyCode::Backspace => EditMsg::Back,
         _ => return Message::Continue(Mode::Edit(index)),
