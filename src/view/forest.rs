@@ -1,4 +1,7 @@
-use ratatui::text::{Line, Span, Text};
+use ratatui::{
+    style::Style,
+    text::{Line, Span, Text}
+};
 
 use crate::{
     node::{
@@ -71,36 +74,21 @@ impl<'a> Iterator for ForestIter<'a> {
 
 /// Return the forest widget in Normal mode.
 pub fn forest_normal(root: &Node, index: usize) -> Scroll {
-    let index_len = util::max_index_length(root.size());
-    let lines = ForestIter::new(root)
-        .enumerate()
-        .map(|(i, (tree_row, label))| {
-            let fmt_index = format!(" {i:>width$}   ", width = index_len);
-            let highlight = i == index;
-            let spans = if highlight {
-                vec![
-                    Span::styled(fmt_index, style::DEFAULT_BOLD),
-                    Span::styled(tree_row, style::TREE),
-                    Span::styled(label, style::DEFAULT_BOLD),
-                ]
-            } else {
-                vec![
-                    Span::raw(fmt_index),
-                    Span::styled(tree_row, style::TREE),
-                    Span::raw(label),
-                ]
-            };
-            Line::from(spans)
-        });
-    Scroll {
-        text: Text::from_iter(lines),
-        list_size: root.size(),
-        index,
-    }
+    forest(root, index, style::DEFAULT_BOLD, style::TREE)
 }
 
 /// Return the forest widget while editing.
 pub fn forest_edit(root: &Node, index: usize) -> Scroll {
+    forest(root, index, style::DEFAULT_HL, style::TREE_HL)
+}
+
+// Return the forest widget at `index` with the given styles.
+fn forest(
+    root: &Node,
+    index: usize,
+    text_style: Style,
+    tree_style: Style,
+) -> Scroll {
     let index_len = util::max_index_length(root.size());
     let lines = ForestIter::new(root)
         .enumerate()
@@ -109,9 +97,9 @@ pub fn forest_edit(root: &Node, index: usize) -> Scroll {
             let highlight = i == index;
             let spans = if highlight {
                 vec![
-                    Span::styled(fmt_index, style::DEFAULT_HL),
-                    Span::styled(tree_row, style::TREE_HL),
-                    Span::styled(format!("{label} "), style::DEFAULT_HL),
+                    Span::styled(fmt_index, text_style),
+                    Span::styled(tree_row, tree_style),
+                    Span::styled(format!("{label} "), text_style),
                 ]
             } else {
                 vec![
