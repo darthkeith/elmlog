@@ -2,12 +2,26 @@
 
 ## [Unreleased]
 
-## [0.22.0] - 2025-02-20
+## [0.23.0] - 2025-09-22
+
+### Added
+- Scrolling display.
+- Tree navigation commands (Ascend/Descend, Next/Previous sibling).
+
+### Changed
+- Stay in Edit mode after all edit commands.
+- Remap scroll commands.
+- Replace **Cancel** with **Back** command in some cases.
+- Rename **Edit** command for editing text to **Rename**.
+- Rename **Raise** command to **Nest**.
+
+## 0.22.0 - 2025-02-20
 
 ### Added
 - Subcommands to insert an item as the prior or next sibling of a node.
+
 ### Changed
-- Updated app directory name to match app name.
+- Update app directory name to match app name.
 
 ## 0.21.0 - 2025-02-19
 
@@ -138,5 +152,5 @@
   - **Delete**: Delete an item.
 
 [Unreleased]: https://github.com/darthkeith/sieve-selector/compare/v0.22.0...HEAD
-[0.22.0]: https://github.com/darthkeith/sieve-selector/compare/v0.21.0...v0.22.0
+[0.23.0]: https://github.com/darthkeith/sieve-selector/compare/v0.22.0...v0.23.0
 
