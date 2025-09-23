@@ -5,11 +5,10 @@ mod style;
 
 use std::cmp::min;
 
-use forest::forest_delete;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::{Buffer, Rect, Widget},
-    style::Styled,
+    style::{Style, Styled},
     text::{Line, Text},
     widgets::{
         block::Padding,
@@ -36,6 +35,7 @@ use self::{
     cmdbar::command_bar,
     forest::{
         forest_edit,
+        forest_delete,
         forest_normal,
     },
     statusbar::status_bar,
@@ -121,19 +121,15 @@ fn main_paragraph_scroll(text: Text) -> Paragraph {
     pad_main_paragraph(text, Padding::horizontal(1))
 }
 
-// Return the load widget.
-fn load(load_state: &LoadState) -> Scroll {
+// Return Load mode Scroll with selected file highlighted.
+fn load(load_state: &LoadState, highlight: Style) -> Scroll {
     let selected = load_state.index();
     let index_len = util::max_index_length(load_state.size());
     let lines = load_state.filename_iter()
         .enumerate()
         .map(|(i, filename)| {
-            let highlight = i == selected;
-            let line_style = match highlight {
-                true => style::DEFAULT_HL,
-                false => style::DEFAULT,
-            };
             let text = format!(" {i:>width$}   {filename} ", width = index_len);
+            let line_style = if i == selected { highlight } else { style::DEFAULT };
             Line::styled(text, line_style)
         });
     Scroll {
@@ -141,6 +137,16 @@ fn load(load_state: &LoadState) -> Scroll {
         list_size: load_state.size(),
         index: load_state.index(),
     }
+}
+
+// Return Load mode Scroll with normal highlight.
+fn load_normal(load_state: &LoadState) -> Scroll {
+    load(load_state, style::DEFAULT_HL)
+}
+
+// Return Load mode Scroll with selected file highlighted in red for deletion.
+fn load_delete(load_state: &LoadState) -> Scroll {
+    load(load_state, style::DELETE)
 }
 
 // Return the text input widget given the `input` string.
@@ -191,12 +197,11 @@ pub fn view(model: &Model, frame: &mut Frame) {
                 frame.render_widget(forest_delete(root, *index), main_area);
             }
             ConfirmState::DeleteFile(load_state) => {
-                let widget = main_paragraph(Text::from(load_state.filename()));
-                frame.render_widget(widget, main_area);
+                frame.render_widget(load_delete(load_state), main_area);
             }
         }
         Mode::Load(load_state) => {
-            frame.render_widget(load(load_state), main_area);
+            frame.render_widget(load_normal(load_state), main_area);
         }
         Mode::Normal(maybe_index) => {
             let index = maybe_index.unwrap_or(0);

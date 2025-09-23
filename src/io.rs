@@ -86,11 +86,6 @@ impl LoadState {
         }
     }
 
-    /// Return the selected filename.
-    pub fn filename(&self) -> &str {
-        &self.files[self.index].name
-    }
-
     /// Iterate over the filenames.
     pub fn filename_iter(&self) -> impl Iterator<Item = &str> {
         self.files
