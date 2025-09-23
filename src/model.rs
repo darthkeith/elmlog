@@ -6,7 +6,7 @@ use crate::{
 /// Action to be confirmed in Confirm mode.
 pub enum ConfirmState {
     NewSession,
-    DeleteItem(String, usize),
+    DeleteItem(usize),
     DeleteFile(LoadState),
 }
 

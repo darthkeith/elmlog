@@ -39,7 +39,7 @@ fn update_confirm(
     let mode = match confirm {
         true => match confirm_state {
             ConfirmState::NewSession => Mode::Normal(None),
-            ConfirmState::DeleteItem(_, index) => {
+            ConfirmState::DeleteItem(index) => {
                 state = state.delete(index);
                 Mode::new_edit(index, &state.root)
             }
@@ -49,7 +49,7 @@ fn update_confirm(
         }
         false => match confirm_state {
             ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem(_, index) => Mode::Edit(index),
+            ConfirmState::DeleteItem(index) => Mode::Edit(index),
             ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
         }
     };
@@ -256,10 +256,7 @@ fn update_edit(
             Mode::Edit(new_index)
         }
         EditMsg::Insert => Mode::Insert(index),
-        EditMsg::Delete => {
-            let label = state.root.find_label(index);
-            Mode::Confirm(ConfirmState::DeleteItem(label, index))
-        }
+        EditMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem(index)),
         EditMsg::Back => Mode::Normal(Some(index)),
     };
     Command::None(Model { state, mode })

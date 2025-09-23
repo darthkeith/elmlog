@@ -72,16 +72,6 @@ impl<'a> Iterator for ForestIter<'a> {
     }
 }
 
-/// Return the forest widget in Normal mode.
-pub fn forest_normal(root: &Node, index: usize) -> Scroll {
-    forest(root, index, style::DEFAULT_BOLD, style::TREE)
-}
-
-/// Return the forest widget while editing.
-pub fn forest_edit(root: &Node, index: usize) -> Scroll {
-    forest(root, index, style::DEFAULT_HL, style::TREE_HL)
-}
-
 // Return the forest widget at `index` with the given styles.
 fn forest(
     root: &Node,
@@ -115,5 +105,20 @@ fn forest(
         list_size: root.size(),
         index,
     }
+}
+
+/// Return the forest widget in Normal mode.
+pub fn forest_normal(root: &Node, index: usize) -> Scroll {
+    forest(root, index, style::DEFAULT_BOLD, style::TREE)
+}
+
+/// Return the forest widget while editing.
+pub fn forest_edit(root: &Node, index: usize) -> Scroll {
+    forest(root, index, style::DEFAULT_HL, style::TREE_HL)
+}
+
+/// Return the forest widget while confirming a deletion.
+pub fn forest_delete(root: &Node, index: usize) -> Scroll {
+    forest(root, index, style::DELETE, style::TREE_DELETE)
 }
 

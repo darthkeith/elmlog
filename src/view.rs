@@ -5,6 +5,7 @@ mod style;
 
 use std::cmp::min;
 
+use forest::forest_delete;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::{Buffer, Rect, Widget},
@@ -120,16 +121,6 @@ fn main_paragraph_scroll(text: Text) -> Paragraph {
     pad_main_paragraph(text, Padding::horizontal(1))
 }
 
-// Return the confirm widget.
-fn confirm(confirm_state: &ConfirmState) -> Paragraph {
-    let text = match confirm_state {
-        ConfirmState::NewSession => Text::default(),
-        ConfirmState::DeleteItem(label, _) => Text::from(label.as_str()),
-        ConfirmState::DeleteFile(load_state) => Text::from(load_state.filename()),
-    };
-    main_paragraph(text)
-}
-
 // Return the load widget.
 fn load(load_state: &LoadState) -> Scroll {
     let selected = load_state.index();
@@ -191,8 +182,18 @@ pub fn view(model: &Model, frame: &mut Frame) {
     let Model { state, mode } = model;
     let SessionState { root, .. } = state;
     match mode {
-        Mode::Confirm(confirm_state) => {
-            frame.render_widget(confirm(confirm_state), main_area);
+        Mode::Confirm(confirm_state) => match confirm_state {
+            ConfirmState::NewSession => {
+                let empty = main_paragraph(Text::default());
+                frame.render_widget(empty, main_area);
+            }
+            ConfirmState::DeleteItem(index) => {
+                frame.render_widget(forest_delete(root, *index), main_area);
+            }
+            ConfirmState::DeleteFile(load_state) => {
+                let widget = main_paragraph(Text::from(load_state.filename()));
+                frame.render_widget(widget, main_area);
+            }
         }
         Mode::Load(load_state) => {
             frame.render_widget(load(load_state), main_area);
