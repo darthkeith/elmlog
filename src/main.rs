@@ -5,6 +5,7 @@ mod node;
 mod update;
 mod util;
 mod view;
+mod zipper;
 
 use std::io::Result;
 
