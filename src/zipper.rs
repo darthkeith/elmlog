@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 struct Node {
     child: Option<Box<Node>>,
     sibling: Option<Box<Node>>,
@@ -20,5 +22,27 @@ struct FocusNode {
     child: Option<Box<Node>>,
     sibling: Option<Box<Node>>,
     label: String,
+}
+
+impl FocusNode {
+    // Swap the focused subtree with its next sibling's (if present).
+    pub fn move_forward(self) -> Self {
+        match self.sibling {
+            Some(sib_node) => {
+                let path_node = PathNode {
+                    context: self.context,
+                    kind: PathNodeKind::Sibling{ child: sib_node.child },
+                    label: sib_node.label,
+                };
+                FocusNode {
+                    context: Some(Box::new(path_node)),
+                    child: self.child,
+                    sibling: sib_node.sibling,
+                    label: self.label,
+                }
+            }
+            None => self,
+        }
+    }
 }
 
