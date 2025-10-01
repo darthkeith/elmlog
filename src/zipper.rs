@@ -77,5 +77,25 @@ impl FocusNode {
             None => self,
         }
     }
+
+    /// Move the focused node's subtree to be its parent's next sibling.
+    pub fn promote(self) -> Self {
+        match self.parent {
+            Some(parent) => {
+                let prev = Node {
+                    next: parent.prev,
+                    child: join_siblings(self.prev, self.next),
+                    label: parent.label,
+                };
+                Self {
+                    parent: parent.parent,
+                    prev: Some(Box::new(prev)),
+                    next: parent.next,
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
 }
 
