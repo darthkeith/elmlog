@@ -42,5 +42,23 @@ impl FocusNode {
             None => self,
         }
     }
+
+    /// Swap the focused node's subtree with its previous sibling's (if present).
+    pub fn move_backward(self) -> Self {
+        match self.prev {
+            Some(sibling) => {
+                let next = Node {
+                    next: self.next,
+                    ..*sibling
+                };
+                Self {
+                    prev: sibling.next,
+                    next: Some(Box::new(next)),
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
 }
 
