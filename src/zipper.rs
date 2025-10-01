@@ -24,3 +24,23 @@ struct FocusNode {
     label: String,
 }
 
+impl FocusNode {
+    /// Swap the focused node's subtree with its next sibling's (if present).
+    pub fn move_forward(self) -> Self {
+        match self.next {
+            Some(sibling) => {
+                let prev = Node {
+                    next: self.prev,
+                    ..*sibling
+                };
+                Self {
+                    prev: Some(Box::new(prev)),
+                    next: sibling.next,
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
+}
+
