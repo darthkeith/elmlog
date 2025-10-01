@@ -24,18 +24,35 @@ struct FocusNode {
     label: String,
 }
 
+
+/// Join left (reverse-ordered) and right siblings into one forest.
+fn join_siblings(
+    mut left: Option<Box<Node>>,
+    mut right: Option<Box<Node>>,
+) -> Option<Box<Node>> {
+    while let Some(left_sib) = left {
+        left = left_sib.next;
+        let node = Node {
+            next: right,
+            ..*left_sib
+        };
+        right = Some(Box::new(node));
+    }
+    right
+}
+
 impl FocusNode {
     /// Swap the focused node's subtree with its next sibling's (if present).
     pub fn move_forward(self) -> Self {
         match self.next {
-            Some(sibling) => {
+            Some(next_sib) => {
                 let prev = Node {
                     next: self.prev,
-                    ..*sibling
+                    ..*next_sib
                 };
                 Self {
                     prev: Some(Box::new(prev)),
-                    next: sibling.next,
+                    next: next_sib.next,
                     ..self
                 }
             }
@@ -46,13 +63,13 @@ impl FocusNode {
     /// Swap the focused node's subtree with its previous sibling's (if present).
     pub fn move_backward(self) -> Self {
         match self.prev {
-            Some(sibling) => {
+            Some(prev_sib) => {
                 let next = Node {
                     next: self.next,
-                    ..*sibling
+                    ..*prev_sib
                 };
                 Self {
-                    prev: sibling.next,
+                    prev: prev_sib.next,
                     next: Some(Box::new(next)),
                     ..self
                 }
