@@ -208,5 +208,21 @@ impl FocusNode {
             label
         }
     }
+
+    /// Insert a new node as the next sibling of the focused node.
+    pub fn insert_after(self, label: String) -> Self {
+        let node = Node {
+            next: self.prev,
+            child: self.child,
+            label: self.label,
+        };
+        Self {
+            parent: self.parent,
+            prev: Some(Box::new(node)),
+            next: self.next,
+            child: None,
+            label
+        }
+    }
 }
 
