@@ -30,11 +30,11 @@ fn join_siblings(
     mut left: Option<Box<Node>>,
     mut right: Option<Box<Node>>,
 ) -> Option<Box<Node>> {
-    while let Some(left_sib) = left {
-        left = left_sib.next;
+    while let Some(curr) = left {
+        left = curr.next;
         let node = Node {
             next: right,
-            ..*left_sib
+            ..*curr
         };
         right = Some(Box::new(node));
     }
@@ -105,6 +105,27 @@ impl FocusNode {
                     parent: parent.parent,
                     prev: Some(Box::new(prev)),
                     next: parent.next,
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
+
+    /// Move the focused node's subtree to be its previous sibling's last child.
+    pub fn demote(self) -> Self {
+        match self.prev {
+            Some(prev_sib) => {
+                let parent = PathNode {
+                    parent: self.parent,
+                    prev: prev_sib.next,
+                    next: self.next,
+                    label: prev_sib.label,
+                };
+                Self {
+                    parent: Some(Box::new(parent)),
+                    prev: reverse_siblings(prev_sib.child),
+                    next: None,
                     ..self
                 }
             }
