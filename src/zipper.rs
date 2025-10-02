@@ -25,7 +25,7 @@ struct FocusNode {
 }
 
 
-/// Join left (reverse-ordered) and right siblings into one forest.
+// Join left (reverse-ordered) and right siblings into one forest.
 fn join_siblings(
     mut left: Option<Box<Node>>,
     mut right: Option<Box<Node>>,
@@ -39,6 +39,20 @@ fn join_siblings(
         right = Some(Box::new(node));
     }
     right
+}
+
+// Reverse the order of the node’s sibling chain.
+fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<Node>> {
+    let mut reversed = None;
+    while let Some(curr) = node {
+        node = curr.next;
+        let rev_node = Node {
+            next: reversed,
+            ..*curr
+        };
+        reversed = Some(Box::new(rev_node));
+    }
+    reversed
 }
 
 impl FocusNode {
