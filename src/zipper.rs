@@ -225,6 +225,39 @@ impl FocusNode {
         }
     }
 
+    /// Delete the focused node.
+    pub fn delete(self) -> Option<Self> {
+        let focus = self.flatten();
+        let new_focus = if let Some(next_sib) = focus.next {
+            Self {
+                parent: focus.parent,
+                prev: focus.prev,
+                next: next_sib.next,
+                child: next_sib.child,
+                label: next_sib.label,
+            }
+        } else if let Some(prev_sib) = focus.prev {
+            Self {
+                parent: focus.parent,
+                prev: prev_sib.next,
+                next: None,
+                child: prev_sib.child,
+                label: prev_sib.label,
+            }
+        } else if let Some(parent) = focus.parent {
+            Self {
+                parent: parent.parent,
+                prev: parent.prev,
+                next: parent.next,
+                child: None,
+                label: parent.label,
+            }
+        } else {
+            return None;
+        };
+        Some(new_focus)
+    }
+
     /// Set the label of the focused node.
     pub fn set_label(self, label: String) -> Self {
         Self { label, ..self }
