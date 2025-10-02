@@ -146,5 +146,18 @@ impl FocusNode {
             ..self
         }
     }
+
+    /// Insert the focused node's children before its subsequent siblings.
+    pub fn flatten(self) -> Self {
+        let child_plus_next = join_siblings(
+            reverse_siblings(self.child),
+            self.next
+        );
+        Self {
+            next: child_plus_next,
+            child: None,
+            ..self
+        }
+    }
 }
 
