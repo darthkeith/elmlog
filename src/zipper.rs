@@ -132,5 +132,19 @@ impl FocusNode {
             None => self,
         }
     }
+
+    /// Adjoin the siblings of the focused node to its children, preserving order.
+    pub fn nest(self) -> Self {
+        let child_plus_next = join_siblings(
+            reverse_siblings(self.child),
+            self.next
+        );
+        Self {
+            prev: None,
+            next: None,
+            child: join_siblings(self.prev, child_plus_next),
+            ..self
+        }
+    }
 }
 
