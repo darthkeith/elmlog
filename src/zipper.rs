@@ -224,5 +224,10 @@ impl FocusNode {
             label
         }
     }
+
+    /// Set the label of the focused node.
+    pub fn set_label(self, label: String) -> Self {
+        Self { label, ..self }
+    }
 }
 
