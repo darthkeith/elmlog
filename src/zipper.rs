@@ -175,5 +175,22 @@ impl FocusNode {
             label
         }
     }
+
+    /// Insert a new child node above the focused node's children.
+    pub fn insert_child(self, label: String) -> Self {
+        let parent = PathNode {
+            parent: self.parent,
+            prev: self.prev,
+            next: self.next,
+            label: self.label,
+        };
+        Self {
+            parent: Some(Box::new(parent)),
+            prev: None,
+            next: None,
+            child: self.child,
+            label
+        }
+    }
 }
 
