@@ -2,8 +2,8 @@
 
 /// A node in a multi-way forest stored using child-sibling representation.
 struct Node {
-    next: Option<Box<Node>>,
     child: Option<Box<Node>>,
+    next: Option<Box<Node>>,
     label: String,
 }
 
@@ -18,9 +18,9 @@ struct PathNode {
 /// The focused node in a zipper for a multi-way forest.
 struct FocusNode {
     parent: Option<Box<PathNode>>,
+    child: Option<Box<Node>>,
     prev: Option<Box<Node>>,
     next: Option<Box<Node>>,
-    child: Option<Box<Node>>,
     label: String,
 }
 
@@ -104,15 +104,15 @@ impl FocusNode {
         match self.prev {
             Some(prev) => {
                 let next = Node {
-                    next: self.next,
                     child: self.child,
+                    next: self.next,
                     label: self.label,
                 };
                 Self {
                     parent: self.parent,
+                    child: prev.child,
                     prev: prev.next,
                     next: Some(Box::new(next)),
-                    child: prev.child,
                     label: prev.label,
                 }
             }
@@ -182,8 +182,8 @@ impl FocusNode {
         match self.parent {
             Some(parent) => {
                 let prev = Node {
-                    next: parent.prev,
                     child: join_siblings(self.prev, self.next),
+                    next: parent.prev,
                     label: parent.label,
                 };
                 Self {
@@ -225,9 +225,9 @@ impl FocusNode {
             self.next
         );
         Self {
+            child: join_siblings(self.prev, child_plus_next),
             prev: None,
             next: None,
-            child: join_siblings(self.prev, child_plus_next),
             ..self
         }
     }
@@ -239,8 +239,8 @@ impl FocusNode {
             self.next
         );
         Self {
-            next: child_plus_next,
             child: None,
+            next: child_plus_next,
             ..self
         }
     }
@@ -248,15 +248,15 @@ impl FocusNode {
     /// Insert a new node as the parent of the focused node.
     pub fn insert_parent(self, label: String) -> Self {
         let node = Node {
-            next: self.next,
             child: self.child,
+            next: self.next,
             label: self.label,
         };
         Self {
             parent: self.parent,
+            child: join_siblings(self.prev, Some(Box::new(node))),
             prev: None,
             next: None,
-            child: join_siblings(self.prev, Some(Box::new(node))),
             label
         }
     }
@@ -271,9 +271,9 @@ impl FocusNode {
         };
         Self {
             parent: Some(Box::new(parent)),
+            child: self.child,
             prev: None,
             next: None,
-            child: self.child,
             label
         }
     }
@@ -281,15 +281,15 @@ impl FocusNode {
     /// Insert a new node as the prior sibling of the focused node.
     pub fn insert_before(self, label: String) -> Self {
         let node = Node {
-            next: self.next,
             child: self.child,
+            next: self.next,
             label: self.label,
         };
         Self {
             parent: self.parent,
+            child: None,
             prev: self.prev,
             next: Some(Box::new(node)),
-            child: None,
             label
         }
     }
@@ -297,15 +297,15 @@ impl FocusNode {
     /// Insert a new node as the next sibling of the focused node.
     pub fn insert_after(self, label: String) -> Self {
         let node = Node {
-            next: self.prev,
             child: self.child,
+            next: self.prev,
             label: self.label,
         };
         Self {
             parent: self.parent,
+            child: None,
             prev: Some(Box::new(node)),
             next: self.next,
-            child: None,
             label
         }
     }
@@ -316,25 +316,25 @@ impl FocusNode {
         let new_focus = if let Some(next_sib) = focus.next {
             Self {
                 parent: focus.parent,
+                child: next_sib.child,
                 prev: focus.prev,
                 next: next_sib.next,
-                child: next_sib.child,
                 label: next_sib.label,
             }
         } else if let Some(prev_sib) = focus.prev {
             Self {
                 parent: focus.parent,
+                child: prev_sib.child,
                 prev: prev_sib.next,
                 next: None,
-                child: prev_sib.child,
                 label: prev_sib.label,
             }
         } else if let Some(parent) = focus.parent {
             Self {
                 parent: parent.parent,
+                child: None,
                 prev: parent.prev,
                 next: parent.next,
-                child: None,
                 label: parent.label,
             }
         } else {
