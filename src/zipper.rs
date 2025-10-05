@@ -56,7 +56,7 @@ fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<Node>> {
 }
 
 impl FocusNode {
-    /// Focus on the parent of the current focused node.
+    /// Focus on the parent of the current focused node (if present).
     pub fn focus_parent(self) -> Self {
         match self.parent{
             Some(parent) => {
@@ -77,7 +77,29 @@ impl FocusNode {
         }
     }
 
-    /// Focus on the previous sibling of the current focused node.
+    /// Focus on the first child of the current focused node (if present).
+    pub fn focus_child(self) -> Self {
+        match self.child{
+            Some(child) => {
+                let parent = PathNode {
+                    parent: self.parent,
+                    prev: self.prev,
+                    next: self.next,
+                    label: self.label,
+                };
+                Self {
+                    parent: Some(Box::new(parent)),
+                    child: child.child,
+                    prev: None,
+                    next: child.next,
+                    label: child.label,
+                }
+            }
+            None => self,
+        }
+    }
+
+    /// Focus on the previous sibling of the current focused node (if present).
     pub fn focus_prev(self) -> Self {
         match self.prev {
             Some(prev) => {
@@ -98,7 +120,7 @@ impl FocusNode {
         }
     }
 
-    /// Focus on the next sibling of the current focused node.
+    /// Focus on the next sibling of the current focused node (if present).
     pub fn focus_next(self) -> Self {
         match self.next {
             Some(next) => {
