@@ -77,6 +77,27 @@ impl FocusNode {
         }
     }
 
+    /// Focus on the next sibling of the current focused node.
+    pub fn focus_next(self) -> Self {
+        match self.next {
+            Some(next) => {
+                let prev = Node {
+                    child: self.child,
+                    next: self.prev,
+                    label: self.label,
+                };
+                Self {
+                    parent: self.parent,
+                    child: next.child,
+                    prev: Some(Box::new(prev)),
+                    next: next.next,
+                    label: next.label,
+                }
+            }
+            None => self,
+        }
+    }
+
     /// Swap the focused node's subtree with its next sibling's (if present).
     pub fn swap_next(self) -> Self {
         match self.next {
