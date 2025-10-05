@@ -164,16 +164,16 @@ impl FocusNode {
     /// Move the focused node's subtree to be its previous sibling's last child.
     pub fn demote(self) -> Self {
         match self.prev {
-            Some(prev_sib) => {
+            Some(prev) => {
                 let parent = PathNode {
                     parent: self.parent,
-                    prev: prev_sib.next,
+                    prev: prev.next,
                     next: self.next,
-                    label: prev_sib.label,
+                    label: prev.label,
                 };
                 Self {
                     parent: Some(Box::new(parent)),
-                    prev: reverse_siblings(prev_sib.child),
+                    prev: reverse_siblings(prev.child),
                     next: None,
                     ..self
                 }
@@ -185,13 +185,13 @@ impl FocusNode {
     /// Swap the focused node's subtree with its previous sibling's (if present).
     pub fn swap_prev(self) -> Self {
         match self.prev {
-            Some(prev_sib) => {
+            Some(prev) => {
                 let next = Node {
                     next: self.next,
-                    ..*prev_sib
+                    ..*prev
                 };
                 Self {
-                    prev: prev_sib.next,
+                    prev: prev.next,
                     next: Some(Box::new(next)),
                     ..self
                 }
@@ -203,14 +203,14 @@ impl FocusNode {
     /// Swap the focused node's subtree with its next sibling's (if present).
     pub fn swap_next(self) -> Self {
         match self.next {
-            Some(next_sib) => {
+            Some(next) => {
                 let prev = Node {
                     next: self.prev,
-                    ..*next_sib
+                    ..*next
                 };
                 Self {
                     prev: Some(Box::new(prev)),
-                    next: next_sib.next,
+                    next: next.next,
                     ..self
                 }
             }
@@ -280,7 +280,7 @@ impl FocusNode {
 
     /// Insert a new node as the previous sibling of the focused node.
     pub fn insert_prev(self, label: String) -> Self {
-        let node = Node {
+        let next = Node {
             child: self.child,
             next: self.next,
             label: self.label,
@@ -289,14 +289,14 @@ impl FocusNode {
             parent: self.parent,
             child: None,
             prev: self.prev,
-            next: Some(Box::new(node)),
+            next: Some(Box::new(next)),
             label
         }
     }
 
     /// Insert a new node as the next sibling of the focused node.
     pub fn insert_next(self, label: String) -> Self {
-        let node = Node {
+        let prev = Node {
             child: self.child,
             next: self.prev,
             label: self.label,
@@ -304,7 +304,7 @@ impl FocusNode {
         Self {
             parent: self.parent,
             child: None,
-            prev: Some(Box::new(node)),
+            prev: Some(Box::new(prev)),
             next: self.next,
             label
         }
@@ -313,21 +313,21 @@ impl FocusNode {
     /// Delete the focused node.
     pub fn delete(self) -> Option<Self> {
         let focus = self.flatten();
-        let new_focus = if let Some(next_sib) = focus.next {
+        let new_focus = if let Some(next) = focus.next {
             Self {
                 parent: focus.parent,
-                child: next_sib.child,
+                child: next.child,
                 prev: focus.prev,
-                next: next_sib.next,
-                label: next_sib.label,
+                next: next.next,
+                label: next.label,
             }
-        } else if let Some(prev_sib) = focus.prev {
+        } else if let Some(prev) = focus.prev {
             Self {
                 parent: focus.parent,
-                child: prev_sib.child,
-                prev: prev_sib.next,
+                child: prev.child,
+                prev: prev.next,
                 next: None,
-                label: prev_sib.label,
+                label: prev.label,
             }
         } else if let Some(parent) = focus.parent {
             Self {
