@@ -57,7 +57,7 @@ fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<Node>> {
 
 impl FocusNode {
     /// Swap the focused node's subtree with its next sibling's (if present).
-    pub fn move_forward(self) -> Self {
+    pub fn swap_next(self) -> Self {
         match self.next {
             Some(next_sib) => {
                 let prev = Node {
@@ -75,7 +75,7 @@ impl FocusNode {
     }
 
     /// Swap the focused node's subtree with its previous sibling's (if present).
-    pub fn move_backward(self) -> Self {
+    pub fn swap_prev(self) -> Self {
         match self.prev {
             Some(prev_sib) => {
                 let next = Node {
