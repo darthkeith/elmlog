@@ -278,8 +278,8 @@ impl FocusNode {
         }
     }
 
-    /// Insert a new node as the prior sibling of the focused node.
-    pub fn insert_before(self, label: String) -> Self {
+    /// Insert a new node as the previous sibling of the focused node.
+    pub fn insert_prev(self, label: String) -> Self {
         let node = Node {
             child: self.child,
             next: self.next,
@@ -295,7 +295,7 @@ impl FocusNode {
     }
 
     /// Insert a new node as the next sibling of the focused node.
-    pub fn insert_after(self, label: String) -> Self {
+    pub fn insert_next(self, label: String) -> Self {
         let node = Node {
             child: self.child,
             next: self.prev,
