@@ -141,42 +141,6 @@ impl FocusNode {
         }
     }
 
-    /// Swap the focused node's subtree with its next sibling's (if present).
-    pub fn swap_next(self) -> Self {
-        match self.next {
-            Some(next_sib) => {
-                let prev = Node {
-                    next: self.prev,
-                    ..*next_sib
-                };
-                Self {
-                    prev: Some(Box::new(prev)),
-                    next: next_sib.next,
-                    ..self
-                }
-            }
-            None => self,
-        }
-    }
-
-    /// Swap the focused node's subtree with its previous sibling's (if present).
-    pub fn swap_prev(self) -> Self {
-        match self.prev {
-            Some(prev_sib) => {
-                let next = Node {
-                    next: self.next,
-                    ..*prev_sib
-                };
-                Self {
-                    prev: prev_sib.next,
-                    next: Some(Box::new(next)),
-                    ..self
-                }
-            }
-            None => self,
-        }
-    }
-
     /// Move the focused node's subtree to be its parent's next sibling.
     pub fn promote(self) -> Self {
         match self.parent {
@@ -211,6 +175,42 @@ impl FocusNode {
                     parent: Some(Box::new(parent)),
                     prev: reverse_siblings(prev_sib.child),
                     next: None,
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
+
+    /// Swap the focused node's subtree with its previous sibling's (if present).
+    pub fn swap_prev(self) -> Self {
+        match self.prev {
+            Some(prev_sib) => {
+                let next = Node {
+                    next: self.next,
+                    ..*prev_sib
+                };
+                Self {
+                    prev: prev_sib.next,
+                    next: Some(Box::new(next)),
+                    ..self
+                }
+            }
+            None => self,
+        }
+    }
+
+    /// Swap the focused node's subtree with its next sibling's (if present).
+    pub fn swap_next(self) -> Self {
+        match self.next {
+            Some(next_sib) => {
+                let prev = Node {
+                    next: self.prev,
+                    ..*next_sib
+                };
+                Self {
+                    prev: Some(Box::new(prev)),
+                    next: next_sib.next,
                     ..self
                 }
             }
