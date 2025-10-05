@@ -56,6 +56,27 @@ fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<Node>> {
 }
 
 impl FocusNode {
+    /// Focus on the previous sibling of the current focused node.
+    pub fn focus_prev(self) -> Self {
+        match self.prev {
+            Some(prev) => {
+                let next = Node {
+                    next: self.next,
+                    child: self.child,
+                    label: self.label,
+                };
+                Self {
+                    parent: self.parent,
+                    prev: prev.next,
+                    next: Some(Box::new(next)),
+                    child: prev.child,
+                    label: prev.label,
+                }
+            }
+            None => self,
+        }
+    }
+
     /// Swap the focused node's subtree with its next sibling's (if present).
     pub fn swap_next(self) -> Self {
         match self.next {
