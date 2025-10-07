@@ -1,54 +1,63 @@
 #![allow(dead_code)]
 
-/// A node in a multi-way forest stored using child-sibling representation.
+// A node in a multi-way forest stored using child-sibling representation.
 struct Node {
     child: Option<Box<Node>>,
     next: Option<Box<Node>>,
     label: String,
 }
 
-/// A node in the path from the focused node up to the root of its tree.
+// A node with a reversed sibling chain for leftward traversal.
+struct RevNode {
+    child: Option<Box<Node>>,
+    prev: Option<Box<RevNode>>,
+    label: String,
+}
+
+// A node in the path from the focused node up to the root of its tree.
 struct PathNode {
     parent: Option<Box<PathNode>>,
-    prev: Option<Box<Node>>,
+    prev: Option<Box<RevNode>>,
     next: Option<Box<Node>>,
     label: String,
 }
 
-/// The focused node in a zipper for a multi-way forest.
+// The focused node in a zipper for a multi-way forest.
 struct FocusNode {
     parent: Option<Box<PathNode>>,
     child: Option<Box<Node>>,
-    prev: Option<Box<Node>>,
+    prev: Option<Box<RevNode>>,
     next: Option<Box<Node>>,
     label: String,
 }
 
 
-// Join left (reverse-ordered) and right siblings into one forest.
+// Join two sibling chains into one forest.
 fn join_siblings(
-    mut left: Option<Box<Node>>,
+    mut left: Option<Box<RevNode>>,
     mut right: Option<Box<Node>>,
 ) -> Option<Box<Node>> {
     while let Some(curr) = left {
-        left = curr.next;
+        left = curr.prev;
         let node = Node {
+            child: curr.child,
             next: right,
-            ..*curr
+            label: curr.label,
         };
         right = Some(Box::new(node));
     }
     right
 }
 
-// Reverse the order of the node’s sibling chain.
-fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<Node>> {
+// Reverse the direction of the node’s sibling chain.
+fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<RevNode>> {
     let mut reversed = None;
     while let Some(curr) = node {
         node = curr.next;
-        let rev_node = Node {
-            next: reversed,
-            ..*curr
+        let rev_node = RevNode {
+            child: curr.child,
+            prev: reversed,
+            label: curr.label,
         };
         reversed = Some(Box::new(rev_node));
     }
@@ -111,7 +120,7 @@ impl FocusNode {
                 Self {
                     parent: self.parent,
                     child: prev.child,
-                    prev: prev.next,
+                    prev: prev.prev,
                     next: Some(Box::new(next)),
                     label: prev.label,
                 }
@@ -124,9 +133,9 @@ impl FocusNode {
     pub fn focus_next(self) -> Self {
         match self.next {
             Some(next) => {
-                let prev = Node {
+                let prev = RevNode {
                     child: self.child,
-                    next: self.prev,
+                    prev: self.prev,
                     label: self.label,
                 };
                 Self {
@@ -145,9 +154,9 @@ impl FocusNode {
     pub fn promote(self) -> Self {
         match self.parent {
             Some(parent) => {
-                let prev = Node {
+                let prev = RevNode {
                     child: join_siblings(self.prev, self.next),
-                    next: parent.prev,
+                    prev: parent.prev,
                     label: parent.label,
                 };
                 Self {
@@ -167,7 +176,7 @@ impl FocusNode {
             Some(prev) => {
                 let parent = PathNode {
                     parent: self.parent,
-                    prev: prev.next,
+                    prev: prev.prev,
                     next: self.next,
                     label: prev.label,
                 };
@@ -187,11 +196,12 @@ impl FocusNode {
         match self.prev {
             Some(prev) => {
                 let next = Node {
+                    child: prev.child,
                     next: self.next,
-                    ..*prev
+                    label: prev.label,
                 };
                 Self {
-                    prev: prev.next,
+                    prev: prev.prev,
                     next: Some(Box::new(next)),
                     ..self
                 }
@@ -204,9 +214,10 @@ impl FocusNode {
     pub fn swap_next(self) -> Self {
         match self.next {
             Some(next) => {
-                let prev = Node {
-                    next: self.prev,
-                    ..*next
+                let prev = RevNode {
+                    child: next.child,
+                    prev: self.prev,
+                    label: next.label,
                 };
                 Self {
                     prev: Some(Box::new(prev)),
@@ -296,9 +307,9 @@ impl FocusNode {
 
     /// Insert a new node as the next sibling of the focused node.
     pub fn insert_next(self, label: String) -> Self {
-        let prev = Node {
+        let prev = RevNode {
             child: self.child,
-            next: self.prev,
+            prev: self.prev,
             label: self.label,
         };
         Self {
@@ -325,7 +336,7 @@ impl FocusNode {
             Self {
                 parent: focus.parent,
                 child: prev.child,
-                prev: prev.next,
+                prev: prev.prev,
                 next: None,
                 label: prev.label,
             }
