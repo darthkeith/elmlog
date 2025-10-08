@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+mod iter;
 
 // A node in a multi-way forest stored using child-sibling representation.
 struct Node {
