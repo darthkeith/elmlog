@@ -2,6 +2,7 @@
 use crate::zipper::{
     Node,
     RevNode,
+    FocusNode,
 };
 
 // Indicates a node's structural position within the forest.
@@ -129,5 +130,31 @@ fn rev_node_iter(
         );
         std::iter::once(info).chain(child_iter)
     })
+}
+
+// Pre-order iterator over the focused node and its siblings' subtrees.
+fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
+    let is_root = focus.parent.is_none();
+    let (focus_pos, next_pos) = if is_root {
+        (NodePosition::Root, NodePosition::Root)
+    } else if focus.prev.is_none() {
+        (NodePosition::FirstChild, NodePosition::SubsequentChild)
+    } else {
+        (NodePosition::SubsequentChild, NodePosition::SubsequentChild)
+    };
+    let focus_info = NodeInfo {
+        label: &focus.label,
+        position: focus_pos,
+        is_last_sibling: focus.next.is_none(),
+        is_focused: true,
+    };
+    let prev_iter = rev_node_iter(focus.prev.as_deref(), is_root);
+    let focus_iter = std::iter::once(focus_info);
+    let child_iter = node_iter(focus.child.as_deref(), NodePosition::FirstChild);
+    let next_iter = node_iter(focus.next.as_deref(), next_pos);
+    prev_iter
+        .chain(focus_iter)
+        .chain(child_iter)
+        .chain(next_iter)
 }
 
