@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::zipper::{
     Node,
     RevNode,
@@ -31,11 +29,6 @@ struct Frame<'a> {
 // Pre-order iterator yielding node information.
 struct NodePreOrderIter<'a> {
     stack: Vec<Frame<'a>>,
-}
-
-// Iterator over a reversed sibling chain, left to right.
-struct RevNodeIter<'a> {
-    stack: Vec<&'a RevNode>,
 }
 
 impl<'a> Iterator for NodePreOrderIter<'a> {
@@ -74,26 +67,6 @@ impl<'a> Iterator for NodePreOrderIter<'a> {
     }
 }
 
-impl<'a> Iterator for RevNodeIter<'a> {
-    type Item = &'a RevNode;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.stack.pop()
-    }
-}
-
-impl<'a> RevNodeIter<'a> {
-    // Construct an iterator over a reversed sibling chain, left to right.
-    fn new(mut prev: Option<&'a RevNode>) -> Self {
-        let mut stack = Vec::new();
-        while let Some(rev_node) = prev {
-            stack.push(rev_node);
-            prev = rev_node.prev.as_deref();
-        }
-        Self { stack }
-    }
-}
-
 // Pre-order iterator over the subtree, if any, and its subsequent siblings.
 fn node_iter(
     maybe_node: Option<&Node>,
@@ -108,10 +81,16 @@ fn node_iter(
 
 // Pre-order iterator over the subtree, if any, and its previous siblings.
 fn rev_node_iter(
-    prev: Option<&RevNode>,
+    mut prev: Option<&RevNode>,
     is_root: bool,
 ) -> impl Iterator<Item = NodeInfo> {
-    RevNodeIter::new(prev).flat_map(move |rev_node| {
+    let mut stack = Vec::new();
+    while let Some(rev_node) = prev {
+        stack.push(rev_node);
+        prev = rev_node.prev.as_deref();
+    }
+    let prev_iter = std::iter::from_fn(move || stack.pop());
+    prev_iter.flat_map(move |rev_node| {
         let position = if is_root {
             NodePosition::Root
         } else if rev_node.prev.is_none() {
@@ -129,7 +108,8 @@ fn rev_node_iter(
             rev_node.child.as_deref(),
             NodePosition::FirstChild,
         );
-        std::iter::once(info).chain(child_iter)
+        std::iter::once(info)
+            .chain(child_iter)
     })
 }
 
