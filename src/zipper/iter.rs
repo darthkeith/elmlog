@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use crate::zipper::{
     Node,
     RevNode,
@@ -135,7 +136,7 @@ fn rev_node_iter(
 // Pre-order iterator over the focused node and its siblings' subtrees.
 fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
     let is_root = focus.parent.is_none();
-    let (focus_pos, next_pos) = if is_root {
+    let (position, next_pos) = if is_root {
         (NodePosition::Root, NodePosition::Root)
     } else if focus.prev.is_none() {
         (NodePosition::FirstChild, NodePosition::SubsequentChild)
@@ -144,7 +145,7 @@ fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
     };
     let focus_info = NodeInfo {
         label: &focus.label,
-        position: focus_pos,
+        position,
         is_last_sibling: focus.next.is_none(),
         is_focused: true,
     };
@@ -156,5 +157,41 @@ fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
         .chain(focus_iter)
         .chain(child_iter)
         .chain(next_iter)
+}
+
+/// Pre-order iterator over all nodes in the forest.
+pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
+    let mut iter: Box<dyn Iterator<Item = NodeInfo>> =
+        Box::new(siblings_iter(focus));
+    let ancestors = std::iter::successors(
+        focus.parent.as_deref(),
+        |path_node| path_node.parent.as_deref()
+    );
+    for path_node in ancestors {
+        let is_root = path_node.parent.is_none();
+        let (position, next_pos) = if is_root {
+            (NodePosition::Root, NodePosition::Root)
+        } else if path_node.prev.is_none() {
+            (NodePosition::FirstChild, NodePosition::SubsequentChild)
+        } else {
+            (NodePosition::SubsequentChild, NodePosition::SubsequentChild)
+        };
+        let path_node_info = NodeInfo {
+            label: &path_node.label,
+            position,
+            is_last_sibling: path_node.next.is_none(),
+            is_focused: false,
+        };
+        let prev_iter = rev_node_iter(path_node.prev.as_deref(), is_root);
+        let path_node_iter = std::iter::once(path_node_info);
+        let next_iter = node_iter(path_node.next.as_deref(), next_pos);
+        iter = Box::new(
+            prev_iter
+                .chain(path_node_iter)
+                .chain(iter)
+                .chain(next_iter)
+        );
+    }
+    iter
 }
 
