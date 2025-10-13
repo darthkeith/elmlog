@@ -27,7 +27,6 @@ use crate::{
         SaveState,
         SessionState,
     },
-    util,
 };
 
 // Update the Model based on a Confirm mode message.
@@ -63,7 +62,6 @@ fn update_load(
     state: SessionState
 ) -> Command {
     let mode = match msg {
-        LoadMsg::Append(c) => Mode::Load(load_state.append_index(c)),
         LoadMsg::Decrement => Mode::Load(load_state.decrement()),
         LoadMsg::Increment => Mode::Load(load_state.increment()),
         LoadMsg::Open => {
@@ -85,9 +83,6 @@ fn update_normal(
     state: SessionState,
 ) -> Command {
     let mode = match msg {
-        NormalMsg::Append(c) => Mode::Normal(
-            index.map(|i| util::append_index(i, c, state.root.size()))
-        ),
         NormalMsg::Ascend => Mode::Normal(
             index.map(|i| state.root.parent_index(i).unwrap_or(i))
         ),
@@ -215,9 +210,6 @@ fn update_edit(
     mut state: SessionState,
 ) -> Command {
     let mode = match msg {
-        EditMsg::Append(c) => Mode::Edit(
-            util::append_index(index, c, state.root.size())
-        ),
         EditMsg::Ascend => Mode::Edit(
             state.root.parent_index(index).unwrap_or(index)
         ),

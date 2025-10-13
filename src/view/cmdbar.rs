@@ -16,8 +16,8 @@ use crate::{
 
 type KeyPair<'a> = (&'a str, &'a str);
 
-const LOAD_NAVIGATE: KeyPair = ("0-9/JK/↓↑", "Navigate");
-const NAVIGATE: KeyPair = ("0-9/HJKL/←↓↑→", "Navigate");
+const LOAD_NAVIGATE: KeyPair = ("JK │ ↓↑", "Navigate");
+const NAVIGATE: KeyPair = ("HJKL │ ←↓↑→", "Navigate");
 const OPEN: KeyPair = ("Enter", "Open");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");

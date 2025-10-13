@@ -18,9 +18,8 @@ use crate::{
 
 /// A message sent in Load mode.
 pub enum LoadMsg {
-    Append(char),
-    Decrement,
     Increment,
+    Decrement,
     Open,
     New,
     Rename,
@@ -30,7 +29,6 @@ pub enum LoadMsg {
 
 /// A message sent in Normal mode.
 pub enum NormalMsg {
-    Append(char),
     Ascend,
     Next,
     Previous,
@@ -56,7 +54,6 @@ pub enum InputMsg {
 
 /// A message sent in Edit mode.
 pub enum EditMsg {
-    Append(char),
     Ascend,
     Next,
     Previous,
@@ -134,17 +131,14 @@ fn to_confirm_msg(key: KeyCode, confirm_state: ConfirmState) -> Message {
 // Map a `key` to a Message in Load mode.
 fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
     let load_msg = match key {
-        KeyCode::Char(c) => match c {
-            'k' => LoadMsg::Decrement,
-            'j' => LoadMsg::Increment,
-            'n' => LoadMsg::New,
-            'r' => LoadMsg::Rename,
-            'd' => LoadMsg::Delete,
-            'q' => LoadMsg::Quit,
-            _ => LoadMsg::Append(c),
-        },
-        KeyCode::Up => LoadMsg::Decrement,
+        KeyCode::Char('j') => LoadMsg::Increment,
+        KeyCode::Char('k') => LoadMsg::Decrement,
+        KeyCode::Char('n') => LoadMsg::New,
+        KeyCode::Char('r') => LoadMsg::Rename,
+        KeyCode::Char('d') => LoadMsg::Delete,
+        KeyCode::Char('q') => LoadMsg::Quit,
         KeyCode::Down => LoadMsg::Increment,
+        KeyCode::Up => LoadMsg::Decrement,
         KeyCode::Enter => LoadMsg::Open,
         _ => return Message::Continue(Mode::Load(load_state)),
     };
@@ -154,16 +148,13 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 // Map a `key` to a Message in Normal mode.
 fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
-        KeyCode::Char(c) => match c {
-            'h' => NormalMsg::Ascend,
-            'j' => NormalMsg::Next,
-            'k' => NormalMsg::Previous,
-            'l' => NormalMsg::Descend,
-            'i' => NormalMsg::Insert,
-            'e' => NormalMsg::Edit,
-            'q' => NormalMsg::Quit,
-            _ => NormalMsg::Append(c),
-        },
+        KeyCode::Char('h') => NormalMsg::Ascend,
+        KeyCode::Char('j') => NormalMsg::Next,
+        KeyCode::Char('k') => NormalMsg::Previous,
+        KeyCode::Char('l') => NormalMsg::Descend,
+        KeyCode::Char('i') => NormalMsg::Insert,
+        KeyCode::Char('e') => NormalMsg::Edit,
+        KeyCode::Char('q') => NormalMsg::Quit,
         KeyCode::Left => NormalMsg::Ascend,
         KeyCode::Down => NormalMsg::Next,
         KeyCode::Up => NormalMsg::Previous,
@@ -189,19 +180,16 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
 // Map a `key` to a Message in Edit mode.
 fn to_edit_msg(key: KeyCode, index: usize) -> Message {
     let edit_msg = match key {
-        KeyCode::Char(c) => match c {
-            'h' => EditMsg::Ascend,
-            'j' => EditMsg::Next,
-            'k' => EditMsg::Previous,
-            'l' => EditMsg::Descend,
-            'r' => EditMsg::Rename,
-            'm' => EditMsg::Move,
-            'n' => EditMsg::Nest,
-            'f' => EditMsg::Flatten,
-            'i' => EditMsg::Insert,
-            'd' => EditMsg::Delete,
-            _ => EditMsg::Append(c),
-        },
+        KeyCode::Char('h') => EditMsg::Ascend,
+        KeyCode::Char('j') => EditMsg::Next,
+        KeyCode::Char('k') => EditMsg::Previous,
+        KeyCode::Char('l') => EditMsg::Descend,
+        KeyCode::Char('r') => EditMsg::Rename,
+        KeyCode::Char('m') => EditMsg::Move,
+        KeyCode::Char('n') => EditMsg::Nest,
+        KeyCode::Char('f') => EditMsg::Flatten,
+        KeyCode::Char('i') => EditMsg::Insert,
+        KeyCode::Char('d') => EditMsg::Delete,
         KeyCode::Left => EditMsg::Ascend,
         KeyCode::Down => EditMsg::Next,
         KeyCode::Up => EditMsg::Previous,

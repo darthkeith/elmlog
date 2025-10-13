@@ -18,7 +18,6 @@ use crate::{
         SessionState,
     },
     node::Node,
-    util,
 };
 
 const APP_DIR: &str = "elmlog";
@@ -101,11 +100,6 @@ impl LoadState {
     /// Return the current index.
     pub fn index(&self) -> usize {
         self.index
-    }
-
-    pub fn append_index(mut self, c: char) -> Self {
-        self.index = util::append_index(self.index, c, self.size());
-        self
     }
 
     // Rename the selected file.
