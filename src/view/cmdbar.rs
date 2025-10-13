@@ -18,7 +18,6 @@ type KeyPair<'a> = (&'a str, &'a str);
 
 const LOAD_NAVIGATE: KeyPair = ("0-9/JK/↓↑", "Navigate");
 const NAVIGATE: KeyPair = ("0-9/HJKL/←↓↑→", "Navigate");
-const SCROLL: KeyPair = ("Space/U", "Scroll");
 const OPEN: KeyPair = ("Enter", "Open");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
@@ -66,7 +65,7 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
     let mut pairs = Vec::new();
     if root.size() > 1 {
-        pairs.extend(&[NAVIGATE, SCROLL]);
+        pairs.push(NAVIGATE);
     }
     pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, BACK, QUIT]);
     pairs
@@ -85,7 +84,7 @@ fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
 fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if size > 1 {
-        pairs.extend(&[NAVIGATE, SCROLL]);
+        pairs.push(NAVIGATE);
     }
     pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]);
     pairs

@@ -88,12 +88,6 @@ fn update_normal(
         NormalMsg::Append(c) => Mode::Normal(
             index.map(|i| util::append_index(i, c, state.root.size()))
         ),
-        NormalMsg::Decrement => Mode::Normal(
-            index.map(|i| i.saturating_sub(1))
-        ),
-        NormalMsg::Increment => Mode::Normal(
-            index.map(|i| (i + 1).min(state.root.size() - 1))
-        ),
         NormalMsg::Ascend => Mode::Normal(
             index.map(|i| state.root.parent_index(i).unwrap_or(i))
         ),
@@ -223,10 +217,6 @@ fn update_edit(
     let mode = match msg {
         EditMsg::Append(c) => Mode::Edit(
             util::append_index(index, c, state.root.size())
-        ),
-        EditMsg::Decrement => Mode::Edit(index.saturating_sub(1)),
-        EditMsg::Increment => Mode::Edit(
-            (index + 1).min(state.root.size() - 1)
         ),
         EditMsg::Ascend => Mode::Edit(
             state.root.parent_index(index).unwrap_or(index)

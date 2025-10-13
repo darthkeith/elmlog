@@ -31,8 +31,6 @@ pub enum LoadMsg {
 /// A message sent in Normal mode.
 pub enum NormalMsg {
     Append(char),
-    Decrement,
-    Increment,
     Ascend,
     Next,
     Previous,
@@ -59,8 +57,6 @@ pub enum InputMsg {
 /// A message sent in Edit mode.
 pub enum EditMsg {
     Append(char),
-    Decrement,
-    Increment,
     Ascend,
     Next,
     Previous,
@@ -159,8 +155,6 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
     let normal_msg = match key {
         KeyCode::Char(c) => match c {
-            'u' => NormalMsg::Decrement,
-            ' ' => NormalMsg::Increment,
             'h' => NormalMsg::Ascend,
             'j' => NormalMsg::Next,
             'k' => NormalMsg::Previous,
@@ -196,8 +190,6 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
 fn to_edit_msg(key: KeyCode, index: usize) -> Message {
     let edit_msg = match key {
         KeyCode::Char(c) => match c {
-            'u' => EditMsg::Decrement,
-            ' ' => EditMsg::Increment,
             'h' => EditMsg::Ascend,
             'j' => EditMsg::Next,
             'k' => EditMsg::Previous,
