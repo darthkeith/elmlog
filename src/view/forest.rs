@@ -10,7 +10,6 @@ use crate::{
         NodeType,
         PreOrderIter,
     },
-    util,
     view::{
         Scroll,
         style,
@@ -44,7 +43,7 @@ impl<'a> Iterator for ForestIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let (label, pos) = self.label_iter.next()?;
         let NodePosition { node_type, is_last } = pos;
-        let mut tree_row = String::new();
+        let mut tree_row = String::from(" ");
         match node_type {
             NodeType::Root => {
                 self.prefix.clear();
@@ -79,21 +78,16 @@ fn forest(
     text_style: Style,
     tree_style: Style,
 ) -> Scroll {
-    let index_len = util::max_index_length(root.size());
     let lines = ForestIter::new(root)
         .enumerate()
         .map(|(i, (tree_row, label))| {
-            let fmt_index = format!(" {i:>width$}   ", width = index_len);
-            let highlight = i == index;
-            let spans = if highlight {
+            let spans = if i == index {
                 vec![
-                    Span::styled(fmt_index, text_style),
                     Span::styled(tree_row, tree_style),
                     Span::styled(format!("{label} "), text_style),
                 ]
             } else {
                 vec![
-                    Span::raw(fmt_index),
                     Span::styled(tree_row, style::TREE),
                     Span::raw(label),
                 ]

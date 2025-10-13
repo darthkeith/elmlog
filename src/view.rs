@@ -28,7 +28,6 @@ use crate::{
         Model,
         SessionState,
     },
-    util,
 };
 
 use self::{
@@ -124,11 +123,10 @@ fn main_paragraph_scroll(text: Text) -> Paragraph {
 // Return Load mode Scroll with selected file highlighted.
 fn load(load_state: &LoadState, highlight: Style) -> Scroll {
     let selected = load_state.index();
-    let index_len = util::max_index_length(load_state.size());
     let lines = load_state.filename_iter()
         .enumerate()
         .map(|(i, filename)| {
-            let text = format!(" {i:>width$}   {filename} ", width = index_len);
+            let text = format!(" {filename} ");
             let line_style = if i == selected { highlight } else { style::DEFAULT };
             Line::styled(text, line_style)
         });
