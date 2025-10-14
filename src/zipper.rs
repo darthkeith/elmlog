@@ -275,17 +275,15 @@ impl FocusNode {
 
     // Insert a new node as the parent of the focused node.
     fn insert_parent(self, label: String) -> Self {
-        let node = Node {
+        let child = Node {
             child: self.child,
-            next: self.next,
+            next: None,
             label: self.label,
         };
         Self {
-            parent: self.parent,
-            child: join_siblings(self.prev, Some(Box::new(node))),
-            prev: None,
-            next: None,
-            label
+            child: Some(Box::new(child)),
+            label,
+            ..self
         }
     }
 
@@ -302,7 +300,7 @@ impl FocusNode {
             child: self.child,
             prev: None,
             next: None,
-            label
+            label,
         }
     }
 
@@ -314,11 +312,10 @@ impl FocusNode {
             label: self.label,
         };
         Self {
-            parent: self.parent,
             child: None,
-            prev: self.prev,
             next: Some(Box::new(next)),
-            label
+            label,
+            ..self
         }
     }
 
@@ -330,11 +327,10 @@ impl FocusNode {
             label: self.label,
         };
         Self {
-            parent: self.parent,
             child: None,
             prev: Some(Box::new(prev)),
-            next: self.next,
-            label
+            label,
+            ..self
         }
     }
 
