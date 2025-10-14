@@ -6,7 +6,7 @@ use crate::zipper::{
 
 // Indicates a node's structural position within the forest.
 #[derive(Clone, Copy)]
-enum NodePosition {
+pub enum NodePosition {
     Root,
     FirstChild,
     SubsequentChild,
@@ -14,10 +14,10 @@ enum NodePosition {
 
 /// Information required to render each node in the TUI.
 pub struct NodeInfo<'a> {
-    label: &'a str,
-    position: NodePosition,
-    is_last_sibling: bool,
-    is_focused: bool,
+    pub label: &'a str,
+    pub position: NodePosition,
+    pub is_last_sibling: bool,
+    pub is_focused: bool,
 }
 
 // A stack frame used during pre-order traversal of a Node.

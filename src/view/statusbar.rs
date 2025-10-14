@@ -74,15 +74,15 @@ pub fn status_bar(model: &Model) -> Line {
     let content = match &model.mode {
         Mode::Confirm(confirm_state) => match confirm_state {
             ConfirmState::NewSession => status(confirm::NEW),
-            ConfirmState::DeleteItem(..) => status(confirm::DELETE_ITEM),
+            ConfirmState::DeleteItem => status(confirm::DELETE_ITEM),
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
         Mode::Load(_) => status(LOAD),
-        Mode::Normal(_) => status_normal(model.get_filename()),
+        Mode::Normal => status_normal(model.get_filename()),
         Mode::Input(InputState::Label(label_state)) => {
             let message = match label_state.action {
-                LabelAction::Rename(_) => input::RENAME_ITEM,
-                LabelAction::Insert(..) => input::INSERT,
+                LabelAction::Rename => input::RENAME_ITEM,
+                LabelAction::Insert(_) => input::INSERT,
             };
             let info = match label_state.is_empty() {
                 true => Some(alert::EMPTY),
@@ -103,9 +103,9 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(message, info)
         }
-        Mode::Edit(_) => status(EDIT),
-        Mode::Move(_) => status(MOVE),
-        Mode::Insert(_) => status(INSERT),
+        Mode::Edit => status(EDIT),
+        Mode::Move => status(MOVE),
+        Mode::Insert => status(INSERT),
         Mode::Save(save_state) => {
             let info = match save_state.post_save {
                 PostSaveAction::Load => post_save::LOAD,

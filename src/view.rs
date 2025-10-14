@@ -184,15 +184,15 @@ pub fn view(model: &Model, frame: &mut Frame) {
     ] = top_mid_bottom(frame.area());
     frame.render_widget(status_bar(model), status_bar_area);
     let Model { state, mode } = model;
-    let SessionState { root, .. } = state;
+    let SessionState { focus, .. } = state;
     match mode {
         Mode::Confirm(confirm_state) => match confirm_state {
             ConfirmState::NewSession => {
                 let empty = main_paragraph(Text::default());
                 frame.render_widget(empty, main_area);
             }
-            ConfirmState::DeleteItem(index) => {
-                frame.render_widget(forest_delete(root, *index), main_area);
+            ConfirmState::DeleteItem => {
+                frame.render_widget(forest_delete(focus.as_ref()), main_area);
             }
             ConfirmState::DeleteFile(load_state) => {
                 frame.render_widget(load_delete(load_state), main_area);
@@ -201,15 +201,14 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Load(load_state) => {
             frame.render_widget(load_normal(load_state), main_area);
         }
-        Mode::Normal(maybe_index) => {
-            let index = maybe_index.unwrap_or(0);
-            frame.render_widget(forest_normal(root, index), main_area);
+        Mode::Normal => {
+            frame.render_widget(forest_normal(focus.as_ref()), main_area);
         }
         Mode::Input(input_state) => {
             frame.render_widget(text_input(input_state.input()), main_area);
         }
-        Mode::Edit(index) | Mode::Move(index) | Mode::Insert(index) => {
-            frame.render_widget(forest_edit(root, *index), main_area);
+        Mode::Edit | Mode::Move | Mode::Insert => {
+            frame.render_widget(forest_edit(focus.as_ref()), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);

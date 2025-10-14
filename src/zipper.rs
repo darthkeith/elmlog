@@ -1,7 +1,9 @@
-#![allow(dead_code)]
-mod iter;
+pub mod iter;
+
+use serde::{Serialize, Deserialize};
 
 // A node in a multi-way forest stored using child-sibling representation.
+#[derive(Serialize, Deserialize)]
 struct Node {
     child: Option<Box<Node>>,
     next: Option<Box<Node>>,
@@ -9,6 +11,7 @@ struct Node {
 }
 
 // A node with a reversed sibling chain for leftward traversal.
+#[derive(Serialize, Deserialize)]
 struct RevNode {
     child: Option<Box<Node>>,
     prev: Option<Box<RevNode>>,
@@ -16,6 +19,7 @@ struct RevNode {
 }
 
 // A node in the path from the focused node up to the root of its tree.
+#[derive(Serialize, Deserialize)]
 struct PathNode {
     parent: Option<Box<PathNode>>,
     prev: Option<Box<RevNode>>,
@@ -24,6 +28,7 @@ struct PathNode {
 }
 
 /// The focused node in a zipper for a multi-way forest.
+#[derive(Serialize, Deserialize)]
 pub struct FocusNode {
     parent: Option<Box<PathNode>>,
     child: Option<Box<Node>>,
@@ -66,6 +71,17 @@ fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<RevNode>> {
 }
 
 impl FocusNode {
+    /// Construct a forest containing a single node with `label`.
+    pub fn new(label: String) -> Self {
+        Self {
+            parent: None,
+            child: None,
+            prev: None,
+            next: None,
+            label,
+        }
+    }
+
     // Focus on the parent of the current focused node (if present).
     fn focus_parent(self) -> Self {
         match self.parent{
@@ -192,7 +208,7 @@ impl FocusNode {
         }
     }
 
-    // Swap the focused node's subtree with its previous sibling's (if present).
+    // Swap the focused node's subtree with its previous sibling (if present).
     fn swap_prev(self) -> Self {
         match self.prev {
             Some(prev) => {
@@ -211,7 +227,7 @@ impl FocusNode {
         }
     }
 
-    // Swap the focused node's subtree with its next sibling's (if present).
+    // Swap the focused node's subtree with its next sibling (if present).
     fn swap_next(self) -> Self {
         match self.next {
             Some(next) => {
@@ -322,11 +338,6 @@ impl FocusNode {
         }
     }
 
-    // Set the label of the focused node.
-    fn set_label(self, label: String) -> Self {
-        Self { label, ..self }
-    }
-
     // Delete the focused node.
     fn delete(self) -> Option<Self> {
         let focus = self.flatten();
@@ -359,6 +370,14 @@ impl FocusNode {
         };
         Some(new_focus)
     }
+
+    fn set_label(self, label: String) -> Self {
+        Self { label, ..self }
+    }
+
+    fn clone_label(&self) -> String {
+        self.label.clone()
+    }
 }
 
 pub trait FocusNodeExt {
@@ -376,8 +395,9 @@ pub trait FocusNodeExt {
     fn insert_child(self, label: String) -> Option<FocusNode>;
     fn insert_prev(self, label: String) -> Option<FocusNode>;
     fn insert_next(self, label: String) -> Option<FocusNode>;
-    fn set_label(self, label: String) -> Option<FocusNode>;
     fn delete(self) -> Option<FocusNode>;
+    fn set_label(self, label: String) -> Option<FocusNode>;
+    fn clone_label(&self) -> Option<String>;
 }
 
 impl FocusNodeExt for Option<FocusNode> {
@@ -423,11 +443,14 @@ impl FocusNodeExt for Option<FocusNode> {
     fn insert_next(self, label: String) -> Option<FocusNode> {
         self.map(|focus| focus.insert_next(label))
     }
+    fn delete(self) -> Option<FocusNode> {
+        self.and_then(|focus| focus.delete())
+    }
     fn set_label(self, label: String) -> Option<FocusNode> {
         self.map(|focus| focus.set_label(label))
     }
-    fn delete(self) -> Option<FocusNode> {
-        self.and_then(|focus| focus.delete())
+    fn clone_label(&self) -> Option<String> {
+        self.as_ref().map(|focus| focus.clone_label())
     }
 }
 

@@ -27,6 +27,7 @@ use crate::{
         SaveState,
         SessionState,
     },
+    zipper::FocusNodeExt,
 };
 
 // Update the Model based on a Confirm mode message.
@@ -37,10 +38,10 @@ fn update_confirm(
 ) -> Command {
     let mode = match confirm {
         true => match confirm_state {
-            ConfirmState::NewSession => Mode::Normal(None),
-            ConfirmState::DeleteItem(index) => {
-                state = state.delete(index);
-                Mode::new_edit(index, &state.root)
+            ConfirmState::NewSession => Mode::Normal,
+            ConfirmState::DeleteItem => {
+                state = state.delete();
+                if state.focus.is_none() { Mode::Normal } else { Mode::Edit }
             }
             ConfirmState::DeleteFile(load_state) => {
                 return Command::DeleteFile(load_state);
@@ -48,7 +49,7 @@ fn update_confirm(
         }
         false => match confirm_state {
             ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem(index) => Mode::Edit(index),
+            ConfirmState::DeleteItem => Mode::Edit,
             ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
         }
     };
@@ -68,7 +69,7 @@ fn update_load(
             let file_entry = load_state.move_file_entry();
             return Command::InitSession(file_entry);
         }
-        LoadMsg::New => Mode::Normal(None),
+        LoadMsg::New => Mode::Normal,
         LoadMsg::Rename => Mode::Input(InputState::new_rename_file(load_state)),
         LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
@@ -77,31 +78,31 @@ fn update_load(
 }
 
 // Update the Model based on a Normal mode message.
-fn update_normal(
-    msg: NormalMsg,
-    index: Option<usize>,
-    state: SessionState,
-) -> Command {
+fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
     let mode = match msg {
-        NormalMsg::Ascend => Mode::Normal(
-            index.map(|i| state.root.parent_index(i).unwrap_or(i))
-        ),
-        NormalMsg::Next => Mode::Normal(
-            index.map(|i| state.root.next_sibling_index(i).unwrap_or(i))
-        ),
-        NormalMsg::Previous => Mode::Normal(
-            index.map(|i| state.root.prev_sibling_index(i).unwrap_or(i))
-        ),
-        NormalMsg::Descend => Mode::Normal(
-            index.map(|i| state.root.first_child_index(i).unwrap_or(i))
-        ),
-        NormalMsg::Insert => match state.root.size() {
-            0 => Mode::Input(InputState::new_insert_empty()),
-            _ => Mode::Normal(index),
+        NormalMsg::Ascend => {
+            state.focus = state.focus.focus_parent();
+            Mode::Normal
         }
-        NormalMsg::Edit => match index {
-            None => Mode::Normal(None),
-            Some(i) => Mode::Edit(i),
+        NormalMsg::Descend => {
+            state.focus = state.focus.focus_child();
+            Mode::Normal
+        }
+        NormalMsg::Previous => {
+            state.focus = state.focus.focus_prev();
+            Mode::Normal
+        }
+        NormalMsg::Next => {
+            state.focus = state.focus.focus_next();
+            Mode::Normal
+        }
+        NormalMsg::Insert => if state.focus.is_none() {
+            Mode::Input(InputState::new_insert(InsertPosition::Empty))
+        } else {
+            Mode::Normal
+        }
+        NormalMsg::Edit => {
+            if state.focus.is_some() { Mode::Edit } else { Mode::Normal }
         }
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
@@ -132,28 +133,20 @@ fn update_label(
                 let LabelState { input, action } = label_state;
                 let label = input.trim().to_string();
                 let model = match action {
-                    LabelAction::Rename(index) => Model {
-                        state: state.edit(index, label),
-                        mode: Mode::Edit(index),
+                    LabelAction::Rename => Model {
+                        state: state.set_label(label),
+                        mode: Mode::Edit,
                     },
-                    LabelAction::Insert(index, pos) => {
-                        let (state, index) = state.insert(index, pos, label);
-                        Model {
-                            state,
-                            mode: Mode::Edit(index),
-                        }
+                    LabelAction::Insert(pos) => Model {
+                        state: state.insert(pos, label),
+                        mode: Mode::Edit,
                     }
                 };
                 return Command::None(model);
             }
         }
         InputMsg::Cancel => {
-            let mode = match label_state.action {
-                LabelAction::Rename(index) | LabelAction::Insert(index, _) => {
-                    Mode::Edit(index)
-                }
-            };
-            return Command::None(Model { state, mode });
+            return Command::None(Model { state, mode: Mode::Edit });
         }
     };
     let mode = label_state.into_mode();
@@ -194,7 +187,7 @@ fn update_filename(
         InputMsg::Cancel => {
             let mode = match filename_state.action {
                 FilenameAction::Rename(load_state) => Mode::Load(load_state),
-                FilenameAction::SaveNew(_) => Mode::new_normal(0, &state.root),
+                FilenameAction::SaveNew(_) => Mode::Normal,
             };
             return Command::None(Model { state, mode });
         }
@@ -204,98 +197,69 @@ fn update_filename(
 }
 
 // Update the Model based on an Edit mode message.
-fn update_edit(
-    msg: EditMsg,
-    index: usize,
-    mut state: SessionState,
-) -> Command {
+fn update_edit(msg: EditMsg, mut state: SessionState) -> Command {
     let mode = match msg {
-        EditMsg::Ascend => Mode::Edit(
-            state.root.parent_index(index).unwrap_or(index)
-        ),
-        EditMsg::Next => Mode::Edit(
-            state.root.next_sibling_index(index).unwrap_or(index)
-        ),
-        EditMsg::Previous => Mode::Edit(
-            state.root.prev_sibling_index(index).unwrap_or(index)
-        ),
-        EditMsg::Descend => Mode::Edit(
-            state.root.first_child_index(index).unwrap_or(index)
-        ),
-        EditMsg::Rename => {
-            let label = state.root.find_label(index);
-            Mode::Input(InputState::new_rename_label(label, index))
+        EditMsg::Ascend => {
+            state.focus = state.focus.focus_parent();
+            Mode::Edit
         }
-        EditMsg::Move => Mode::Move(index),
+        EditMsg::Descend => {
+            state.focus = state.focus.focus_child();
+            Mode::Edit
+        }
+        EditMsg::Previous => {
+            state.focus = state.focus.focus_prev();
+            Mode::Edit
+        }
+        EditMsg::Next => {
+            state.focus = state.focus.focus_next();
+            Mode::Edit
+        }
+        EditMsg::Rename => match state.focus.clone_label() {
+            Some(label) => Mode::Input(InputState::new_rename_label(label)),
+            None => Mode::Edit,
+        }
+        EditMsg::Move => Mode::Move,
         EditMsg::Nest => {
-            let (new_state, new_index) = state.nest(index);
-            state = new_state;
-            Mode::Edit(new_index)
+            state = state.nest();
+            Mode::Edit
         }
         EditMsg::Flatten => {
-            let (new_state, new_index) = state.flatten(index);
-            state = new_state;
-            Mode::Edit(new_index)
+            state = state.flatten();
+            Mode::Edit
         }
-        EditMsg::Insert => Mode::Insert(index),
-        EditMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem(index)),
-        EditMsg::Back => Mode::Normal(Some(index)),
+        EditMsg::Insert => Mode::Insert,
+        EditMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem),
+        EditMsg::Back => Mode::Normal,
     };
     Command::None(Model { state, mode })
 }
 
 // Update the Model based on a Move mode message.
-fn update_move(
-    msg: MoveMsg,
-    index: usize,
-    state: SessionState,
-) -> Command {
-    let model = match msg {
-        MoveMsg::Forward => {
-            let (state, index) = state.move_forward(index);
-            let mode = Mode::Move(index);
-            Model { state, mode }
-        }
-        MoveMsg::Backward => {
-            let (state, index) = state.move_backward(index);
-            let mode = Mode::Move(index);
-            Model { state, mode }
-        }
-        MoveMsg::Promote => {
-            let (state, index) = state.promote(index);
-            let mode = Mode::Move(index);
-            Model { state, mode }
-        }
-        MoveMsg::Demote => {
-            let (state, index) = state.demote(index);
-            let mode = Mode::Move(index);
-            Model { state, mode }
-        }
-        MoveMsg::Done => Model {
-            state,
-            mode: Mode::Edit(index),
-        }
+fn update_move(msg: MoveMsg, state: SessionState) -> Command {
+    let (state, mode) = match msg {
+        MoveMsg::Promote => (state.promote(), Mode::Move),
+        MoveMsg::Demote => (state.demote(), Mode::Move),
+        MoveMsg::Backward => (state.swap_prev(), Mode::Move),
+        MoveMsg::Forward => (state.swap_next(), Mode::Move),
+        MoveMsg::Done => (state, Mode::Edit),
     };
-    Command::None(model)
+    Command::None(Model { state, mode })
 }
 
 // Update the Model based on an Insert mode message.
-fn update_insert(
-    msg: InsertMsg,
-    index: usize,
-    state: SessionState,
-) -> Command {
+fn update_insert(msg: InsertMsg, state: SessionState) -> Command {
     let position = match msg {
         InsertMsg::Parent => InsertPosition::Parent,
         InsertMsg::Child => InsertPosition::Child,
         InsertMsg::Before => InsertPosition::Before,
         InsertMsg::After => InsertPosition::After,
         InsertMsg::Back => {
-            let mode = Mode::Edit(index);
+            let mode = Mode::Edit;
             return Command::None(Model { state, mode });
         }
     };
-    let mode = Mode::Input(InputState::new_insert(index, position));
+    let mode = Mode::Input(InputState::new_insert(position));
     Command::None(Model { state, mode })
 }
 
@@ -320,7 +284,7 @@ fn update_save(
                 }
             }
         }
-        SaveMsg::Cancel => Mode::new_normal(0, &state.root),
+        SaveMsg::Cancel => Mode::Normal,
     };
     Command::None(Model { state, mode })
 }
@@ -332,7 +296,7 @@ pub fn update(message: Message, state: SessionState) -> Command {
             update_confirm(confirm, confirm_state, state)
         }
         Message::Load(msg, load_state) => update_load(msg, load_state, state),
-        Message::Normal(msg, index) => update_normal(msg, index, state),
+        Message::Normal(msg) => update_normal(msg, state),
         Message::Input(msg, input_state) => match input_state {
             InputState::Label(label_state) => {
                 update_label(msg, label_state, state)
@@ -341,9 +305,9 @@ pub fn update(message: Message, state: SessionState) -> Command {
                 update_filename(msg, filename_state, state)
             }
         }
-        Message::Edit(msg, index) => update_edit(msg, index, state),
-        Message::Move(msg, index) => update_move(msg, index, state),
-        Message::Insert(msg, index) => update_insert(msg, index, state),
+        Message::Edit(msg) => update_edit(msg, state),
+        Message::Move(msg) => update_move(msg, state),
+        Message::Insert(msg) => update_insert(msg, state),
         Message::Save(msg, save_state) => update_save(msg, save_state, state),
         Message::Continue(mode) => Command::None(Model { state, mode }),
     }

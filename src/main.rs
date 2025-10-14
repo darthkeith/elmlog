@@ -1,7 +1,6 @@
 mod io;
 mod message;
 mod model;
-mod node;
 mod update;
 mod view;
 mod zipper;

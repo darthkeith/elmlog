@@ -17,7 +17,7 @@ use crate::{
         PostSaveAction,
         SessionState,
     },
-    node::Node,
+    zipper::FocusNode,
 };
 
 const APP_DIR: &str = "elmlog";
@@ -176,7 +176,7 @@ fn lock(file: &File) {
 }
 
 // Load a forest from a serialized data `file`.
-fn load_forest(mut file: &File) -> Node {
+fn load_forest(mut file: &File) -> Option<FocusNode> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
         .expect("Failed to read file");
@@ -192,7 +192,7 @@ fn init_model(file_entry: FileEntry) -> Model {
         .open(&path)
         .expect("Failed to open file");
     lock(&file);
-    let root = load_forest(&file);
+    let focus = load_forest(&file);
     let open_file = OpenDataFile {
         name,
         path,
@@ -200,8 +200,8 @@ fn init_model(file_entry: FileEntry) -> Model {
         changed: false,
     };
     Model {
-        mode: Mode::new_normal(0, &root),
-        state: SessionState { root, maybe_file: Some(open_file) },
+        mode: Mode::Normal,
+        state: SessionState { focus, maybe_file: Some(open_file) },
     }
 }
 
@@ -211,13 +211,13 @@ fn filename_exists(filename: &str) -> bool {
     path.exists()
 }
 
-// Return the root Node and data file path (if present) from the session state.
+// Return the forest and data file path (if present) from the session state.
 // The locked File is implicitly dropped to unlock it.
-fn unlock_state(state: SessionState) -> (Node, Option<PathBuf>) {
-    let SessionState { root, maybe_file } = state;
+fn unlock_state(state: SessionState) -> (Option<FocusNode>, Option<PathBuf>) {
+    let SessionState { focus, maybe_file } = state;
     let maybe_path = maybe_file
         .map(|open_file| open_file.path);
-    (root, maybe_path)
+    (focus, maybe_path)
 }
 
 // Set whether the file's permissions are read only.
@@ -232,8 +232,8 @@ fn set_read_only(path: &Path, read_only: bool) {
         .expect("Failed to set file permissions");
 }
 
-// Write the forest rooted at `root` to an existing file at `path`.
-fn write_to_file(root: &Node, path: &Path) {
+// Write the forest to an existing file at `path`.
+fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
     set_read_only(path, false);
     let file = OpenOptions::new()
         .write(true)
@@ -241,24 +241,24 @@ fn write_to_file(root: &Node, path: &Path) {
         .open(path)
         .expect("Failed to write to file");
     lock(&file);
-    bincode::serialize_into(&file, root)
+    bincode::serialize_into(&file, focus)
         .expect("Failed to serialize data");
     set_read_only(path, true);
 }
 
 // Save the current session `state`.
 fn save(state: SessionState) {
-    let (root, maybe_path) = unlock_state(state);
+    let (focus, maybe_path) = unlock_state(state);
     if let Some(path) = maybe_path {
-        write_to_file(&root, &path);
+        write_to_file(&focus, &path);
     }
 }
 
-// Save the forest rooted at `root` to the file `filename`.
-fn save_new(root: &Node, filename: &str) -> Result<()> {
+// Save the forest to `filename`.
+fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
-    write_to_file(root, &path);
+    write_to_file(focus, &path);
     Ok(())
 }
 
@@ -301,7 +301,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::SaveNew(state, filename, post_save) => {
             let status = match filename_exists(&filename) {
                 true => FilenameStatus::Exists,
-                false => match save_new(&state.root, &filename) {
+                false => match save_new(&state.focus, &filename) {
                     Err(_) => FilenameStatus::Invalid,
                     Ok(()) => return match post_save {
                         PostSaveAction::Load => execute_command(Command::Load),

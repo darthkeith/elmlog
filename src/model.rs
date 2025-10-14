@@ -1,17 +1,18 @@
 use crate::{
     io::{LoadState, OpenDataFile},
-    node::Node,
+    zipper::{FocusNode, FocusNodeExt},
 };
 
 /// Action to be confirmed in Confirm mode.
 pub enum ConfirmState {
     NewSession,
-    DeleteItem(usize),
+    DeleteItem,
     DeleteFile(LoadState),
 }
 
 /// Position to insert new node relative to selected node.
 pub enum InsertPosition {
+    Empty,
     Parent,
     Child,
     Before,
@@ -20,8 +21,8 @@ pub enum InsertPosition {
 
 /// Action to perform with the user input label string.
 pub enum LabelAction {
-    Rename(usize),
-    Insert(usize, InsertPosition),
+    Rename,
+    Insert(InsertPosition),
 }
 
 /// Current user input label and action to be performed with it.
@@ -73,17 +74,17 @@ pub struct SaveState {
 pub enum Mode {
     Confirm(ConfirmState),
     Load(LoadState),
-    Normal(Option<usize>),
+    Normal,
     Input(InputState),
-    Edit(usize),
-    Move(usize),
-    Insert(usize),
+    Edit,
+    Move,
+    Insert,
     Save(SaveState),
 }
 
 /// State that is persistent across modes within a given session.
 pub struct SessionState {
-    pub root: Node,
+    pub focus: Option<FocusNode>,
     pub maybe_file: Option<OpenDataFile>,
 }
 
@@ -157,25 +158,20 @@ impl FilenameState {
 }
 
 impl InputState {
-    /// Create an InputState to rename the `label` of the item at `index`.
-    pub fn new_rename_label(label: String, index: usize) -> Self {
+    /// Create an InputState to rename the `label` of the selected item.
+    pub fn new_rename_label(label: String) -> Self {
         InputState::Label(LabelState {
             input: label,
-            action: LabelAction::Rename(index),
+            action: LabelAction::Rename,
         })
     }
 
-    /// Create an InputState to insert item at `position` relative to `index`.
-    pub fn new_insert(index: usize, position: InsertPosition) -> Self {
+    /// Create an InputState to insert item at `position` relative to the focused node.
+    pub fn new_insert(position: InsertPosition) -> Self {
         InputState::Label(LabelState {
             input: String::new(),
-            action: LabelAction::Insert(index, position),
+            action: LabelAction::Insert(position),
         })
-    }
-
-    /// Create an InputState to insert item in an empty forest.
-    pub fn new_insert_empty() -> Self {
-        Self::new_insert(0, InsertPosition::Before)
     }
 
     /// Create an InputState to rename a file.
@@ -239,34 +235,18 @@ impl SaveState {
     }
 }
 
-impl Mode {
-    /// Create a Normal mode with valid clamped index.
-    pub fn new_normal(index: usize, root: &Node) -> Self {
-        Self::Normal(
-            if root.is_empty() { None }
-            else { Some(index.min(root.size() - 1)) }
-        )
-    }
-
-    /// Create an Edit mode with valid clamped index, or Normal if root empty.
-    pub fn new_edit(index: usize, root: &Node) -> Self {
-        if root.is_empty() { Self::Normal(None) }
-        else { Self::Edit(index.min(root.size() - 1)) }
-    }
-}
-
 impl SessionState {
     // Create a SessionState with an empty forest and no saved file.
     fn new() -> Self {
         Self {
-            root: Node::Empty,
+            focus: None,
             maybe_file: None,
         }
     }
 
     // Mark the session state as modified if a saved file exists.
     fn into_changed(mut self) -> Self {
-        if let Some(ref mut open_file) = self.maybe_file {
+        if let Some(open_file) = self.maybe_file.as_mut() {
             open_file.set_changed();
         }
         self
@@ -276,80 +256,67 @@ impl SessionState {
     pub fn is_changed(&self) -> bool {
         match &self.maybe_file {
             Some(open_file) => open_file.is_changed(),
-            None => !matches!(self.root, Node::Empty),
+            None => self.focus.is_some(),
         }
     }
 
-    /// Change the label of the item at `index` to `label`.
-    pub fn edit(mut self, index: usize, label: String) -> Self {
-        self.root = self.root.set_label(index, label);
+    /// Set the label of the focused node.
+    pub fn set_label(mut self, label: String) -> Self {
+        self.focus = self.focus.set_label(label);
         self.into_changed()
     }
 
-    /// Swap the subtree at `index` with its next sibling.
-    pub fn move_forward(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.move_forward(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Move the focused node's subtree to be its parent's next sibling.
+    pub fn promote(mut self) -> Self {
+        self.focus = self.focus.promote();
+        self.into_changed()
     }
 
-    /// Swap the subtree at `index` with its previous sibling.
-    pub fn move_backward(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.move_backward(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Move the focused node's subtree to be its previous sibling's last child.
+    pub fn demote(mut self) -> Self {
+        self.focus = self.focus.demote();
+        self.into_changed()
     }
 
-    /// Move subtree at `index` to be its parent's next sibling.
-    ///
-    /// If it has no parent, move it to be the first tree in the forest.
-    pub fn promote(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.promote(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Swap the focused node's subtree with its previous sibling (if present).
+    pub fn swap_prev(mut self) -> Self {
+        self.focus = self.focus.swap_prev();
+        self.into_changed()
     }
 
-    /// Move subtree at `index` to be its previous sibling's last child.
-    pub fn demote(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.demote(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Swap the focused node's subtree with its next sibling (if present).
+    pub fn swap_next(mut self) -> Self {
+        self.focus = self.focus.swap_next();
+        self.into_changed()
     }
 
-    /// Move the siblings of the node at `index` to be its children.
-    pub fn nest(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.nest(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Move the siblings of the focused node to be its children.
+    pub fn nest(mut self) -> Self {
+        self.focus = self.focus.nest();
+        self.into_changed()
     }
 
-    /// Move the children of the node at `index` to be its subsequent siblings.
-    pub fn flatten(mut self, index: usize) -> (Self, usize) {
-        let (new_root, new_index) = self.root.flatten(index);
-        self.root = new_root;
-        (self.into_changed(), new_index)
+    /// Insert the focused node's children before its subsequent siblings.
+    pub fn flatten(mut self) -> Self {
+        self.focus = self.focus.flatten();
+        self.into_changed()
     }
 
-    /// Insert the `label` at `position` relative to `index`.
-    pub fn insert(
-        mut self,
-        index: usize,
-        position: InsertPosition,
-        label: String,
-    ) -> (Self, usize) {
-        let (new_root, new_index) = match position {
-            InsertPosition::Parent => self.root.insert_parent(index, label),
-            InsertPosition::Child => self.root.insert_child(index, label),
-            InsertPosition::Before => self.root.insert_before(index, label),
-            InsertPosition::After => self.root.insert_after(index, label),
+    /// Insert `label` at `position` relative to the focused node.
+    pub fn insert(mut self, position: InsertPosition, label: String) -> Self {
+        self.focus = match position {
+            InsertPosition::Empty => Some(FocusNode::new(label)),
+            InsertPosition::Parent => self.focus.insert_parent(label),
+            InsertPosition::Child => self.focus.insert_child(label),
+            InsertPosition::Before => self.focus.insert_prev(label),
+            InsertPosition::After => self.focus.insert_next(label),
         };
-        self.root = new_root;
-        (self.into_changed(), new_index)
+        self.into_changed()
     }
 
-    /// Delete the item at `index`.
-    pub fn delete(mut self, index: usize) -> Self {
-        self.root = self.root.delete(index);
+    /// Delete the selected item.
+    pub fn delete(mut self) -> Self {
+        self.focus = self.focus.delete();
         self.into_changed()
     }
 }

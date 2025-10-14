@@ -18,8 +18,8 @@ use crate::{
 
 /// A message sent in Load mode.
 pub enum LoadMsg {
-    Increment,
     Decrement,
+    Increment,
     Open,
     New,
     Rename,
@@ -30,9 +30,9 @@ pub enum LoadMsg {
 /// A message sent in Normal mode.
 pub enum NormalMsg {
     Ascend,
-    Next,
-    Previous,
     Descend,
+    Previous,
+    Next,
     Insert,
     Edit,
     Load,
@@ -55,9 +55,9 @@ pub enum InputMsg {
 /// A message sent in Edit mode.
 pub enum EditMsg {
     Ascend,
-    Next,
-    Previous,
     Descend,
+    Previous,
+    Next,
     Rename,
     Move,
     Nest,
@@ -69,10 +69,10 @@ pub enum EditMsg {
 
 /// A message sent in Move mode.
 pub enum MoveMsg {
-    Forward,
-    Backward,
     Promote,
     Demote,
+    Backward,
+    Forward,
     Done,
 }
 
@@ -96,11 +96,11 @@ pub enum SaveMsg {
 pub enum Message {
     Confirm(bool, ConfirmState),
     Load(LoadMsg, LoadState),
-    Normal(NormalMsg, Option<usize>),
+    Normal(NormalMsg),
     Input(InputMsg, InputState),
-    Edit(EditMsg, usize),
-    Move(MoveMsg, usize),
-    Insert(InsertMsg, usize),
+    Edit(EditMsg),
+    Move(MoveMsg),
+    Insert(InsertMsg),
     Save(SaveMsg, SaveState),
     Continue(Mode),
 }
@@ -131,8 +131,8 @@ fn to_confirm_msg(key: KeyCode, confirm_state: ConfirmState) -> Message {
 // Map a `key` to a Message in Load mode.
 fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
     let load_msg = match key {
-        KeyCode::Char('j') => LoadMsg::Increment,
         KeyCode::Char('k') => LoadMsg::Decrement,
+        KeyCode::Char('j') => LoadMsg::Increment,
         KeyCode::Char('n') => LoadMsg::New,
         KeyCode::Char('r') => LoadMsg::Rename,
         KeyCode::Char('d') => LoadMsg::Delete,
@@ -146,23 +146,23 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
 }
 
 // Map a `key` to a Message in Normal mode.
-fn to_normal_msg(key: KeyCode, index: Option<usize>) -> Message {
+fn to_normal_msg(key: KeyCode) -> Message {
     let normal_msg = match key {
         KeyCode::Char('h') => NormalMsg::Ascend,
-        KeyCode::Char('j') => NormalMsg::Next,
-        KeyCode::Char('k') => NormalMsg::Previous,
         KeyCode::Char('l') => NormalMsg::Descend,
+        KeyCode::Char('k') => NormalMsg::Previous,
+        KeyCode::Char('j') => NormalMsg::Next,
         KeyCode::Char('i') => NormalMsg::Insert,
         KeyCode::Char('e') => NormalMsg::Edit,
         KeyCode::Char('q') => NormalMsg::Quit,
         KeyCode::Left => NormalMsg::Ascend,
-        KeyCode::Down => NormalMsg::Next,
-        KeyCode::Up => NormalMsg::Previous,
         KeyCode::Right => NormalMsg::Descend,
+        KeyCode::Up => NormalMsg::Previous,
+        KeyCode::Down => NormalMsg::Next,
         KeyCode::Backspace => NormalMsg::Load,
-        _ => return Message::Continue(Mode::Normal(index)),
+        _ => return Message::Continue(Mode::Normal),
     };
-    Message::Normal(normal_msg, index)
+    Message::Normal(normal_msg)
 }
 
 // Map a `key` to a Message in Input mode.
@@ -178,12 +178,12 @@ fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
 }
 
 // Map a `key` to a Message in Edit mode.
-fn to_edit_msg(key: KeyCode, index: usize) -> Message {
+fn to_edit_msg(key: KeyCode) -> Message {
     let edit_msg = match key {
         KeyCode::Char('h') => EditMsg::Ascend,
-        KeyCode::Char('j') => EditMsg::Next,
-        KeyCode::Char('k') => EditMsg::Previous,
         KeyCode::Char('l') => EditMsg::Descend,
+        KeyCode::Char('k') => EditMsg::Previous,
+        KeyCode::Char('j') => EditMsg::Next,
         KeyCode::Char('r') => EditMsg::Rename,
         KeyCode::Char('m') => EditMsg::Move,
         KeyCode::Char('n') => EditMsg::Nest,
@@ -191,39 +191,39 @@ fn to_edit_msg(key: KeyCode, index: usize) -> Message {
         KeyCode::Char('i') => EditMsg::Insert,
         KeyCode::Char('d') => EditMsg::Delete,
         KeyCode::Left => EditMsg::Ascend,
-        KeyCode::Down => EditMsg::Next,
-        KeyCode::Up => EditMsg::Previous,
         KeyCode::Right => EditMsg::Descend,
+        KeyCode::Up => EditMsg::Previous,
+        KeyCode::Down => EditMsg::Next,
         KeyCode::Backspace => EditMsg::Back,
-        _ => return Message::Continue(Mode::Edit(index)),
+        _ => return Message::Continue(Mode::Edit),
     };
-    Message::Edit(edit_msg, index)
+    Message::Edit(edit_msg)
 }
 
 // Map a `key` to a Message in Move mode.
-fn to_move_msg(key: KeyCode, index: usize) -> Message {
+fn to_move_msg(key: KeyCode) -> Message {
     let move_msg = match key {
-        KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
-        KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
         KeyCode::Char('h') | KeyCode::Left => MoveMsg::Promote,
         KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
+        KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
+        KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
         KeyCode::Enter => MoveMsg::Done,
-        _ => return Message::Continue(Mode::Move(index)),
+        _ => return Message::Continue(Mode::Move),
     };
-    Message::Move(move_msg, index)
+    Message::Move(move_msg)
 }
 
 // Map a `key` to a Message in Insert mode.
-fn to_insert_msg(key: KeyCode, index: usize) -> Message {
+fn to_insert_msg(key: KeyCode) -> Message {
     let insert_msg = match key {
         KeyCode::Char('h') => InsertMsg::Parent,
         KeyCode::Char('l') => InsertMsg::Child,
         KeyCode::Char('k') => InsertMsg::Before,
         KeyCode::Char('j') => InsertMsg::After,
         KeyCode::Backspace => InsertMsg::Back,
-        _ => return Message::Continue(Mode::Insert(index)),
+        _ => return Message::Continue(Mode::Insert),
     };
-    Message::Insert(insert_msg, index)
+    Message::Insert(insert_msg)
 }
 
 // Map a `key` to a Message in Save mode.
@@ -242,11 +242,11 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
     match mode {
         Mode::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
         Mode::Load(load_state) => to_load_msg(key, load_state),
-        Mode::Normal(index) => to_normal_msg(key, index),
+        Mode::Normal => to_normal_msg(key),
         Mode::Input(input) => to_input_msg(key, input),
-        Mode::Edit(index) => to_edit_msg(key, index),
-        Mode::Move(index) => to_move_msg(key, index),
-        Mode::Insert(index) => to_insert_msg(key, index),
+        Mode::Edit => to_edit_msg(key),
+        Mode::Move => to_move_msg(key),
+        Mode::Insert => to_insert_msg(key),
         Mode::Save(save_state) => to_save_msg(key, save_state),
     }
 }

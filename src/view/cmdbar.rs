@@ -10,8 +10,8 @@ use crate::{
         Mode,
         Model,
     },
-    node::Node,
     view::style,
+    zipper::FocusNode,
 };
 
 type KeyPair<'a> = (&'a str, &'a str);
@@ -62,12 +62,14 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(root: &Node) -> Vec<KeyPair> {
+fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
     let mut pairs = Vec::new();
-    if root.size() > 1 {
-        pairs.push(NAVIGATE);
+    if focus.is_none() {
+        pairs.push(INSERT);
+    } else {
+        pairs.extend(&[NAVIGATE, EDIT]);
     }
-    pairs.extend(&[if root.is_empty() { INSERT } else { EDIT }, BACK, QUIT]);
+    pairs.extend(&[BACK, QUIT]);
     pairs
 }
 
@@ -80,17 +82,7 @@ fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
     }
 }
 
-// Return the select mode key-command pairs.
-fn edit_mode_commands(size: usize) -> Vec<KeyPair<'static>> {
-    let mut pairs = Vec::new();
-    if size > 1 {
-        pairs.push(NAVIGATE);
-    }
-    pairs.extend(&[RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]);
-    pairs
-}
-
-// Convert key-command pairs into a command bar.
+// Construct the command bar widget from a sequence of key-command pairs.
 fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
     let mut spans = Vec::new();
     for (key, command) in pairs {
@@ -109,11 +101,11 @@ pub fn command_bar(model: &Model) -> Line {
     let pairs = match &model.mode {
         Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
-        Mode::Normal(_) => normal_mode_commands(&model.state.root),
+        Mode::Normal => normal_mode_commands(model.state.focus.as_ref()),
         Mode::Input(input_state) => input_mode_commands(input_state),
-        Mode::Edit(_) => edit_mode_commands(model.state.root.size()),
-        Mode::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
-        Mode::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
+        Mode::Edit => vec![NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK],
+        Mode::Move => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
+        Mode::Insert => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
     };
     to_command_bar(pairs)
