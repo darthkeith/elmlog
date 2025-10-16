@@ -175,7 +175,7 @@ fn update_filename_input(
         FilenameMsg::Submit => match filename_state.is_empty() {
             true => filename_state.set_status(FilenameStatus::Empty),
             false => {
-                let filename = filename_state.input;
+                let filename = filename_state.trimmed().to_string();
                 match filename_state.action {
                     FilenameAction::Rename(load_state) => {
                         return Command::Rename(state, filename, load_state);

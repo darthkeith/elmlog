@@ -272,7 +272,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         }
         Command::InitSession(file_entry) => init_model(file_entry),
         Command::CheckFileExists(state, filename_state) => {
-            let status = match filename_exists(filename_state.input()) {
+            let status = match filename_exists(filename_state.trimmed()) {
                 true => FilenameStatus::Exists,
                 false => FilenameStatus::Valid,
             };

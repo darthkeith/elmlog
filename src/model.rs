@@ -124,11 +124,6 @@ impl LabelState {
     pub fn is_empty(&self) -> bool {
         self.input.is_empty()
     }
-
-    /// Return a reference to the trimmed user input.
-    pub fn input(&self) -> &str {
-        self.input.trim()
-    }
 }
 
 impl FilenameState {
@@ -181,7 +176,7 @@ impl FilenameState {
     }
 
     /// Return a reference to the trimmed user input.
-    pub fn input(&self) -> &str {
+    pub fn trimmed(&self) -> &str {
         self.input.trim()
     }
 }
