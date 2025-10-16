@@ -3,9 +3,10 @@ use crate::{
     message::{
         Command,
         EditMsg,
+        FilenameMsg,
         InputEdit,
-        InputMsg,
         InsertMsg,
+        LabelMsg,
         LoadMsg,
         Message,
         MoveMsg,
@@ -17,7 +18,6 @@ use crate::{
         FilenameAction,
         FilenameState,
         FilenameStatus,
-        InputState,
         InsertPosition,
         LabelAction,
         LabelState,
@@ -70,7 +70,9 @@ fn update_load(
             return Command::InitSession(file_entry);
         }
         LoadMsg::New => Mode::Normal,
-        LoadMsg::Rename => Mode::Input(InputState::new_rename_file(load_state)),
+        LoadMsg::Rename => {
+            Mode::FilenameInput(FilenameState::new_rename(load_state))
+        }
         LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
@@ -97,7 +99,7 @@ fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
             Mode::Normal
         }
         NormalMsg::Insert => if state.focus.is_none() {
-            Mode::Input(InputState::new_insert(InsertPosition::Empty))
+            Mode::LabelInput(LabelState::new_insert(InsertPosition::Empty))
         } else {
             Mode::Normal
         }
@@ -116,18 +118,18 @@ fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
     Command::None(Model { state, mode })
 }
 
-// Update the Model based on an Input mode label editing message.
-fn update_label(
-    msg: InputMsg,
+// Update the Model based on a Label Input mode message.
+fn update_label_input(
+    msg: LabelMsg,
     label_state: LabelState,
     state: SessionState,
 ) -> Command {
     let label_state = match msg {
-        InputMsg::Edit(edit) => match edit {
+        LabelMsg::Edit(edit) => match edit {
             InputEdit::Append(c) => label_state.append(c),
             InputEdit::PopChar => label_state.pop(),
         }
-        InputMsg::Submit => match label_state.is_empty() {
+        LabelMsg::Submit => match label_state.is_empty() {
             true => label_state,
             false => {
                 let LabelState { input, action } = label_state;
@@ -145,33 +147,33 @@ fn update_label(
                 return Command::None(model);
             }
         }
-        InputMsg::Cancel => {
+        LabelMsg::Cancel => {
             return Command::None(Model { state, mode: Mode::Edit });
         }
     };
-    let mode = label_state.into_mode();
+    let mode = Mode::LabelInput(label_state);
     Command::None(Model { state, mode })
 }
 
-// Update the Model based on an Input mode filename editing message.
-fn update_filename(
-    msg: InputMsg,
+// Update the Model based on a Filename Input mode message.
+fn update_filename_input(
+    msg: FilenameMsg,
     filename_state: FilenameState,
     state: SessionState,
 ) -> Command {
     let filename_state = match msg {
-        InputMsg::Edit(edit) => {
+        FilenameMsg::Edit(edit) => {
             let filename_state = match edit {
                 InputEdit::Append(c) => filename_state.append(c),
                 InputEdit::PopChar => filename_state.pop(),
             };
             match filename_state.is_empty() {
-                true => filename_state.status(FilenameStatus::Empty),
+                true => filename_state.set_status(FilenameStatus::Empty),
                 false => return Command::CheckFileExists(state, filename_state),
             }
         }
-        InputMsg::Submit => match filename_state.is_empty() {
-            true => filename_state.status(FilenameStatus::Empty),
+        FilenameMsg::Submit => match filename_state.is_empty() {
+            true => filename_state.set_status(FilenameStatus::Empty),
             false => {
                 let filename = filename_state.input;
                 match filename_state.action {
@@ -184,7 +186,7 @@ fn update_filename(
                 }
             }
         }
-        InputMsg::Cancel => {
+        FilenameMsg::Cancel => {
             let mode = match filename_state.action {
                 FilenameAction::Rename(load_state) => Mode::Load(load_state),
                 FilenameAction::SaveNew(_) => Mode::Normal,
@@ -192,7 +194,7 @@ fn update_filename(
             return Command::None(Model { state, mode });
         }
     };
-    let mode = filename_state.into_mode();
+    let mode = Mode::FilenameInput(filename_state);
     Command::None(Model { state, mode })
 }
 
@@ -216,7 +218,7 @@ fn update_edit(msg: EditMsg, mut state: SessionState) -> Command {
             Mode::Edit
         }
         EditMsg::Rename => match state.focus.clone_label() {
-            Some(label) => Mode::Input(InputState::new_rename_label(label)),
+            Some(label) => Mode::LabelInput(LabelState::new_rename(label)),
             None => Mode::Edit,
         }
         EditMsg::Move => Mode::Move,
@@ -259,7 +261,7 @@ fn update_insert(msg: InsertMsg, state: SessionState) -> Command {
             return Command::None(Model { state, mode });
         }
     };
-    let mode = Mode::Input(InputState::new_insert(position));
+    let mode = Mode::LabelInput(LabelState::new_insert(position));
     Command::None(Model { state, mode })
 }
 
@@ -276,7 +278,9 @@ fn update_save(
             match save {
                 true => match &state.maybe_file {
                     Some(_) => return Command::Save(state, post_save),
-                    None => Mode::Input(InputState::new_save(post_save)),
+                    None => {
+                        Mode::FilenameInput(FilenameState::new_save(post_save))
+                    }
                 }
                 false => match post_save {
                     PostSaveAction::Load => return Command::Load,
@@ -297,13 +301,11 @@ pub fn update(message: Message, state: SessionState) -> Command {
         }
         Message::Load(msg, load_state) => update_load(msg, load_state, state),
         Message::Normal(msg) => update_normal(msg, state),
-        Message::Input(msg, input_state) => match input_state {
-            InputState::Label(label_state) => {
-                update_label(msg, label_state, state)
-            }
-            InputState::Filename(filename_state) => {
-                update_filename(msg, filename_state, state)
-            }
+        Message::LabelInput(msg, label_state) => {
+            update_label_input(msg, label_state, state)
+        }
+        Message::FilenameInput(msg, filename_state) => {
+            update_filename_input(msg, filename_state, state)
         }
         Message::Edit(msg) => update_edit(msg, state),
         Message::Move(msg) => update_move(msg, state),

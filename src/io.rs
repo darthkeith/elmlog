@@ -276,7 +276,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 true => FilenameStatus::Exists,
                 false => FilenameStatus::Valid,
             };
-            let mode = filename_state.status(status).into_mode();
+            let mode = Mode::FilenameInput(filename_state.set_status(status));
             Model { state, mode }
         }
         Command::Rename(state, filename, mut load_state) => {
@@ -290,12 +290,12 @@ pub fn execute_command(command: Command) -> Option<Model> {
                     }
                 }
             };
-            let mode = FilenameState {
+            let filename_state = FilenameState {
                 input: filename,
                 action: FilenameAction::Rename(load_state),
                 status,
-            }
-            .into_mode();
+            };
+            let mode = Mode::FilenameInput(filename_state);
             Model { state, mode }
         }
         Command::SaveNew(state, filename, post_save) => {
@@ -309,12 +309,12 @@ pub fn execute_command(command: Command) -> Option<Model> {
                     }
                 }
             };
-            let mode = FilenameState {
+            let filename_state = FilenameState {
                 input: filename,
                 action: FilenameAction::SaveNew(post_save),
                 status,
-            }
-            .into_mode();
+            };
+            let mode = Mode::FilenameInput(filename_state);
             Model { state, mode }
         }
         Command::Save(state, action) => {

@@ -58,12 +58,6 @@ pub struct FilenameState {
     pub status: FilenameStatus,
 }
 
-/// Input mode state, storing either a label or filename input.
-pub enum InputState {
-    Label(LabelState),
-    Filename(FilenameState),
-}
-
 /// User's current save choice and subsequent action.
 pub struct SaveState {
     pub save: bool,
@@ -75,7 +69,8 @@ pub enum Mode {
     Confirm(ConfirmState),
     Load(LoadState),
     Normal,
-    Input(InputState),
+    LabelInput(LabelState),
+    FilenameInput(FilenameState),
     Edit,
     Move,
     Insert,
@@ -95,6 +90,22 @@ pub struct Model {
 }
 
 impl LabelState {
+    /// Create a LabelState to insert item at `position` relative to the focused node.
+    pub fn new_insert(position: InsertPosition) -> Self {
+        Self {
+            input: String::new(),
+            action: LabelAction::Insert(position),
+        }
+    }
+
+    /// Create a LabelState to rename the `label` of the focused node.
+    pub fn new_rename(label: String) -> Self {
+        Self {
+            input: label,
+            action: LabelAction::Rename,
+        }
+    }
+
     /// Append a character to the input string, not starting with whitespace.
     pub fn append(mut self, c: char) -> Self {
         if !(self.input.is_empty() && c == ' ') {
@@ -112,43 +123,6 @@ impl LabelState {
     /// Return whether the input text is empty.
     pub fn is_empty(&self) -> bool {
         self.input.is_empty()
-    }
-
-    /// Return the Input mode containing the LabelState.
-    pub fn into_mode(self) -> Mode {
-        Mode::Input(InputState::Label(self))
-    }
-}
-
-impl FilenameState {
-    /// Append a character to the input string, not starting with whitespace.
-    pub fn append(mut self, c: char) -> Self {
-        if !(self.input.is_empty() && c == ' ') {
-            self.input.push(c);
-        }
-        self
-    }
-
-    /// Pop a character from the input text.
-    pub fn pop(mut self) -> Self {
-        self.input.pop();
-        self
-    }
-
-    /// Return whether the input text is empty.
-    pub fn is_empty(&self) -> bool {
-        self.input.is_empty()
-    }
-
-    /// Set the filename status.
-    pub fn status(mut self, status: FilenameStatus) -> Self {
-        self.status = status;
-        self
-    }
-
-    /// Return the Input mode containing the FilenameState.
-    pub fn into_mode(self) -> Mode {
-        Mode::Input(InputState::Filename(self))
     }
 
     /// Return a reference to the trimmed user input.
@@ -157,57 +131,58 @@ impl FilenameState {
     }
 }
 
-impl InputState {
-    /// Create an InputState to rename the `label` of the selected item.
-    pub fn new_rename_label(label: String) -> Self {
-        InputState::Label(LabelState {
-            input: label,
-            action: LabelAction::Rename,
-        })
-    }
-
-    /// Create an InputState to insert item at `position` relative to the focused node.
-    pub fn new_insert(position: InsertPosition) -> Self {
-        InputState::Label(LabelState {
-            input: String::new(),
-            action: LabelAction::Insert(position),
-        })
-    }
-
-    /// Create an InputState to rename a file.
-    pub fn new_rename_file(load_state: LoadState) -> Self {
-        InputState::Filename(FilenameState {
+impl FilenameState {
+    /// Create a FilenameState to rename a file.
+    pub fn new_rename(load_state: LoadState) -> Self {
+        Self {
             input: String::new(),
             action: FilenameAction::Rename(load_state),
             status: FilenameStatus::Empty,
-        })
+        }
     }
 
-    /// Create an InputState to save a new file.
+    /// Create a FilenameState to save a new file.
     pub fn new_save(post_save: PostSaveAction) -> Self {
-        InputState::Filename(FilenameState {
+        Self {
             input: String::new(),
             action: FilenameAction::SaveNew(post_save),
             status: FilenameStatus::Empty,
-        })
+        }
     }
 
-    /// Return whether the user input is valid.
+    /// Append a character to the input string, not starting with whitespace.
+    pub fn append(mut self, c: char) -> Self {
+        if !(self.input.is_empty() && c == ' ') {
+            self.input.push(c);
+        }
+        self
+    }
+
+    /// Pop a character from the input text.
+    pub fn pop(mut self) -> Self {
+        self.input.pop();
+        self
+    }
+
+    /// Set the filename status.
+    pub fn set_status(mut self, status: FilenameStatus) -> Self {
+        self.status = status;
+        self
+    }
+
+    /// Return whether the input text is empty.
+    pub fn is_empty(&self) -> bool {
+        self.input.is_empty()
+    }
+
+    /// Return whether the input is a valid filename.
     pub fn is_valid(&self) -> bool {
-        match self {
-            InputState::Label(label_state) => !label_state.is_empty(),
-            InputState::Filename(filename_state) => {
-                matches!(filename_state.status, FilenameStatus::Valid)
-            }
-        }
+        matches!(self.status, FilenameStatus::Valid)
     }
 
-    /// Return a reference to the user input string.
+    /// Return a reference to the trimmed user input.
     pub fn input(&self) -> &str {
-        match self {
-            InputState::Label(label_state) => &label_state.input,
-            InputState::Filename(filename_state) => &filename_state.input,
-        }
+        self.input.trim()
     }
 }
 

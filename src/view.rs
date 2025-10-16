@@ -204,8 +204,11 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::Normal => {
             frame.render_widget(forest_normal(focus.as_ref()), main_area);
         }
-        Mode::Input(input_state) => {
-            frame.render_widget(text_input(input_state.input()), main_area);
+        Mode::LabelInput(label_state) => {
+            frame.render_widget(text_input(label_state.input()), main_area);
+        }
+        Mode::FilenameInput(filename_state) => {
+            frame.render_widget(text_input(filename_state.input()), main_area);
         }
         Mode::Edit | Mode::Move | Mode::Insert => {
             frame.render_widget(forest_edit(focus.as_ref()), main_area);

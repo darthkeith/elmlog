@@ -7,7 +7,7 @@ use crate::{
     model::{
         ConfirmState,
         FilenameState,
-        InputState,
+        LabelState,
         Mode,
         Model,
         PostSaveAction,
@@ -45,8 +45,15 @@ pub enum InputEdit {
     PopChar,
 }
 
-/// A message sent in Input mode.
-pub enum InputMsg {
+/// A message sent in Label Input mode.
+pub enum LabelMsg {
+    Edit(InputEdit),
+    Submit,
+    Cancel,
+}
+
+/// A message sent in Filename Input mode.
+pub enum FilenameMsg {
     Edit(InputEdit),
     Submit,
     Cancel,
@@ -97,7 +104,8 @@ pub enum Message {
     Confirm(bool, ConfirmState),
     Load(LoadMsg, LoadState),
     Normal(NormalMsg),
-    Input(InputMsg, InputState),
+    LabelInput(LabelMsg, LabelState),
+    FilenameInput(FilenameMsg, FilenameState),
     Edit(EditMsg),
     Move(MoveMsg),
     Insert(InsertMsg),
@@ -165,16 +173,28 @@ fn to_normal_msg(key: KeyCode) -> Message {
     Message::Normal(normal_msg)
 }
 
-// Map a `key` to a Message in Input mode.
-fn to_input_msg(key: KeyCode, input_state: InputState) -> Message {
-    let input_msg = match key {
-        KeyCode::Char(c) => InputMsg::Edit(InputEdit::Append(c)),
-        KeyCode::Backspace => InputMsg::Edit(InputEdit::PopChar),
-        KeyCode::Enter => InputMsg::Submit,
-        KeyCode::Esc => InputMsg::Cancel,
-        _ => return Message::Continue(Mode::Input(input_state)),
+// Map a `key` to a Message in Label Input mode.
+fn to_label_input_msg(key: KeyCode, label_state: LabelState) -> Message {
+    let label_msg = match key {
+        KeyCode::Char(c) => LabelMsg::Edit(InputEdit::Append(c)),
+        KeyCode::Backspace => LabelMsg::Edit(InputEdit::PopChar),
+        KeyCode::Enter => LabelMsg::Submit,
+        KeyCode::Esc => LabelMsg::Cancel,
+        _ => return Message::Continue(Mode::LabelInput(label_state)),
     };
-    Message::Input(input_msg, input_state)
+    Message::LabelInput(label_msg, label_state)
+}
+
+// Map a `key` to a Message in Filename Input mode.
+fn to_filename_input_msg(key: KeyCode, filename_state: FilenameState) -> Message {
+    let filename_msg = match key {
+        KeyCode::Char(c) => FilenameMsg::Edit(InputEdit::Append(c)),
+        KeyCode::Backspace => FilenameMsg::Edit(InputEdit::PopChar),
+        KeyCode::Enter => FilenameMsg::Submit,
+        KeyCode::Esc => FilenameMsg::Cancel,
+        _ => return Message::Continue(Mode::FilenameInput(filename_state)),
+    };
+    Message::FilenameInput(filename_msg, filename_state)
 }
 
 // Map a `key` to a Message in Edit mode.
@@ -243,7 +263,8 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
         Mode::Load(load_state) => to_load_msg(key, load_state),
         Mode::Normal => to_normal_msg(key),
-        Mode::Input(input) => to_input_msg(key, input),
+        Mode::LabelInput(input) => to_label_input_msg(key, input),
+        Mode::FilenameInput(input) => to_filename_input_msg(key, input),
         Mode::Edit => to_edit_msg(key),
         Mode::Move => to_move_msg(key),
         Mode::Insert => to_insert_msg(key),

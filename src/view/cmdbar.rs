@@ -6,7 +6,8 @@ use ratatui::{
 use crate::{
     model::{
         ConfirmState,
-        InputState,
+        FilenameState,
+        LabelState,
         Mode,
         Model,
     },
@@ -74,8 +75,17 @@ fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
 }
 
 // Return the input mode key-command pairs.
-fn input_mode_commands(input_state: &InputState) -> Vec<KeyPair> {
-    if input_state.is_valid() {
+fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair> {
+    if label_state.is_empty() {
+        vec![CANCEL]
+    } else {
+        vec![SUBMIT, CANCEL]
+    }
+}
+
+// Return the input mode key-command pairs.
+fn filename_input_commands(filename_state: &FilenameState) -> Vec<KeyPair> {
+    if filename_state.is_valid() {
         vec![SUBMIT, CANCEL]
     } else {
         vec![CANCEL]
@@ -102,8 +112,13 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
         Mode::Load(load_state) => load_mode_commands(load_state.size()),
         Mode::Normal => normal_mode_commands(model.state.focus.as_ref()),
-        Mode::Input(input_state) => input_mode_commands(input_state),
-        Mode::Edit => vec![NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK],
+        Mode::LabelInput(label_state) => label_input_commands(label_state),
+        Mode::FilenameInput(filename_state) => {
+            filename_input_commands(filename_state)
+        }
+        Mode::Edit => {
+            vec![NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]
+        }
         Mode::Move => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Mode::Insert => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],

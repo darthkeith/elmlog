@@ -8,7 +8,6 @@ use crate::{
         ConfirmState,
         FilenameAction,
         FilenameStatus,
-        InputState,
         LabelAction,
         Mode,
         Model,
@@ -79,7 +78,7 @@ pub fn status_bar(model: &Model) -> Line {
         }
         Mode::Load(_) => status(LOAD),
         Mode::Normal => status_normal(model.get_filename()),
-        Mode::Input(InputState::Label(label_state)) => {
+        Mode::LabelInput(label_state) => {
             let message = match label_state.action {
                 LabelAction::Rename => input::RENAME_ITEM,
                 LabelAction::Insert(_) => input::INSERT,
@@ -90,7 +89,7 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(message, info)
         }
-        Mode::Input(InputState::Filename(filename_state)) => {
+        Mode::FilenameInput(filename_state) => {
             let message = match filename_state.action {
                 FilenameAction::Rename(_) => input::RENAME_FILE,
                 FilenameAction::SaveNew(_) => input::SAVENEW,
