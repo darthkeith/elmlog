@@ -123,7 +123,7 @@ fn update_label_input(
     msg: LabelMsg,
     label_state: LabelState,
     state: SessionState,
-) -> Command {
+) -> Model {
     let label_state = match msg {
         LabelMsg::Edit(edit) => match edit {
             InputEdit::Append(c) => label_state.append(c),
@@ -134,25 +134,19 @@ fn update_label_input(
             false => {
                 let LabelState { input, action } = label_state;
                 let label = input.trim().to_string();
-                let model = match action {
-                    LabelAction::Rename => Model {
-                        state: state.set_label(label),
-                        mode: Mode::Edit,
+                return Model {
+                    state: match action {
+                        LabelAction::Rename => state.set_label(label),
+                        LabelAction::Insert(pos) => state.insert(pos, label),
                     },
-                    LabelAction::Insert(pos) => Model {
-                        state: state.insert(pos, label),
-                        mode: Mode::Edit,
-                    }
+                    mode: Mode::Edit,
                 };
-                return Command::None(model);
             }
         }
-        LabelMsg::Cancel => {
-            return Command::None(Model { state, mode: Mode::Edit });
-        }
+        LabelMsg::Cancel => return Model { state, mode: Mode::Edit },
     };
     let mode = Mode::LabelInput(label_state);
-    Command::None(Model { state, mode })
+    Model { state, mode }
 }
 
 // Update the Model based on a Filename Input mode message.
@@ -199,7 +193,7 @@ fn update_filename_input(
 }
 
 // Update the Model based on an Edit mode message.
-fn update_edit(msg: EditMsg, mut state: SessionState) -> Command {
+fn update_edit(msg: EditMsg, mut state: SessionState) -> Model {
     let mode = match msg {
         EditMsg::Ascend => {
             state.focus = state.focus.focus_parent();
@@ -234,11 +228,11 @@ fn update_edit(msg: EditMsg, mut state: SessionState) -> Command {
         EditMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem),
         EditMsg::Back => Mode::Normal,
     };
-    Command::None(Model { state, mode })
+    Model { state, mode }
 }
 
 // Update the Model based on a Move mode message.
-fn update_move(msg: MoveMsg, state: SessionState) -> Command {
+fn update_move(msg: MoveMsg, state: SessionState) -> Model {
     let (state, mode) = match msg {
         MoveMsg::Promote => (state.promote(), Mode::Move),
         MoveMsg::Demote => (state.demote(), Mode::Move),
@@ -246,23 +240,20 @@ fn update_move(msg: MoveMsg, state: SessionState) -> Command {
         MoveMsg::Forward => (state.swap_next(), Mode::Move),
         MoveMsg::Done => (state, Mode::Edit),
     };
-    Command::None(Model { state, mode })
+    Model { state, mode }
 }
 
 // Update the Model based on an Insert mode message.
-fn update_insert(msg: InsertMsg, state: SessionState) -> Command {
+fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
     let position = match msg {
         InsertMsg::Parent => InsertPosition::Parent,
         InsertMsg::Child => InsertPosition::Child,
         InsertMsg::Before => InsertPosition::Before,
         InsertMsg::After => InsertPosition::After,
-        InsertMsg::Back => {
-            let mode = Mode::Edit;
-            return Command::None(Model { state, mode });
-        }
+        InsertMsg::Back => return Model { state, mode: Mode::Edit },
     };
     let mode = Mode::LabelInput(LabelState::new_insert(position));
-    Command::None(Model { state, mode })
+    Model { state, mode }
 }
 
 // Update the Model based on a Save mode message.
@@ -295,23 +286,28 @@ fn update_save(
 
 /// Update the Model based on `message` and return an IO Command.
 pub fn update(message: Message, state: SessionState) -> Command {
-    match message {
+    let model = match message {
         Message::Confirm(confirm, confirm_state) => {
-            update_confirm(confirm, confirm_state, state)
+            return update_confirm(confirm, confirm_state, state);
         }
-        Message::Load(msg, load_state) => update_load(msg, load_state, state),
-        Message::Normal(msg) => update_normal(msg, state),
+        Message::Load(msg, load_state) => {
+            return update_load(msg, load_state, state);
+        }
+        Message::Normal(msg) => return update_normal(msg, state),
         Message::LabelInput(msg, label_state) => {
             update_label_input(msg, label_state, state)
         }
         Message::FilenameInput(msg, filename_state) => {
-            update_filename_input(msg, filename_state, state)
+            return update_filename_input(msg, filename_state, state);
         }
         Message::Edit(msg) => update_edit(msg, state),
         Message::Move(msg) => update_move(msg, state),
         Message::Insert(msg) => update_insert(msg, state),
-        Message::Save(msg, save_state) => update_save(msg, save_state, state),
-        Message::Continue(mode) => Command::None(Model { state, mode }),
-    }
+        Message::Save(msg, save_state) => {
+            return update_save(msg, save_state, state);
+        }
+        Message::Continue(mode) => Model { state, mode },
+    };
+    Command::None(model)
 }
 
