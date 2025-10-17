@@ -10,19 +10,10 @@ pub enum ConfirmState {
     DeleteFile(LoadState),
 }
 
-/// Position to insert new node relative to selected node.
-pub enum InsertPosition {
-    Empty,
-    Parent,
-    Child,
-    Before,
-    After,
-}
-
 /// Action to perform with the user input label string.
 pub enum LabelAction {
+    Insert,
     Rename,
-    Insert(InsertPosition),
 }
 
 /// Current user input label and action to be performed with it.
@@ -90,11 +81,11 @@ pub struct Model {
 }
 
 impl LabelState {
-    /// Create a LabelState to insert item at `position` relative to the focused node.
-    pub fn new_insert(position: InsertPosition) -> Self {
+    /// Create a LabelState to insert a new item.
+    pub fn new_insert() -> Self {
         Self {
             input: String::new(),
-            action: LabelAction::Insert(position),
+            action: LabelAction::Insert,
         }
     }
 
@@ -269,18 +260,6 @@ impl SessionState {
     /// Insert the focused node's children before its subsequent siblings.
     pub fn flatten(mut self) -> Self {
         self.focus = self.focus.flatten();
-        self.into_changed()
-    }
-
-    /// Insert `label` at `position` relative to the focused node.
-    pub fn insert(mut self, position: InsertPosition, label: String) -> Self {
-        self.focus = match position {
-            InsertPosition::Empty => Some(FocusNode::new(label)),
-            InsertPosition::Parent => self.focus.insert_parent(label),
-            InsertPosition::Child => self.focus.insert_child(label),
-            InsertPosition::Before => self.focus.insert_prev(label),
-            InsertPosition::After => self.focus.insert_next(label),
-        };
         self.into_changed()
     }
 

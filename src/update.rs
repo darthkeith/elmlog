@@ -18,7 +18,6 @@ use crate::{
         FilenameAction,
         FilenameState,
         FilenameStatus,
-        InsertPosition,
         LabelAction,
         LabelState,
         Mode,
@@ -27,7 +26,7 @@ use crate::{
         SaveState,
         SessionState,
     },
-    zipper::FocusNodeExt,
+    zipper::{FocusNode, FocusNodeExt},
 };
 
 // Update the Model based on a Confirm mode message.
@@ -99,7 +98,8 @@ fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
             Mode::Normal
         }
         NormalMsg::Insert => if state.focus.is_none() {
-            Mode::LabelInput(LabelState::new_insert(InsertPosition::Empty))
+            state.focus = Some(FocusNode::new());
+            Mode::LabelInput(LabelState::new_insert())
         } else {
             Mode::Normal
         }
@@ -132,18 +132,27 @@ fn update_label_input(
         LabelMsg::Submit => match label_state.is_empty() {
             true => label_state,
             false => {
-                let LabelState { input, action } = label_state;
-                let label = input.trim().to_string();
+                let label = label_state.input.trim().to_string();
                 return Model {
-                    state: match action {
-                        LabelAction::Rename => state.set_label(label),
-                        LabelAction::Insert(pos) => state.insert(pos, label),
-                    },
+                    state: state.set_label(label),
                     mode: Mode::Edit,
                 };
             }
         }
-        LabelMsg::Cancel => return Model { state, mode: Mode::Edit },
+        LabelMsg::Cancel => return match label_state.action {
+            LabelAction::Insert => {
+                let state = state.delete();
+                let mode = if state.focus.is_none() {
+                    Mode::Normal
+                } else {
+                    Mode::Edit
+                };
+                Model { state, mode }
+            }
+            LabelAction::Rename => {
+                Model { state, mode: Mode::Edit }
+            }
+        }
     };
     let mode = Mode::LabelInput(label_state);
     Model { state, mode }
@@ -244,15 +253,15 @@ fn update_move(msg: MoveMsg, state: SessionState) -> Model {
 }
 
 // Update the Model based on an Insert mode message.
-fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
-    let position = match msg {
-        InsertMsg::Parent => InsertPosition::Parent,
-        InsertMsg::Child => InsertPosition::Child,
-        InsertMsg::Before => InsertPosition::Before,
-        InsertMsg::After => InsertPosition::After,
+fn update_insert(msg: InsertMsg, mut state: SessionState) -> Model {
+    state.focus = match msg {
+        InsertMsg::Parent => state.focus.insert_parent(),
+        InsertMsg::Child => state.focus.insert_child(),
+        InsertMsg::Before => state.focus.insert_prev(),
+        InsertMsg::After => state.focus.insert_next(),
         InsertMsg::Back => return Model { state, mode: Mode::Edit },
     };
-    let mode = Mode::LabelInput(LabelState::new_insert(position));
+    let mode = Mode::LabelInput(LabelState::new_insert());
     Model { state, mode }
 }
 

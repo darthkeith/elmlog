@@ -71,14 +71,14 @@ fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<RevNode>> {
 }
 
 impl FocusNode {
-    /// Construct a forest containing a single node with `label`.
-    pub fn new(label: String) -> Self {
+    /// Construct a forest containing a single node with empty label.
+    pub fn new() -> Self {
         Self {
             parent: None,
             child: None,
             prev: None,
             next: None,
-            label,
+            label: String::new(),
         }
     }
 
@@ -274,7 +274,7 @@ impl FocusNode {
     }
 
     // Insert a new node as the parent of the focused node.
-    fn insert_parent(self, label: String) -> Self {
+    fn insert_parent(self) -> Self {
         let child = Node {
             child: self.child,
             next: None,
@@ -282,13 +282,13 @@ impl FocusNode {
         };
         Self {
             child: Some(Box::new(child)),
-            label,
+            label: String::new(),
             ..self
         }
     }
 
     // Insert a new child node above the focused node's children.
-    fn insert_child(self, label: String) -> Self {
+    fn insert_child(self) -> Self {
         let parent = PathNode {
             parent: self.parent,
             prev: self.prev,
@@ -300,12 +300,12 @@ impl FocusNode {
             child: self.child,
             prev: None,
             next: None,
-            label,
+            label: String::new(),
         }
     }
 
     // Insert a new node as the previous sibling of the focused node.
-    fn insert_prev(self, label: String) -> Self {
+    fn insert_prev(self) -> Self {
         let next = Node {
             child: self.child,
             next: self.next,
@@ -314,13 +314,13 @@ impl FocusNode {
         Self {
             child: None,
             next: Some(Box::new(next)),
-            label,
+            label: String::new(),
             ..self
         }
     }
 
     // Insert a new node as the next sibling of the focused node.
-    fn insert_next(self, label: String) -> Self {
+    fn insert_next(self) -> Self {
         let prev = RevNode {
             child: self.child,
             prev: self.prev,
@@ -329,7 +329,7 @@ impl FocusNode {
         Self {
             child: None,
             prev: Some(Box::new(prev)),
-            label,
+            label: String::new(),
             ..self
         }
     }
@@ -387,10 +387,10 @@ pub trait FocusNodeExt {
     fn swap_next(self) -> Option<FocusNode>;
     fn nest(self) -> Option<FocusNode>;
     fn flatten(self) -> Option<FocusNode>;
-    fn insert_parent(self, label: String) -> Option<FocusNode>;
-    fn insert_child(self, label: String) -> Option<FocusNode>;
-    fn insert_prev(self, label: String) -> Option<FocusNode>;
-    fn insert_next(self, label: String) -> Option<FocusNode>;
+    fn insert_parent(self) -> Option<FocusNode>;
+    fn insert_child(self) -> Option<FocusNode>;
+    fn insert_prev(self) -> Option<FocusNode>;
+    fn insert_next(self) -> Option<FocusNode>;
     fn delete(self) -> Option<FocusNode>;
     fn set_label(self, label: String) -> Option<FocusNode>;
     fn clone_label(&self) -> Option<String>;
@@ -427,17 +427,17 @@ impl FocusNodeExt for Option<FocusNode> {
     fn flatten(self) -> Option<FocusNode> {
         self.map(|focus| focus.flatten())
     }
-    fn insert_parent(self, label: String) -> Option<FocusNode> {
-        self.map(|focus| focus.insert_parent(label))
+    fn insert_parent(self) -> Option<FocusNode> {
+        self.map(FocusNode::insert_parent)
     }
-    fn insert_child(self, label: String) -> Option<FocusNode> {
-        self.map(|focus| focus.insert_child(label))
+    fn insert_child(self) -> Option<FocusNode> {
+        self.map(FocusNode::insert_child)
     }
-    fn insert_prev(self, label: String) -> Option<FocusNode> {
-        self.map(|focus| focus.insert_prev(label))
+    fn insert_prev(self) -> Option<FocusNode> {
+        self.map(FocusNode::insert_prev)
     }
-    fn insert_next(self, label: String) -> Option<FocusNode> {
-        self.map(|focus| focus.insert_next(label))
+    fn insert_next(self) -> Option<FocusNode> {
+        self.map(FocusNode::insert_next)
     }
     fn delete(self) -> Option<FocusNode> {
         self.and_then(|focus| focus.delete())

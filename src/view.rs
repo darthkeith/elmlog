@@ -33,8 +33,9 @@ use crate::{
 use self::{
     cmdbar::command_bar,
     forest::{
-        forest_edit,
         forest_delete,
+        forest_edit,
+        forest_input,
         forest_normal,
     },
     statusbar::status_bar,
@@ -205,7 +206,8 @@ pub fn view(model: &Model, frame: &mut Frame) {
             frame.render_widget(forest_normal(focus.as_ref()), main_area);
         }
         Mode::LabelInput(label_state) => {
-            frame.render_widget(text_input(&label_state.input), main_area);
+            let forest = forest_input(focus.as_ref(), &label_state.input);
+            frame.render_widget(forest, main_area);
         }
         Mode::FilenameInput(filename_state) => {
             frame.render_widget(text_input(&filename_state.input), main_area);

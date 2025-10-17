@@ -81,7 +81,7 @@ pub fn status_bar(model: &Model) -> Line {
         Mode::LabelInput(label_state) => {
             let message = match label_state.action {
                 LabelAction::Rename => input::RENAME_ITEM,
-                LabelAction::Insert(_) => input::INSERT,
+                LabelAction::Insert => input::INSERT,
             };
             let info = match label_state.is_empty() {
                 true => Some(alert::EMPTY),
