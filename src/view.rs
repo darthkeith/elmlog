@@ -32,12 +32,6 @@ use crate::{
 
 use self::{
     cmdbar::command_bar,
-    forest::{
-        forest_delete,
-        forest_edit,
-        forest_input,
-        forest_normal,
-    },
     statusbar::status_bar,
 };
 
@@ -193,7 +187,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
                 frame.render_widget(empty, main_area);
             }
             ConfirmState::DeleteItem => {
-                frame.render_widget(forest_delete(focus.as_ref()), main_area);
+                frame.render_widget(forest::delete(focus.as_ref()), main_area);
             }
             ConfirmState::DeleteFile(load_state) => {
                 frame.render_widget(load_delete(load_state), main_area);
@@ -203,17 +197,20 @@ pub fn view(model: &Model, frame: &mut Frame) {
             frame.render_widget(load_normal(load_state), main_area);
         }
         Mode::Normal => {
-            frame.render_widget(forest_normal(focus.as_ref()), main_area);
+            frame.render_widget(forest::normal(focus.as_ref()), main_area);
         }
         Mode::LabelInput(label_state) => {
-            let forest = forest_input(focus.as_ref(), &label_state.input);
+            let forest = forest::input(focus.as_ref(), &label_state.input);
             frame.render_widget(forest, main_area);
         }
         Mode::FilenameInput(filename_state) => {
             frame.render_widget(text_input(&filename_state.input), main_area);
         }
-        Mode::Edit | Mode::Move | Mode::Insert => {
-            frame.render_widget(forest_edit(focus.as_ref()), main_area);
+        Mode::Edit | Mode::Insert => {
+            frame.render_widget(forest::edit(focus.as_ref()), main_area);
+        }
+        Mode::Move => {
+            frame.render_widget(forest::move_mode(focus.as_ref()), main_area);
         }
         Mode::Save(save_state) => {
             frame.render_widget(save_query(save_state.save), main_area);

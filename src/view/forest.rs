@@ -127,22 +127,27 @@ fn forest<'a>(
 }
 
 /// Return a forest widget for Normal mode.
-pub fn forest_normal(focus: Option<&FocusNode>) -> Scroll {
+pub fn normal(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DEFAULT_BOLD, style::TREE)
 }
 
 /// Return a forest widget for editing.
-pub fn forest_edit(focus: Option<&FocusNode>) -> Scroll {
+pub fn edit(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DEFAULT_HL, style::TREE_HL)
 }
 
+/// Return a forest widget for Move mode.
+pub fn move_mode(focus: Option<&FocusNode>) -> Scroll {
+    forest(focus, None, style::MOVE_TEXT, style::MOVE_TREE)
+}
+
 /// Return a forest widget for confirming a deletion.
-pub fn forest_delete(focus: Option<&FocusNode>) -> Scroll {
+pub fn delete(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DELETE, style::TREE_DELETE)
 }
 
 /// Return a forest widget with user `input` at the focused node.
-pub fn forest_input<'a>(
+pub fn input<'a>(
     focus: Option<&'a FocusNode>,
     input: &'a str,
 ) -> Scroll<'a> {
