@@ -146,6 +146,11 @@ pub fn delete(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DELETE, style::TREE_DELETE)
 }
 
+/// Return a forest widget for selecting an insert position.
+pub fn insert(focus: Option<&FocusNode>) -> Scroll {
+    forest(focus, None, style::INSERT_TEXT, style::INSERT_TREE)
+}
+
 /// Return a forest widget with user `input` at the focused node.
 pub fn input<'a>(
     focus: Option<&'a FocusNode>,
