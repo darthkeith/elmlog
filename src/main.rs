@@ -17,7 +17,7 @@ use crate::{
     view::view,
 };
 
-fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
+fn run(mut terminal: DefaultTerminal) -> Result<()> {
     let mut model = execute_command(Command::Load).unwrap();
     loop {
         terminal.draw(|frame| view(&model, frame))?;
@@ -25,7 +25,7 @@ fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
         let message = handle_event(mode)?;
         let command = update(message, state);
         model = match execute_command(command) {
-            Some(updated_model) => updated_model,
+            Some(model) => model,
             None => return Ok(()),
         }
     }
@@ -34,7 +34,7 @@ fn main_loop(mut terminal: DefaultTerminal) -> Result<()> {
 fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     terminal.clear()?;
-    let result = main_loop(terminal);
+    let result = run(terminal);
     ratatui::restore();
     result
 }
