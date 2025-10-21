@@ -398,34 +398,34 @@ pub trait FocusNodeExt {
 
 impl FocusNodeExt for Option<FocusNode> {
     fn focus_parent(self) -> Option<FocusNode> {
-        self.map(|focus| focus.focus_parent())
+        self.map(FocusNode::focus_parent)
     }
     fn focus_child(self) -> Option<FocusNode> {
-        self.map(|focus| focus.focus_child())
+        self.map(FocusNode::focus_child)
     }
     fn focus_prev(self) -> Option<FocusNode> {
-        self.map(|focus| focus.focus_prev())
+        self.map(FocusNode::focus_prev)
     }
     fn focus_next(self) -> Option<FocusNode> {
-        self.map(|focus| focus.focus_next())
+        self.map(FocusNode::focus_next)
     }
     fn promote(self) -> Option<FocusNode> {
-        self.map(|focus| focus.promote())
+        self.map(FocusNode::promote)
     }
     fn demote(self) -> Option<FocusNode> {
-        self.map(|focus| focus.demote())
+        self.map(FocusNode::demote)
     }
     fn swap_prev(self) -> Option<FocusNode> {
-        self.map(|focus| focus.swap_prev())
+        self.map(FocusNode::swap_prev)
     }
     fn swap_next(self) -> Option<FocusNode> {
-        self.map(|focus| focus.swap_next())
+        self.map(FocusNode::swap_next)
     }
     fn nest(self) -> Option<FocusNode> {
-        self.map(|focus| focus.nest())
+        self.map(FocusNode::nest)
     }
     fn flatten(self) -> Option<FocusNode> {
-        self.map(|focus| focus.flatten())
+        self.map(FocusNode::flatten)
     }
     fn insert_parent(self) -> Option<FocusNode> {
         self.map(FocusNode::insert_parent)
@@ -440,13 +440,13 @@ impl FocusNodeExt for Option<FocusNode> {
         self.map(FocusNode::insert_next)
     }
     fn delete(self) -> Option<FocusNode> {
-        self.and_then(|focus| focus.delete())
+        self.and_then(FocusNode::delete)
     }
     fn set_label(self, label: String) -> Option<FocusNode> {
         self.map(|focus| focus.set_label(label))
     }
     fn clone_label(&self) -> Option<String> {
-        self.as_ref().map(|focus| focus.clone_label())
+        self.as_ref().map(FocusNode::clone_label)
     }
 }
 
