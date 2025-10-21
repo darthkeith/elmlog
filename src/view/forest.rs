@@ -131,11 +131,6 @@ pub fn normal(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DEFAULT_BOLD, style::TREE)
 }
 
-/// Return a forest widget for editing.
-pub fn edit(focus: Option<&FocusNode>) -> Scroll {
-    forest(focus, None, style::DEFAULT_HL, style::TREE_HL)
-}
-
 /// Return a forest widget for Move mode.
 pub fn move_mode(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::MOVE_TEXT, style::MOVE_TREE)

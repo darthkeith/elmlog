@@ -2,7 +2,6 @@ use crate::{
     io::LoadState,
     message::{
         Command,
-        EditMsg,
         FilenameMsg,
         InputEdit,
         InsertMsg,
@@ -40,7 +39,7 @@ fn update_confirm(
             ConfirmState::NewSession => Mode::Normal,
             ConfirmState::DeleteItem => {
                 state = state.delete();
-                if state.focus.is_none() { Mode::Normal } else { Mode::Edit }
+                Mode::Normal
             }
             ConfirmState::DeleteFile(load_state) => {
                 return Command::DeleteFile(load_state);
@@ -48,7 +47,7 @@ fn update_confirm(
         }
         false => match confirm_state {
             ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem => Mode::Edit,
+            ConfirmState::DeleteItem => Mode::Normal,
             ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
         }
     };
@@ -97,15 +96,26 @@ fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
             state.focus = state.focus.focus_next();
             Mode::Normal
         }
-        NormalMsg::Insert => if state.focus.is_none() {
+        NormalMsg::Rename => match state.focus.clone_label() {
+            Some(label) => Mode::LabelInput(LabelState::new_rename(label)),
+            None => Mode::Normal,
+        }
+        NormalMsg::Insert => if state.focus.is_some() {
+            Mode::Insert
+        } else {
             state.focus = Some(FocusNode::new());
             Mode::LabelInput(LabelState::new_insert())
-        } else {
+        }
+        NormalMsg::Move => Mode::Move,
+        NormalMsg::Nest => {
+            state = state.nest();
             Mode::Normal
         }
-        NormalMsg::Edit => {
-            if state.focus.is_some() { Mode::Edit } else { Mode::Normal }
+        NormalMsg::Flatten => {
+            state = state.flatten();
+            Mode::Normal
         }
+        NormalMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem),
         NormalMsg::Load => match state.is_changed() {
             true => Mode::Save(SaveState::new_load()),
             false => return Command::Load,
@@ -135,23 +145,16 @@ fn update_label_input(
                 let label = label_state.input.trim().to_string();
                 return Model {
                     state: state.set_label(label),
-                    mode: Mode::Edit,
+                    mode: Mode::Normal,
                 };
             }
         }
-        LabelMsg::Cancel => return match label_state.action {
-            LabelAction::Insert => {
-                let state = state.delete();
-                let mode = if state.focus.is_none() {
-                    Mode::Normal
-                } else {
-                    Mode::Edit
-                };
-                Model { state, mode }
-            }
-            LabelAction::Rename => {
-                Model { state, mode: Mode::Edit }
-            }
+        LabelMsg::Cancel => return Model {
+            state: match label_state.action {
+                LabelAction::Insert => state.delete(),
+                LabelAction::Rename => state,
+            },
+            mode: Mode::Normal,
         }
     };
     let mode = Mode::LabelInput(label_state);
@@ -201,45 +204,6 @@ fn update_filename_input(
     Command::None(Model { state, mode })
 }
 
-// Update the Model based on an Edit mode message.
-fn update_edit(msg: EditMsg, mut state: SessionState) -> Model {
-    let mode = match msg {
-        EditMsg::Ascend => {
-            state.focus = state.focus.focus_parent();
-            Mode::Edit
-        }
-        EditMsg::Descend => {
-            state.focus = state.focus.focus_child();
-            Mode::Edit
-        }
-        EditMsg::Previous => {
-            state.focus = state.focus.focus_prev();
-            Mode::Edit
-        }
-        EditMsg::Next => {
-            state.focus = state.focus.focus_next();
-            Mode::Edit
-        }
-        EditMsg::Rename => match state.focus.clone_label() {
-            Some(label) => Mode::LabelInput(LabelState::new_rename(label)),
-            None => Mode::Edit,
-        }
-        EditMsg::Move => Mode::Move,
-        EditMsg::Nest => {
-            state = state.nest();
-            Mode::Edit
-        }
-        EditMsg::Flatten => {
-            state = state.flatten();
-            Mode::Edit
-        }
-        EditMsg::Insert => Mode::Insert,
-        EditMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem),
-        EditMsg::Back => Mode::Normal,
-    };
-    Model { state, mode }
-}
-
 // Update the Model based on a Move mode message.
 fn update_move(msg: MoveMsg, state: SessionState) -> Model {
     let (state, mode) = match msg {
@@ -247,7 +211,7 @@ fn update_move(msg: MoveMsg, state: SessionState) -> Model {
         MoveMsg::Demote => (state.demote(), Mode::Move),
         MoveMsg::Backward => (state.swap_prev(), Mode::Move),
         MoveMsg::Forward => (state.swap_next(), Mode::Move),
-        MoveMsg::Done => (state, Mode::Edit),
+        MoveMsg::Done => (state, Mode::Normal),
     };
     Model { state, mode }
 }
@@ -259,7 +223,7 @@ fn update_insert(msg: InsertMsg, mut state: SessionState) -> Model {
         InsertMsg::Child => state.focus.insert_child(),
         InsertMsg::Before => state.focus.insert_prev(),
         InsertMsg::After => state.focus.insert_next(),
-        InsertMsg::Back => return Model { state, mode: Mode::Edit },
+        InsertMsg::Back => return Model { state, mode: Mode::Normal },
     };
     let mode = Mode::LabelInput(LabelState::new_insert());
     Model { state, mode }
@@ -309,7 +273,6 @@ pub fn update(message: Message, state: SessionState) -> Command {
         Message::FilenameInput(msg, filename_state) => {
             return update_filename_input(msg, filename_state, state);
         }
-        Message::Edit(msg) => update_edit(msg, state),
         Message::Move(msg) => update_move(msg, state),
         Message::Insert(msg) => update_insert(msg, state),
         Message::Save(msg, save_state) => {

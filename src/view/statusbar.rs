@@ -37,7 +37,6 @@ mod post_save {
     pub const QUIT: &str = "Quitting";
 }
 const LOAD: &str = "Open a file or start a new session";
-const EDIT: &str = "Select item / make changes";
 const MOVE: &str = "Move subtree";
 const INSERT: &str = "Enter position to insert new item";
 const SAVE: &str = "Save changes?";
@@ -102,7 +101,6 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(message, info)
         }
-        Mode::Edit => status(EDIT),
         Mode::Move => status(MOVE),
         Mode::Insert => status(INSERT),
         Mode::Save(save_state) => {

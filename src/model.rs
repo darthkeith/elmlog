@@ -62,7 +62,6 @@ pub enum Mode {
     Normal,
     LabelInput(LabelState),
     FilenameInput(FilenameState),
-    Edit,
     Move,
     Insert,
     Save(SaveState),

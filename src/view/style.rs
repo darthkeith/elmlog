@@ -31,7 +31,6 @@ pub const INSERT_TEXT: Style = Style::new().fg(WHITE).bg(GREEN)
 pub const INSERT_TREE: Style = Style::new().fg(GRAY).bg(GREEN);
 pub const ACCENT: Style = Style::new().fg(FG).bg(BG2);
 pub const TREE: Style = Style::new().fg(GRAY).bg(BG);
-pub const TREE_HL: Style = Style::new().fg(GRAY).bg(FG);
 pub const CURSOR: Style = DEFAULT.add_modifier(Modifier::SLOW_BLINK);
 pub const CMD_KEY: Style = Style::new().fg(BG_DARK).bg(FG_DARK)
     .add_modifier(Modifier::BOLD);

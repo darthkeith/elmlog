@@ -206,9 +206,6 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Mode::FilenameInput(filename_state) => {
             frame.render_widget(text_input(&filename_state.input), main_area);
         }
-        Mode::Edit => {
-            frame.render_widget(forest::edit(focus.as_ref()), main_area);
-        }
         Mode::Move => {
             frame.render_widget(forest::move_mode(focus.as_ref()), main_area);
         }

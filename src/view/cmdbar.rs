@@ -25,7 +25,6 @@ const CONFIRM: KeyPair = ("Enter", "Confirm");
 const DONE: KeyPair = ("Enter", "Done");
 const NEW: KeyPair = ("N", "New");
 const QUIT: KeyPair = ("Q", "Quit");
-const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
 const NEST: KeyPair = ("N", "Nest");
 const FLATTEN: KeyPair = ("F", "Flatten");
@@ -68,7 +67,7 @@ fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
     if focus.is_none() {
         pairs.push(INSERT);
     } else {
-        pairs.extend(&[NAVIGATE, EDIT]);
+        pairs.extend(&[NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE]);
     }
     pairs.extend(&[BACK, QUIT]);
     pairs
@@ -115,9 +114,6 @@ pub fn command_bar(model: &Model) -> Line {
         Mode::LabelInput(label_state) => label_input_commands(label_state),
         Mode::FilenameInput(filename_state) => {
             filename_input_commands(filename_state)
-        }
-        Mode::Edit => {
-            vec![NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE, BACK]
         }
         Mode::Move => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Mode::Insert => vec![PARENT, CHILD, BEFORE, AFTER, BACK],

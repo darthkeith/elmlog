@@ -33,8 +33,12 @@ pub enum NormalMsg {
     Descend,
     Previous,
     Next,
+    Rename,
     Insert,
-    Edit,
+    Move,
+    Nest,
+    Flatten,
+    Delete,
     Load,
     Quit,
 }
@@ -57,21 +61,6 @@ pub enum FilenameMsg {
     Edit(InputEdit),
     Submit,
     Cancel,
-}
-
-/// A message sent in Edit mode.
-pub enum EditMsg {
-    Ascend,
-    Descend,
-    Previous,
-    Next,
-    Rename,
-    Move,
-    Nest,
-    Flatten,
-    Insert,
-    Delete,
-    Back,
 }
 
 /// A message sent in Move mode.
@@ -106,7 +95,6 @@ pub enum Message {
     Normal(NormalMsg),
     LabelInput(LabelMsg, LabelState),
     FilenameInput(FilenameMsg, FilenameState),
-    Edit(EditMsg),
     Move(MoveMsg),
     Insert(InsertMsg),
     Save(SaveMsg, SaveState),
@@ -160,8 +148,12 @@ fn to_normal_msg(key: KeyCode) -> Message {
         KeyCode::Char('l') => NormalMsg::Descend,
         KeyCode::Char('k') => NormalMsg::Previous,
         KeyCode::Char('j') => NormalMsg::Next,
+        KeyCode::Char('r') => NormalMsg::Rename,
         KeyCode::Char('i') => NormalMsg::Insert,
-        KeyCode::Char('e') => NormalMsg::Edit,
+        KeyCode::Char('m') => NormalMsg::Move,
+        KeyCode::Char('n') => NormalMsg::Nest,
+        KeyCode::Char('f') => NormalMsg::Flatten,
+        KeyCode::Char('d') => NormalMsg::Delete,
         KeyCode::Char('q') => NormalMsg::Quit,
         KeyCode::Left => NormalMsg::Ascend,
         KeyCode::Right => NormalMsg::Descend,
@@ -195,29 +187,6 @@ fn to_filename_input_msg(key: KeyCode, filename_state: FilenameState) -> Message
         _ => return Message::Continue(Mode::FilenameInput(filename_state)),
     };
     Message::FilenameInput(filename_msg, filename_state)
-}
-
-// Map a `key` to a Message in Edit mode.
-fn to_edit_msg(key: KeyCode) -> Message {
-    let edit_msg = match key {
-        KeyCode::Char('h') => EditMsg::Ascend,
-        KeyCode::Char('l') => EditMsg::Descend,
-        KeyCode::Char('k') => EditMsg::Previous,
-        KeyCode::Char('j') => EditMsg::Next,
-        KeyCode::Char('r') => EditMsg::Rename,
-        KeyCode::Char('m') => EditMsg::Move,
-        KeyCode::Char('n') => EditMsg::Nest,
-        KeyCode::Char('f') => EditMsg::Flatten,
-        KeyCode::Char('i') => EditMsg::Insert,
-        KeyCode::Char('d') => EditMsg::Delete,
-        KeyCode::Left => EditMsg::Ascend,
-        KeyCode::Right => EditMsg::Descend,
-        KeyCode::Up => EditMsg::Previous,
-        KeyCode::Down => EditMsg::Next,
-        KeyCode::Backspace => EditMsg::Back,
-        _ => return Message::Continue(Mode::Edit),
-    };
-    Message::Edit(edit_msg)
 }
 
 // Map a `key` to a Message in Move mode.
@@ -265,7 +234,6 @@ fn key_to_message(mode: Mode, key: KeyCode) -> Message {
         Mode::Normal => to_normal_msg(key),
         Mode::LabelInput(input) => to_label_input_msg(key, input),
         Mode::FilenameInput(input) => to_filename_input_msg(key, input),
-        Mode::Edit => to_edit_msg(key),
         Mode::Move => to_move_msg(key),
         Mode::Insert => to_insert_msg(key),
         Mode::Save(save_state) => to_save_msg(key, save_state),
