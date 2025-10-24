@@ -37,10 +37,9 @@ pub struct LoadState {
 ///
 /// The File is only stored to keep the lock active.
 pub struct OpenDataFile {
-    name: String,
+    pub name: String,
     path: PathBuf,
     _file: File,
-    changed: bool,
 }
 
 /// A message indicating an IO action to perform.
@@ -137,20 +136,6 @@ impl LoadState {
     }
 }
 
-impl OpenDataFile {
-    pub fn set_changed(&mut self) {
-        self.changed = true;
-    }
-
-    pub fn is_changed(&self) -> bool {
-        self.changed
-    }
-
-    pub fn get_name(&self) -> &str {
-        &self.name
-    }
-}
-
 // Return the application directory path, creating any missing directories.
 fn app_dir_path() -> PathBuf {
     let data_dir = dirs::data_dir()
@@ -209,11 +194,11 @@ fn init_model(file_entry: FileEntry) -> Model {
         name,
         path,
         _file: file,
-        changed: false,
     };
     let state = SessionState {
         focus,
         maybe_file: Some(open_file),
+        changed: false,
     };
     Model::Normal(state)
 }
@@ -227,7 +212,7 @@ fn filename_exists(filename: &str) -> bool {
 // Return the forest and data file path (if present) from the session state.
 // The locked File is implicitly dropped to unlock it.
 fn unlock_state(state: SessionState) -> (Option<FocusNode>, Option<PathBuf>) {
-    let SessionState { focus, maybe_file } = state;
+    let SessionState { focus, maybe_file, .. } = state;
     let maybe_path = maybe_file
         .map(|open_file| open_file.path);
     (focus, maybe_path)

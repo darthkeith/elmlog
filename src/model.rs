@@ -7,19 +7,7 @@ use crate::{
 pub struct SessionState {
     pub focus: Option<FocusNode>,
     pub maybe_file: Option<OpenDataFile>,
-}
-
-/// Action to perform with the user input label string.
-pub enum LabelAction {
-    Insert,
-    Rename,
-}
-
-/// Current user input label and action to be performed with it.
-pub struct LabelState {
-    pub input: String,
-    pub action: LabelAction,
-    pub session: SessionState,
+    pub changed: bool,
 }
 
 /// Action to perform after saving.
@@ -32,6 +20,19 @@ pub enum PostSaveAction {
 pub struct SaveState {
     pub save: bool,
     pub post_save: PostSaveAction,
+    pub session: SessionState,
+}
+
+/// Action to perform with the user input label string.
+pub enum LabelAction {
+    Insert,
+    Rename,
+}
+
+/// Current user input label and action to be performed with it.
+pub struct LabelState {
+    pub input: String,
+    pub action: LabelAction,
     pub session: SessionState,
 }
 
@@ -197,124 +198,153 @@ impl SessionState {
         Self {
             focus: None,
             maybe_file: None,
-        }
-    }
-
-    // Mark the session state as modified if a saved file exists.
-    fn into_changed(mut self) -> Self {
-        if let Some(open_file) = self.maybe_file.as_mut() {
-            open_file.set_changed();
-        }
-        self
-    }
-
-    /// Return whether data was changed in the current session.
-    pub fn is_changed(&self) -> bool {
-        match &self.maybe_file {
-            Some(open_file) => open_file.is_changed(),
-            None => self.focus.is_some(),
+            changed: false,
         }
     }
 
     /// Focus on the parent of the current focused node (if present).
-    pub fn focus_parent(mut self) -> Self {
-        self.focus = self.focus.focus_parent();
-        self
+    pub fn focus_parent(self) -> Self {
+        Self {
+            focus: self.focus.focus_parent(),
+            ..self
+        }
     }
 
     /// Focus on the first child of the current focused node (if present).
-    pub fn focus_child(mut self) -> Self {
-        self.focus = self.focus.focus_child();
-        self
+    pub fn focus_child(self) -> Self {
+        Self {
+            focus: self.focus.focus_child(),
+            ..self
+        }
     }
 
     /// Focus on the previous sibling of the current focused node (if present).
-    pub fn focus_prev(mut self) -> Self {
-        self.focus = self.focus.focus_prev();
-        self
+    pub fn focus_prev(self) -> Self {
+        Self {
+            focus: self.focus.focus_prev(),
+            ..self
+        }
     }
 
     /// Focus on the next sibling of the current focused node (if present).
-    pub fn focus_next(mut self) -> Self {
-        self.focus = self.focus.focus_next();
-        self
+    pub fn focus_next(self) -> Self {
+        Self {
+            focus: self.focus.focus_next(),
+            ..self
+        }
     }
 
     /// Move the focused node's subtree to be its parent's next sibling.
-    pub fn promote(mut self) -> Self {
-        self.focus = self.focus.promote();
-        self.into_changed()
+    pub fn promote(self) -> Self {
+        Self {
+            focus: self.focus.promote(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Move the focused node's subtree to be its previous sibling's last child.
-    pub fn demote(mut self) -> Self {
-        self.focus = self.focus.demote();
-        self.into_changed()
+    pub fn demote(self) -> Self {
+        Self {
+            focus: self.focus.demote(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Swap the focused node's subtree with its previous sibling (if present).
-    pub fn swap_prev(mut self) -> Self {
-        self.focus = self.focus.swap_prev();
-        self.into_changed()
+    pub fn swap_prev(self) -> Self {
+        Self {
+            focus: self.focus.swap_prev(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Swap the focused node's subtree with its next sibling (if present).
-    pub fn swap_next(mut self) -> Self {
-        self.focus = self.focus.swap_next();
-        self.into_changed()
+    pub fn swap_next(self) -> Self {
+        Self {
+            focus: self.focus.swap_next(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Move the siblings of the focused node to be its children.
-    pub fn nest(mut self) -> Self {
-        self.focus = self.focus.nest();
-        self.into_changed()
+    pub fn nest(self) -> Self {
+        Self {
+            focus: self.focus.nest(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Insert the focused node's children before its subsequent siblings.
-    pub fn flatten(mut self) -> Self {
-        self.focus = self.focus.flatten();
-        self.into_changed()
+    pub fn flatten(self) -> Self {
+        Self {
+            focus: self.focus.flatten(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Insert a new node as the parent of the focused node.
-    pub fn insert_parent(mut self) -> Self {
-        self.focus = self.focus.insert_parent();
-        self.into_changed()
+    pub fn insert_parent(self) -> Self {
+        Self {
+            focus: self.focus.insert_parent(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Insert a new child node above the focused node's children.
-    pub fn insert_child(mut self) -> Self {
-        self.focus = self.focus.insert_child();
-        self.into_changed()
+    pub fn insert_child(self) -> Self {
+        Self {
+            focus: self.focus.insert_child(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Insert a new node as the previous sibling of the focused node.
-    pub fn insert_prev(mut self) -> Self {
-        self.focus = self.focus.insert_prev();
-        self.into_changed()
+    pub fn insert_prev(self) -> Self {
+        Self {
+            focus: self.focus.insert_prev(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Insert a new node as the next sibling of the focused node.
-    pub fn insert_next(mut self) -> Self {
-        self.focus = self.focus.insert_next();
-        self.into_changed()
+    pub fn insert_next(self) -> Self {
+        Self {
+            focus: self.focus.insert_next(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Delete the selected item.
-    pub fn delete(mut self) -> Self {
-        self.focus = self.focus.delete();
-        self.into_changed()
+    pub fn delete(self) -> Self {
+        Self {
+            focus: self.focus.delete(),
+            changed: true,
+            ..self
+        }
     }
 
     /// Set the label of the focused node.
-    pub fn set_label(mut self, label: String) -> Self {
-        self.focus = self.focus.set_label(label);
-        self.into_changed()
+    pub fn set_label(self, label: String) -> Self {
+        Self {
+            focus: self.focus.set_label(label),
+            changed: true,
+            ..self
+        }
     }
 
     /// Return the filename if it exists.
     pub fn get_filename(&self) -> Option<&str> {
-        self.maybe_file.as_ref().map(OpenDataFile::get_name)
+        self.maybe_file.as_ref().map(|file| file.name.as_str())
     }
 }
 

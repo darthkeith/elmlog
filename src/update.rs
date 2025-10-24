@@ -68,13 +68,15 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         NormalMsg::Nest => Model::Normal(state.nest()),
         NormalMsg::Flatten => Model::Normal(state.flatten()),
         NormalMsg::Delete => Model::Confirm(ConfirmState::DeleteItem(state)),
-        NormalMsg::Load => match state.is_changed() {
-            true => Model::Save(SaveState::new_load(state)),
-            false => return Command::Load,
+        NormalMsg::Load => if state.changed {
+            Model::Save(SaveState::new_load(state))
+        } else {
+            return Command::Load
         }
-        NormalMsg::Quit => match state.is_changed() {
-            true => Model::Save(SaveState::new_quit(state)),
-            false => return Command::Quit,
+        NormalMsg::Quit => if state.changed {
+            Model::Save(SaveState::new_quit(state))
+        } else {
+            return Command::Quit
         }
     };
     Command::None(model)
@@ -104,31 +106,6 @@ fn update_move(msg: MoveMsg, state: SessionState) -> Model {
     Model::Move(state)
 }
 
-// Update the Model based on a Label Input mode message.
-fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
-    let label_state = match msg {
-        LabelMsg::Edit(edit) => match edit {
-            InputEdit::Append(c) => label_state.append(c),
-            InputEdit::PopChar => label_state.pop(),
-        }
-        LabelMsg::Submit => if label_state.input.is_empty() {
-            label_state
-        } else {
-            let label = label_state.input.trim().to_string();
-            let state = label_state.session.set_label(label);
-            return Model::Normal(state);
-        }
-        LabelMsg::Cancel => {
-            let state = match label_state.action {
-                LabelAction::Insert => label_state.session.delete(),
-                LabelAction::Rename => label_state.session,
-            };
-            return Model::Normal(state);
-        }
-    };
-    Model::LabelInput(label_state)
-}
-
 // Update the Model based on a Save mode message.
 fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
     let model = match msg {
@@ -152,6 +129,31 @@ fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
         SaveMsg::Cancel => Model::Normal(save_state.session),
     };
     Command::None(model)
+}
+
+// Update the Model based on a Label Input mode message.
+fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
+    let label_state = match msg {
+        LabelMsg::Edit(edit) => match edit {
+            InputEdit::Append(c) => label_state.append(c),
+            InputEdit::PopChar => label_state.pop(),
+        }
+        LabelMsg::Submit => if label_state.input.is_empty() {
+            label_state
+        } else {
+            let label = label_state.input.trim().to_string();
+            let state = label_state.session.set_label(label);
+            return Model::Normal(state);
+        }
+        LabelMsg::Cancel => {
+            let state = match label_state.action {
+                LabelAction::Insert => label_state.session.delete(),
+                LabelAction::Rename => label_state.session,
+            };
+            return Model::Normal(state);
+        }
+    };
+    Model::LabelInput(label_state)
 }
 
 // Update the Model based on a Filename Input mode message.
@@ -226,10 +228,10 @@ pub fn update(message: Message) -> Command {
             update_insert(insert_msg, session_state),
         Message::Move(move_msg, session_state) =>
             update_move(move_msg, session_state),
-        Message::LabelInput(label_msg, label_state) =>
-            update_label_input(label_msg, label_state),
         Message::Save(save_msg, save_state) =>
             return update_save(save_msg, save_state),
+        Message::LabelInput(label_msg, label_state) =>
+            update_label_input(label_msg, label_state),
         Message::FilenameInput(filename_msg, filename_state) =>
             return update_filename_input(filename_msg, filename_state),
         Message::Confirm(confirm_msg, confirm_state) => {
