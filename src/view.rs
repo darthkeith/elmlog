@@ -22,12 +22,7 @@ use ratatui::{
 
 use crate::{
     io::LoadState,
-    model::{
-        ConfirmState,
-        Mode,
-        Model,
-        SessionState,
-    },
+    model::{ConfirmState, Model},
 };
 
 use self::{
@@ -178,42 +173,41 @@ pub fn view(model: &Model, frame: &mut Frame) {
         command_bar_area
     ] = top_mid_bottom(frame.area());
     frame.render_widget(status_bar(model), status_bar_area);
-    let Model { state, mode } = model;
-    let SessionState { focus, .. } = state;
-    match mode {
-        Mode::Confirm(confirm_state) => match confirm_state {
+    match model {
+        Model::Load(load_state) =>
+            frame.render_widget(load_normal(load_state), main_area),
+        Model::Normal(state) => {
+            let forest = forest::normal(state.focus.as_ref());
+            frame.render_widget(forest, main_area);
+        }
+        Model::Insert(state) => {
+            let forest = forest::insert(state.focus.as_ref());
+            frame.render_widget(forest, main_area);
+        }
+        Model::Move(state) => {
+            let forest = forest::move_mode(state.focus.as_ref());
+            frame.render_widget(forest, main_area);
+        }
+        Model::Save(save_state) =>
+            frame.render_widget(save_query(save_state.save), main_area),
+        Model::LabelInput(label_state) => {
+            let focus = label_state.session.focus.as_ref();
+            let forest = forest::input(focus, &label_state.input);
+            frame.render_widget(forest, main_area);
+        }
+        Model::FilenameInput(filename_state) =>
+            frame.render_widget(text_input(&filename_state.input), main_area),
+        Model::Confirm(confirm_state) => match confirm_state {
             ConfirmState::NewSession => {
                 let empty = main_paragraph(Text::default());
                 frame.render_widget(empty, main_area);
             }
-            ConfirmState::DeleteItem => {
-                frame.render_widget(forest::delete(focus.as_ref()), main_area);
+            ConfirmState::DeleteItem(state) => {
+                let forest = forest::delete(state.focus.as_ref());
+                frame.render_widget(forest, main_area);
             }
-            ConfirmState::DeleteFile(load_state) => {
-                frame.render_widget(load_delete(load_state), main_area);
-            }
-        }
-        Mode::Load(load_state) => {
-            frame.render_widget(load_normal(load_state), main_area);
-        }
-        Mode::Normal => {
-            frame.render_widget(forest::normal(focus.as_ref()), main_area);
-        }
-        Mode::LabelInput(label_state) => {
-            let forest = forest::input(focus.as_ref(), &label_state.input);
-            frame.render_widget(forest, main_area);
-        }
-        Mode::FilenameInput(filename_state) => {
-            frame.render_widget(text_input(&filename_state.input), main_area);
-        }
-        Mode::Move => {
-            frame.render_widget(forest::move_mode(focus.as_ref()), main_area);
-        }
-        Mode::Insert => {
-            frame.render_widget(forest::insert(focus.as_ref()), main_area);
-        }
-        Mode::Save(save_state) => {
-            frame.render_widget(save_query(save_state.save), main_area);
+            ConfirmState::DeleteFile(load_state) =>
+                frame.render_widget(load_delete(load_state), main_area),
         }
     }
     frame.render_widget(command_bar(model), command_bar_area);

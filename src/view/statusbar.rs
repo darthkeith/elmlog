@@ -9,7 +9,6 @@ use crate::{
         FilenameAction,
         FilenameStatus,
         LabelAction,
-        Mode,
         Model,
         PostSaveAction,
     },
@@ -69,29 +68,34 @@ fn status_normal(maybe_filename: Option<&str>) -> Vec<Span> {
 
 /// Return the status bar widget based on the `model`.
 pub fn status_bar(model: &Model) -> Line {
-    let content = match &model.mode {
-        Mode::Confirm(confirm_state) => match confirm_state {
-            ConfirmState::NewSession => status(confirm::NEW),
-            ConfirmState::DeleteItem => status(confirm::DELETE_ITEM),
-            ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
-        }
-        Mode::Load(_) => status(LOAD),
-        Mode::Normal => status_normal(model.get_filename()),
-        Mode::LabelInput(label_state) => {
-            let message = match label_state.action {
-                LabelAction::Rename => input::RENAME_ITEM,
-                LabelAction::Insert => input::INSERT,
+    let content = match model {
+        Model::Load(_) => status(LOAD),
+        Model::Normal(state) => status_normal(state.get_filename()),
+        Model::Insert(_) => status(INSERT),
+        Model::Move(_) => status(MOVE),
+        Model::Save(save_state) => {
+            let info = match save_state.post_save {
+                PostSaveAction::Load => post_save::LOAD,
+                PostSaveAction::Quit => post_save::QUIT,
             };
-            let info = match label_state.is_empty() {
-                true => Some(alert::EMPTY),
-                false => None,
+            status_info(SAVE, Some(info))
+        }
+        Model::LabelInput(label_state) => {
+            let message = match label_state.action {
+                LabelAction::Insert => input::INSERT,
+                LabelAction::Rename => input::RENAME_ITEM,
+            };
+            let info = if label_state.input.is_empty() {
+                Some(alert::EMPTY)
+            } else {
+                None
             };
             status_info(message, info)
         }
-        Mode::FilenameInput(filename_state) => {
+        Model::FilenameInput(filename_state) => {
             let message = match filename_state.action {
                 FilenameAction::Rename(_) => input::RENAME_FILE,
-                FilenameAction::SaveNew(_) => input::SAVENEW,
+                FilenameAction::SaveNew { .. } => input::SAVENEW,
             };
             let info = match filename_state.status {
                 FilenameStatus::Empty => Some(alert::EMPTY),
@@ -101,20 +105,16 @@ pub fn status_bar(model: &Model) -> Line {
             };
             status_info(message, info)
         }
-        Mode::Move => status(MOVE),
-        Mode::Insert => status(INSERT),
-        Mode::Save(save_state) => {
-            let info = match save_state.post_save {
-                PostSaveAction::Load => post_save::LOAD,
-                PostSaveAction::Quit => post_save::QUIT,
-            };
-            status_info(SAVE, Some(info))
+        Model::Confirm(confirm_state) => match confirm_state {
+            ConfirmState::NewSession => status(confirm::NEW),
+            ConfirmState::DeleteItem(_) => status(confirm::DELETE_ITEM),
+            ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
     };
     let mut spans = vec![" ".into()];
     spans.extend(content);
     Line::from(spans)
-    .left_aligned()
-    .set_style(style::ACCENT)
+        .left_aligned()
+        .set_style(style::ACCENT)
 }
 

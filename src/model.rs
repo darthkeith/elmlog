@@ -3,11 +3,10 @@ use crate::{
     zipper::{FocusNode, FocusNodeExt},
 };
 
-/// Action to be confirmed in Confirm mode.
-pub enum ConfirmState {
-    NewSession,
-    DeleteItem,
-    DeleteFile(LoadState),
+/// Persistent state for an active session.
+pub struct SessionState {
+    pub focus: Option<FocusNode>,
+    pub maybe_file: Option<OpenDataFile>,
 }
 
 /// Action to perform with the user input label string.
@@ -20,6 +19,7 @@ pub enum LabelAction {
 pub struct LabelState {
     pub input: String,
     pub action: LabelAction,
+    pub session: SessionState,
 }
 
 /// Action to perform after saving.
@@ -28,10 +28,11 @@ pub enum PostSaveAction {
     Quit,
 }
 
-/// Action to perform with the user input filename string.
-pub enum FilenameAction {
-    Rename(LoadState),
-    SaveNew(PostSaveAction),
+/// User's current save choice and subsequent action.
+pub struct SaveState {
+    pub save: bool,
+    pub post_save: PostSaveAction,
+    pub session: SessionState,
 }
 
 /// Status of the user input filename string.
@@ -42,57 +43,57 @@ pub enum FilenameStatus {
     Valid,
 }
 
+/// Action to perform with the user input filename string.
+pub enum FilenameAction {
+    Rename(LoadState),
+    SaveNew {
+        session: SessionState,
+        post_save: PostSaveAction,
+    },
+}
+
 /// Current user input filename with status and next action to be performed.
 pub struct FilenameState {
     pub input: String,
-    pub action: FilenameAction,
     pub status: FilenameStatus,
+    pub action: FilenameAction,
 }
 
-/// User's current save choice and subsequent action.
-pub struct SaveState {
-    pub save: bool,
-    pub post_save: PostSaveAction,
+/// Action to be confirmed in Confirm mode.
+pub enum ConfirmState {
+    NewSession,
+    DeleteItem(SessionState),
+    DeleteFile(LoadState),
 }
 
-/// Operational modes of the application.
-pub enum Mode {
-    Confirm(ConfirmState),
+/// Complete application state, with a variant for each mode.
+pub enum Model {
     Load(LoadState),
-    Normal,
+    Normal(SessionState),
+    Insert(SessionState),
+    Move(SessionState),
+    Save(SaveState),
     LabelInput(LabelState),
     FilenameInput(FilenameState),
-    Move,
-    Insert,
-    Save(SaveState),
-}
-
-/// State that is persistent across modes within a given session.
-pub struct SessionState {
-    pub focus: Option<FocusNode>,
-    pub maybe_file: Option<OpenDataFile>,
-}
-
-/// State of the entire application.
-pub struct Model {
-    pub state: SessionState,
-    pub mode: Mode,
+    Confirm(ConfirmState),
 }
 
 impl LabelState {
     /// Create a LabelState to insert a new item.
-    pub fn new_insert() -> Self {
+    pub fn new_insert(session: SessionState) -> Self {
         Self {
             input: String::new(),
             action: LabelAction::Insert,
+            session,
         }
     }
 
     /// Create a LabelState to rename the `label` of the focused node.
-    pub fn new_rename(label: String) -> Self {
+    pub fn new_rename(label: String, session: SessionState) -> Self {
         Self {
             input: label,
             action: LabelAction::Rename,
+            session,
         }
     }
 
@@ -109,11 +110,6 @@ impl LabelState {
         self.input.pop();
         self
     }
-
-    /// Return whether the input text is empty.
-    pub fn is_empty(&self) -> bool {
-        self.input.is_empty()
-    }
 }
 
 impl FilenameState {
@@ -121,17 +117,20 @@ impl FilenameState {
     pub fn new_rename(load_state: LoadState) -> Self {
         Self {
             input: String::new(),
-            action: FilenameAction::Rename(load_state),
             status: FilenameStatus::Empty,
+            action: FilenameAction::Rename(load_state),
         }
     }
 
     /// Create a FilenameState to save a new file.
-    pub fn new_save(post_save: PostSaveAction) -> Self {
+    pub fn new_save(session: SessionState, post_save: PostSaveAction) -> Self {
         Self {
             input: String::new(),
-            action: FilenameAction::SaveNew(post_save),
             status: FilenameStatus::Empty,
+            action: FilenameAction::SaveNew {
+                session,
+                post_save,
+            },
         }
     }
 
@@ -155,11 +154,6 @@ impl FilenameState {
         self
     }
 
-    /// Return whether the input text is empty.
-    pub fn is_empty(&self) -> bool {
-        self.input.is_empty()
-    }
-
     /// Return whether the input is a valid filename.
     pub fn is_valid(&self) -> bool {
         matches!(self.status, FilenameStatus::Valid)
@@ -173,18 +167,20 @@ impl FilenameState {
 
 impl SaveState {
     /// Create a SaveState for subsequently loading.
-    pub fn new_load() -> Self {
-        SaveState {
+    pub fn new_load(session: SessionState) -> Self {
+        Self {
             save: true,
             post_save: PostSaveAction::Load,
+            session,
         }
     }
 
     /// Create a SaveState for subsequently quitting.
-    pub fn new_quit() -> Self {
-        SaveState {
+    pub fn new_quit(session: SessionState) -> Self {
+        Self {
             save: true,
             post_save: PostSaveAction::Quit,
+            session,
         }
     }
 
@@ -197,7 +193,7 @@ impl SaveState {
 
 impl SessionState {
     // Create a SessionState with an empty forest and no saved file.
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             focus: None,
             maybe_file: None,
@@ -220,10 +216,28 @@ impl SessionState {
         }
     }
 
-    /// Set the label of the focused node.
-    pub fn set_label(mut self, label: String) -> Self {
-        self.focus = self.focus.set_label(label);
-        self.into_changed()
+    /// Focus on the parent of the current focused node (if present).
+    pub fn focus_parent(mut self) -> Self {
+        self.focus = self.focus.focus_parent();
+        self
+    }
+
+    /// Focus on the first child of the current focused node (if present).
+    pub fn focus_child(mut self) -> Self {
+        self.focus = self.focus.focus_child();
+        self
+    }
+
+    /// Focus on the previous sibling of the current focused node (if present).
+    pub fn focus_prev(mut self) -> Self {
+        self.focus = self.focus.focus_prev();
+        self
+    }
+
+    /// Focus on the next sibling of the current focused node (if present).
+    pub fn focus_next(mut self) -> Self {
+        self.focus = self.focus.focus_next();
+        self
     }
 
     /// Move the focused node's subtree to be its parent's next sibling.
@@ -262,36 +276,45 @@ impl SessionState {
         self.into_changed()
     }
 
+    /// Insert a new node as the parent of the focused node.
+    pub fn insert_parent(mut self) -> Self {
+        self.focus = self.focus.insert_parent();
+        self.into_changed()
+    }
+
+    /// Insert a new child node above the focused node's children.
+    pub fn insert_child(mut self) -> Self {
+        self.focus = self.focus.insert_child();
+        self.into_changed()
+    }
+
+    /// Insert a new node as the previous sibling of the focused node.
+    pub fn insert_prev(mut self) -> Self {
+        self.focus = self.focus.insert_prev();
+        self.into_changed()
+    }
+
+    /// Insert a new node as the next sibling of the focused node.
+    pub fn insert_next(mut self) -> Self {
+        self.focus = self.focus.insert_next();
+        self.into_changed()
+    }
+
     /// Delete the selected item.
     pub fn delete(mut self) -> Self {
         self.focus = self.focus.delete();
         self.into_changed()
     }
-}
 
-impl Model {
-    /// Create a default Model for when there are no saved files.
-    pub fn default() -> Self {
-        Model {
-            state: SessionState::new(),
-            mode: Mode::Confirm(ConfirmState::NewSession),
-        }
-    }
-
-    /// Create a Model in Load mode containing the `load_state`.
-    pub fn load(load_state: LoadState) -> Self {
-        Model {
-            state: SessionState::new(),
-            mode: Mode::Load(load_state),
-        }
+    /// Set the label of the focused node.
+    pub fn set_label(mut self, label: String) -> Self {
+        self.focus = self.focus.set_label(label);
+        self.into_changed()
     }
 
     /// Return the filename if it exists.
     pub fn get_filename(&self) -> Option<&str> {
-        match &self.state.maybe_file {
-            Some(open_file) => Some(open_file.get_name()),
-            None => None,
-        }
+        self.maybe_file.as_ref().map(OpenDataFile::get_name)
     }
 }
 

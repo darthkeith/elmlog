@@ -3,14 +3,12 @@ use std::io::Result;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
 use crate::{
-    io::{FileEntry, LoadState},
+    io::LoadState,
     model::{
         ConfirmState,
         FilenameState,
         LabelState,
-        Mode,
         Model,
-        PostSaveAction,
         SaveState,
         SessionState,
     },
@@ -43,6 +41,24 @@ pub enum NormalMsg {
     Quit,
 }
 
+/// A message sent in Insert mode.
+pub enum InsertMsg {
+    Parent,
+    Child,
+    Before,
+    After,
+    Back,
+}
+
+/// A message sent in Move mode.
+pub enum MoveMsg {
+    Promote,
+    Demote,
+    Backward,
+    Forward,
+    Done,
+}
+
 /// Type of edit to apply to the user input text.
 pub enum InputEdit {
     Append(char),
@@ -56,31 +72,6 @@ pub enum LabelMsg {
     Cancel,
 }
 
-/// A message sent in Filename Input mode.
-pub enum FilenameMsg {
-    Edit(InputEdit),
-    Submit,
-    Cancel,
-}
-
-/// A message sent in Move mode.
-pub enum MoveMsg {
-    Promote,
-    Demote,
-    Backward,
-    Forward,
-    Done,
-}
-
-/// A message sent in Insert mode.
-pub enum InsertMsg {
-    Parent,
-    Child,
-    Before,
-    After,
-    Back,
-}
-
 /// A message sent in Save mode.
 pub enum SaveMsg {
     Toggle,
@@ -88,45 +79,35 @@ pub enum SaveMsg {
     Cancel,
 }
 
+/// A message sent in Filename Input mode.
+pub enum FilenameMsg {
+    Edit(InputEdit),
+    Submit,
+    Cancel,
+}
+
+/// A message sent in Confirm mode.
+pub enum ConfirmMsg {
+    Confirm,
+    Cancel,
+}
+
 /// A message indicating changes to be made to the model.
 pub enum Message {
-    Confirm(bool, ConfirmState),
     Load(LoadMsg, LoadState),
-    Normal(NormalMsg),
+    Normal(NormalMsg, SessionState),
+    Insert(InsertMsg, SessionState),
+    Move(MoveMsg, SessionState),
     LabelInput(LabelMsg, LabelState),
-    FilenameInput(FilenameMsg, FilenameState),
-    Move(MoveMsg),
-    Insert(InsertMsg),
     Save(SaveMsg, SaveState),
-    Continue(Mode),
-}
-
-/// A message indicating an IO action to perform.
-pub enum Command {
-    None(Model),
-    Load,
-    InitSession(FileEntry),
-    CheckFileExists(SessionState, FilenameState),
-    Rename(SessionState, String, LoadState),
-    SaveNew(SessionState, String, PostSaveAction),
-    Save(SessionState, PostSaveAction),
-    DeleteFile(LoadState),
-    Quit,
-}
-
-// Map a `key` to a Message in Confirm mode.
-fn to_confirm_msg(key: KeyCode, confirm_state: ConfirmState) -> Message {
-    let confirm = match key {
-        KeyCode::Enter => true,
-        KeyCode::Esc => false,
-        _ => return Message::Continue(Mode::Confirm(confirm_state)),
-    };
-    Message::Confirm(confirm, confirm_state)
+    FilenameInput(FilenameMsg, FilenameState),
+    Confirm(ConfirmMsg, ConfirmState),
+    Continue(Model),
 }
 
 // Map a `key` to a Message in Load mode.
-fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
-    let load_msg = match key {
+fn to_load_msg(key: KeyCode, state: LoadState) -> Message {
+    let msg = match key {
         KeyCode::Char('k') => LoadMsg::Decrement,
         KeyCode::Char('j') => LoadMsg::Increment,
         KeyCode::Char('n') => LoadMsg::New,
@@ -136,14 +117,14 @@ fn to_load_msg(key: KeyCode, load_state: LoadState) -> Message {
         KeyCode::Down => LoadMsg::Increment,
         KeyCode::Up => LoadMsg::Decrement,
         KeyCode::Enter => LoadMsg::Open,
-        _ => return Message::Continue(Mode::Load(load_state)),
+        _ => return Message::Continue(Model::Load(state)),
     };
-    Message::Load(load_msg, load_state)
+    Message::Load(msg, state)
 }
 
 // Map a `key` to a Message in Normal mode.
-fn to_normal_msg(key: KeyCode) -> Message {
-    let normal_msg = match key {
+fn to_normal_msg(key: KeyCode, state: SessionState) -> Message {
+    let msg = match key {
         KeyCode::Char('h') => NormalMsg::Ascend,
         KeyCode::Char('l') => NormalMsg::Descend,
         KeyCode::Char('k') => NormalMsg::Previous,
@@ -160,94 +141,105 @@ fn to_normal_msg(key: KeyCode) -> Message {
         KeyCode::Up => NormalMsg::Previous,
         KeyCode::Down => NormalMsg::Next,
         KeyCode::Backspace => NormalMsg::Load,
-        _ => return Message::Continue(Mode::Normal),
+        _ => return Message::Continue(Model::Normal(state)),
     };
-    Message::Normal(normal_msg)
-}
-
-// Map a `key` to a Message in Label Input mode.
-fn to_label_input_msg(key: KeyCode, label_state: LabelState) -> Message {
-    let label_msg = match key {
-        KeyCode::Char(c) => LabelMsg::Edit(InputEdit::Append(c)),
-        KeyCode::Backspace => LabelMsg::Edit(InputEdit::PopChar),
-        KeyCode::Enter => LabelMsg::Submit,
-        KeyCode::Esc => LabelMsg::Cancel,
-        _ => return Message::Continue(Mode::LabelInput(label_state)),
-    };
-    Message::LabelInput(label_msg, label_state)
-}
-
-// Map a `key` to a Message in Filename Input mode.
-fn to_filename_input_msg(key: KeyCode, filename_state: FilenameState) -> Message {
-    let filename_msg = match key {
-        KeyCode::Char(c) => FilenameMsg::Edit(InputEdit::Append(c)),
-        KeyCode::Backspace => FilenameMsg::Edit(InputEdit::PopChar),
-        KeyCode::Enter => FilenameMsg::Submit,
-        KeyCode::Esc => FilenameMsg::Cancel,
-        _ => return Message::Continue(Mode::FilenameInput(filename_state)),
-    };
-    Message::FilenameInput(filename_msg, filename_state)
-}
-
-// Map a `key` to a Message in Move mode.
-fn to_move_msg(key: KeyCode) -> Message {
-    let move_msg = match key {
-        KeyCode::Char('h') | KeyCode::Left => MoveMsg::Promote,
-        KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
-        KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
-        KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
-        KeyCode::Enter => MoveMsg::Done,
-        _ => return Message::Continue(Mode::Move),
-    };
-    Message::Move(move_msg)
+    Message::Normal(msg, state)
 }
 
 // Map a `key` to a Message in Insert mode.
-fn to_insert_msg(key: KeyCode) -> Message {
-    let insert_msg = match key {
+fn to_insert_msg(key: KeyCode, state: SessionState) -> Message {
+    let msg = match key {
         KeyCode::Char('h') => InsertMsg::Parent,
         KeyCode::Char('l') => InsertMsg::Child,
         KeyCode::Char('k') => InsertMsg::Before,
         KeyCode::Char('j') => InsertMsg::After,
         KeyCode::Backspace => InsertMsg::Back,
-        _ => return Message::Continue(Mode::Insert),
+        _ => return Message::Continue(Model::Insert(state)),
     };
-    Message::Insert(insert_msg)
+    Message::Insert(msg, state)
+}
+
+// Map a `key` to a Message in Move mode.
+fn to_move_msg(key: KeyCode, state: SessionState) -> Message {
+    let msg = match key {
+        KeyCode::Char('h') | KeyCode::Left => MoveMsg::Promote,
+        KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
+        KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
+        KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
+        KeyCode::Enter => MoveMsg::Done,
+        _ => return Message::Continue(Model::Move(state)),
+    };
+    Message::Move(msg, state)
+}
+
+// Map a `key` to a Message in Label Input mode.
+fn to_label_input_msg(key: KeyCode, state: LabelState) -> Message {
+    let msg = match key {
+        KeyCode::Char(c) => LabelMsg::Edit(InputEdit::Append(c)),
+        KeyCode::Backspace => LabelMsg::Edit(InputEdit::PopChar),
+        KeyCode::Enter => LabelMsg::Submit,
+        KeyCode::Esc => LabelMsg::Cancel,
+        _ => return Message::Continue(Model::LabelInput(state)),
+    };
+    Message::LabelInput(msg, state)
 }
 
 // Map a `key` to a Message in Save mode.
-fn to_save_msg(key: KeyCode, save_state: SaveState) -> Message {
-    let save_msg = match key {
+fn to_save_msg(key: KeyCode, state: SaveState) -> Message {
+    let msg = match key {
         KeyCode::Char(' ') => SaveMsg::Toggle,
         KeyCode::Enter => SaveMsg::Confirm,
         KeyCode::Esc => SaveMsg::Cancel,
-        _ => return Message::Continue(Mode::Save(save_state)),
+        _ => return Message::Continue(Model::Save(state)),
     };
-    Message::Save(save_msg, save_state)
+    Message::Save(msg, state)
 }
 
-// Map a pressed `key` to a Message based on the current `mode`.
-fn key_to_message(mode: Mode, key: KeyCode) -> Message {
-    match mode {
-        Mode::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
-        Mode::Load(load_state) => to_load_msg(key, load_state),
-        Mode::Normal => to_normal_msg(key),
-        Mode::LabelInput(input) => to_label_input_msg(key, input),
-        Mode::FilenameInput(input) => to_filename_input_msg(key, input),
-        Mode::Move => to_move_msg(key),
-        Mode::Insert => to_insert_msg(key),
-        Mode::Save(save_state) => to_save_msg(key, save_state),
+// Map a `key` to a Message in Filename Input mode.
+fn to_filename_input_msg(key: KeyCode, state: FilenameState) -> Message {
+    let msg = match key {
+        KeyCode::Char(c) => FilenameMsg::Edit(InputEdit::Append(c)),
+        KeyCode::Backspace => FilenameMsg::Edit(InputEdit::PopChar),
+        KeyCode::Enter => FilenameMsg::Submit,
+        KeyCode::Esc => FilenameMsg::Cancel,
+        _ => return Message::Continue(Model::FilenameInput(state)),
+    };
+    Message::FilenameInput(msg, state)
+}
+
+// Map a `key` to a Message in Confirm mode.
+fn to_confirm_msg(key: KeyCode, state: ConfirmState) -> Message {
+    let msg = match key {
+        KeyCode::Enter => ConfirmMsg::Confirm,
+        KeyCode::Esc => ConfirmMsg::Cancel,
+        _ => return Message::Continue(Model::Confirm(state)),
+    };
+    Message::Confirm(msg, state)
+}
+
+// Map a pressed `key` to a Message based on the current `model`.
+fn key_to_message(model: Model, key: KeyCode) -> Message {
+    match model {
+        Model::Load(load_state) => to_load_msg(key, load_state),
+        Model::Normal(session_state) => to_normal_msg(key, session_state),
+        Model::Insert(session_state) => to_insert_msg(key, session_state),
+        Model::Move(session_state) => to_move_msg(key, session_state),
+        Model::LabelInput(label_state) => to_label_input_msg(key, label_state),
+        Model::Save(save_state) => to_save_msg(key, save_state),
+        Model::FilenameInput(filename_state) =>
+            to_filename_input_msg(key, filename_state),
+        Model::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
     }
 }
 
-/// Convert a user input event into a Message based on the current `mode`.
-pub fn handle_event(mode: Mode) -> Result<Message> {
+/// Convert a user input event into a Message based on the current `model`.
+pub fn handle_input(model: Model) -> Result<Message> {
     let event::Event::Key(key) = event::read()? else {
-        return Ok(Message::Continue(mode));
+        return Ok(Message::Continue(model));
     };
     if key.kind != KeyEventKind::Press {
-        return Ok(Message::Continue(mode));
+        return Ok(Message::Continue(model));
     }
-    Ok(key_to_message(mode, key.code))
+    Ok(key_to_message(model, key.code))
 }
 

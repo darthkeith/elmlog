@@ -1,7 +1,7 @@
 use crate::{
-    io::LoadState,
+    io::{Command, LoadState},
     message::{
-        Command,
+        ConfirmMsg,
         FilenameMsg,
         InputEdit,
         InsertMsg,
@@ -19,7 +19,6 @@ use crate::{
         FilenameStatus,
         LabelAction,
         LabelState,
-        Mode,
         Model,
         PostSaveAction,
         SaveState,
@@ -28,144 +27,137 @@ use crate::{
     zipper::{FocusNode, FocusNodeExt},
 };
 
-// Update the Model based on a Confirm mode message.
-fn update_confirm(
-    confirm: bool,
-    confirm_state: ConfirmState,
-    mut state: SessionState
-) -> Command {
-    let mode = match confirm {
-        true => match confirm_state {
-            ConfirmState::NewSession => Mode::Normal,
-            ConfirmState::DeleteItem => {
-                state = state.delete();
-                Mode::Normal
-            }
-            ConfirmState::DeleteFile(load_state) => {
-                return Command::DeleteFile(load_state);
-            }
-        }
-        false => match confirm_state {
-            ConfirmState::NewSession => Mode::Confirm(ConfirmState::NewSession),
-            ConfirmState::DeleteItem => Mode::Normal,
-            ConfirmState::DeleteFile(load_state) => Mode::Load(load_state),
-        }
-    };
-    Command::None(Model { state, mode })
-}
-
 // Update the Model based on a Load mode message.
-fn update_load(
-    msg: LoadMsg,
-    load_state: LoadState,
-    state: SessionState
-) -> Command {
-    let mode = match msg {
-        LoadMsg::Decrement => Mode::Load(load_state.decrement()),
-        LoadMsg::Increment => Mode::Load(load_state.increment()),
+fn update_load(msg: LoadMsg, load_state: LoadState) -> Command {
+    let model = match msg {
+        LoadMsg::Decrement => Model::Load(load_state.decrement()),
+        LoadMsg::Increment => Model::Load(load_state.increment()),
         LoadMsg::Open => {
             let file_entry = load_state.move_file_entry();
             return Command::InitSession(file_entry);
         }
-        LoadMsg::New => Mode::Normal,
-        LoadMsg::Rename => {
-            Mode::FilenameInput(FilenameState::new_rename(load_state))
-        }
-        LoadMsg::Delete => Mode::Confirm(ConfirmState::DeleteFile(load_state)),
+        LoadMsg::New => Model::Normal(SessionState::new()),
+        LoadMsg::Rename =>
+            Model::FilenameInput(FilenameState::new_rename(load_state)),
+        LoadMsg::Delete =>
+            Model::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
-    Command::None(Model { state, mode })
+    Command::None(model)
 }
 
 // Update the Model based on a Normal mode message.
-fn update_normal(msg: NormalMsg, mut state: SessionState) -> Command {
-    let mode = match msg {
-        NormalMsg::Ascend => {
-            state.focus = state.focus.focus_parent();
-            Mode::Normal
-        }
-        NormalMsg::Descend => {
-            state.focus = state.focus.focus_child();
-            Mode::Normal
-        }
-        NormalMsg::Previous => {
-            state.focus = state.focus.focus_prev();
-            Mode::Normal
-        }
-        NormalMsg::Next => {
-            state.focus = state.focus.focus_next();
-            Mode::Normal
-        }
+fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
+    let model = match msg {
+        NormalMsg::Ascend => Model::Normal(state.focus_parent()),
+        NormalMsg::Descend => Model::Normal(state.focus_child()),
+        NormalMsg::Previous => Model::Normal(state.focus_prev()),
+        NormalMsg::Next => Model::Normal(state.focus_next()),
         NormalMsg::Rename => match state.focus.clone_label() {
-            Some(label) => Mode::LabelInput(LabelState::new_rename(label)),
-            None => Mode::Normal,
+            Some(label) =>
+                Model::LabelInput(LabelState::new_rename(label, state)),
+            None => Model::Normal(state),
         }
         NormalMsg::Insert => if state.focus.is_some() {
-            Mode::Insert
+            Model::Insert(state)
         } else {
-            state.focus = Some(FocusNode::new());
-            Mode::LabelInput(LabelState::new_insert())
+            let state = SessionState {focus: Some(FocusNode::new()), ..state };
+            Model::LabelInput(LabelState::new_insert(state))
         }
-        NormalMsg::Move => Mode::Move,
-        NormalMsg::Nest => {
-            state = state.nest();
-            Mode::Normal
-        }
-        NormalMsg::Flatten => {
-            state = state.flatten();
-            Mode::Normal
-        }
-        NormalMsg::Delete => Mode::Confirm(ConfirmState::DeleteItem),
+        NormalMsg::Move => Model::Move(state),
+        NormalMsg::Nest => Model::Normal(state.nest()),
+        NormalMsg::Flatten => Model::Normal(state.flatten()),
+        NormalMsg::Delete => Model::Confirm(ConfirmState::DeleteItem(state)),
         NormalMsg::Load => match state.is_changed() {
-            true => Mode::Save(SaveState::new_load()),
+            true => Model::Save(SaveState::new_load(state)),
             false => return Command::Load,
         }
         NormalMsg::Quit => match state.is_changed() {
-            true => Mode::Save(SaveState::new_quit()),
+            true => Model::Save(SaveState::new_quit(state)),
             false => return Command::Quit,
         }
     };
-    Command::None(Model { state, mode })
+    Command::None(model)
+}
+
+// Update the Model based on an Insert mode message.
+fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
+    let state = match msg {
+        InsertMsg::Parent => state.insert_parent(),
+        InsertMsg::Child => state.insert_child(),
+        InsertMsg::Before => state.insert_prev(),
+        InsertMsg::After => state.insert_next(),
+        InsertMsg::Back => return Model::Normal(state),
+    };
+    Model::LabelInput(LabelState::new_insert(state))
+}
+
+// Update the Model based on a Move mode message.
+fn update_move(msg: MoveMsg, state: SessionState) -> Model {
+    let state = match msg {
+        MoveMsg::Promote => state.promote(),
+        MoveMsg::Demote => state.demote(),
+        MoveMsg::Backward => state.swap_prev(),
+        MoveMsg::Forward => state.swap_next(),
+        MoveMsg::Done => return Model::Normal(state),
+    };
+    Model::Move(state)
 }
 
 // Update the Model based on a Label Input mode message.
-fn update_label_input(
-    msg: LabelMsg,
-    label_state: LabelState,
-    state: SessionState,
-) -> Model {
+fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
     let label_state = match msg {
         LabelMsg::Edit(edit) => match edit {
             InputEdit::Append(c) => label_state.append(c),
             InputEdit::PopChar => label_state.pop(),
         }
-        LabelMsg::Submit => match label_state.is_empty() {
-            true => label_state,
-            false => {
-                let label = label_state.input.trim().to_string();
-                return Model {
-                    state: state.set_label(label),
-                    mode: Mode::Normal,
-                };
-            }
+        LabelMsg::Submit => if label_state.input.is_empty() {
+            label_state
+        } else {
+            let label = label_state.input.trim().to_string();
+            let state = label_state.session.set_label(label);
+            return Model::Normal(state);
         }
-        LabelMsg::Cancel => return Model {
-            state: match label_state.action {
-                LabelAction::Insert => state.delete(),
-                LabelAction::Rename => state,
-            },
-            mode: Mode::Normal,
+        LabelMsg::Cancel => {
+            let state = match label_state.action {
+                LabelAction::Insert => label_state.session.delete(),
+                LabelAction::Rename => label_state.session,
+            };
+            return Model::Normal(state);
         }
     };
-    let mode = Mode::LabelInput(label_state);
-    Model { state, mode }
+    Model::LabelInput(label_state)
+}
+
+// Update the Model based on a Save mode message.
+fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
+    let model = match msg {
+        SaveMsg::Toggle => Model::Save(save_state.toggle()),
+        SaveMsg::Confirm => {
+            let SaveState { save, post_save, session } = save_state;
+            if save {
+                if session.maybe_file.is_some() {
+                    return Command::Save(session, post_save);
+                } else {
+                    let state = FilenameState::new_save(session, post_save);
+                    Model::FilenameInput(state)
+                }
+            } else {
+                match post_save {
+                    PostSaveAction::Load => return Command::Load,
+                    PostSaveAction::Quit => return Command::Quit,
+                }
+            }
+        }
+        SaveMsg::Cancel => Model::Normal(save_state.session),
+    };
+    Command::None(model)
 }
 
 // Update the Model based on a Filename Input mode message.
 fn update_filename_input(
     msg: FilenameMsg,
     filename_state: FilenameState,
-    state: SessionState,
 ) -> Command {
     let filename_state = match msg {
         FilenameMsg::Edit(edit) => {
@@ -173,112 +165,77 @@ fn update_filename_input(
                 InputEdit::Append(c) => filename_state.append(c),
                 InputEdit::PopChar => filename_state.pop(),
             };
-            match filename_state.is_empty() {
-                true => filename_state.set_status(FilenameStatus::Empty),
-                false => return Command::CheckFileExists(state, filename_state),
+            if filename_state.input.is_empty() {
+                filename_state.set_status(FilenameStatus::Empty)
+            } else {
+                return Command::CheckFileExists(filename_state)
             }
         }
-        FilenameMsg::Submit => match filename_state.is_empty() {
-            true => filename_state.set_status(FilenameStatus::Empty),
-            false => {
-                let filename = filename_state.trimmed().to_string();
-                match filename_state.action {
-                    FilenameAction::Rename(load_state) => {
-                        return Command::Rename(state, filename, load_state);
-                    }
-                    FilenameAction::SaveNew(post_save) => {
-                        return Command::SaveNew(state, filename, post_save);
-                    }
-                }
+        FilenameMsg::Submit => if filename_state.input.is_empty() {
+            filename_state.set_status(FilenameStatus::Empty)
+        } else {
+            let filename = filename_state.trimmed().to_string();
+            return match filename_state.action {
+                FilenameAction::Rename(load_state) =>
+                    Command::RenameFile(filename, load_state),
+                FilenameAction::SaveNew { session, post_save } =>
+                    Command::SaveNew(filename, session, post_save),
             }
         }
         FilenameMsg::Cancel => {
-            let mode = match filename_state.action {
-                FilenameAction::Rename(load_state) => Mode::Load(load_state),
-                FilenameAction::SaveNew(_) => Mode::Normal,
+            let model = match filename_state.action {
+                FilenameAction::Rename(load_state) =>
+                    Model::Load(load_state),
+                FilenameAction::SaveNew { session, .. } =>
+                    Model::Normal(session),
             };
-            return Command::None(Model { state, mode });
+            return Command::None(model);
         }
     };
-    let mode = Mode::FilenameInput(filename_state);
-    Command::None(Model { state, mode })
+    Command::None(Model::FilenameInput(filename_state))
 }
 
-// Update the Model based on a Move mode message.
-fn update_move(msg: MoveMsg, state: SessionState) -> Model {
-    let (state, mode) = match msg {
-        MoveMsg::Promote => (state.promote(), Mode::Move),
-        MoveMsg::Demote => (state.demote(), Mode::Move),
-        MoveMsg::Backward => (state.swap_prev(), Mode::Move),
-        MoveMsg::Forward => (state.swap_next(), Mode::Move),
-        MoveMsg::Done => (state, Mode::Normal),
-    };
-    Model { state, mode }
-}
-
-// Update the Model based on an Insert mode message.
-fn update_insert(msg: InsertMsg, mut state: SessionState) -> Model {
-    state.focus = match msg {
-        InsertMsg::Parent => state.focus.insert_parent(),
-        InsertMsg::Child => state.focus.insert_child(),
-        InsertMsg::Before => state.focus.insert_prev(),
-        InsertMsg::After => state.focus.insert_next(),
-        InsertMsg::Back => return Model { state, mode: Mode::Normal },
-    };
-    let mode = Mode::LabelInput(LabelState::new_insert());
-    Model { state, mode }
-}
-
-// Update the Model based on a Save mode message.
-fn update_save(
-    msg: SaveMsg,
-    save_state: SaveState,
-    state: SessionState,
-) -> Command {
-    let mode = match msg {
-        SaveMsg::Toggle => Mode::Save(save_state.toggle()),
-        SaveMsg::Confirm => {
-            let SaveState { save, post_save } = save_state;
-            match save {
-                true => match &state.maybe_file {
-                    Some(_) => return Command::Save(state, post_save),
-                    None => {
-                        Mode::FilenameInput(FilenameState::new_save(post_save))
-                    }
-                }
-                false => match post_save {
-                    PostSaveAction::Load => return Command::Load,
-                    PostSaveAction::Quit => return Command::Quit,
-                }
+// Update the Model based on a Confirm mode message.
+fn update_confirm(msg: ConfirmMsg, confirm_state: ConfirmState) -> Command {
+    let model = match msg {
+        ConfirmMsg::Confirm => match confirm_state {
+            ConfirmState::NewSession => Model::Normal(SessionState::new()),
+            ConfirmState::DeleteItem(state) => Model::Normal(state.delete()),
+            ConfirmState::DeleteFile(load_state) => {
+                return Command::DeleteFile(load_state);
             }
         }
-        SaveMsg::Cancel => Mode::Normal,
+        ConfirmMsg::Cancel => match confirm_state {
+            ConfirmState::NewSession =>
+                Model::Confirm(ConfirmState::NewSession),
+            ConfirmState::DeleteItem(state) => Model::Normal(state),
+            ConfirmState::DeleteFile(load_state) => Model::Load(load_state),
+        }
     };
-    Command::None(Model { state, mode })
+    Command::None(model)
 }
 
-/// Update the Model based on `message` and return an IO Command.
-pub fn update(message: Message, state: SessionState) -> Command {
+/// Update the Model based on the `message` and return an IO Command.
+pub fn update(message: Message) -> Command {
     let model = match message {
-        Message::Confirm(confirm, confirm_state) => {
-            return update_confirm(confirm, confirm_state, state);
+        Message::Load(load_msg, load_state) =>
+            return update_load(load_msg, load_state),
+        Message::Normal(normal_msg, session_state) =>
+            return update_normal(normal_msg, session_state),
+        Message::Insert(insert_msg, session_state) =>
+            update_insert(insert_msg, session_state),
+        Message::Move(move_msg, session_state) =>
+            update_move(move_msg, session_state),
+        Message::LabelInput(label_msg, label_state) =>
+            update_label_input(label_msg, label_state),
+        Message::Save(save_msg, save_state) =>
+            return update_save(save_msg, save_state),
+        Message::FilenameInput(filename_msg, filename_state) =>
+            return update_filename_input(filename_msg, filename_state),
+        Message::Confirm(confirm_msg, confirm_state) => {
+            return update_confirm(confirm_msg, confirm_state);
         }
-        Message::Load(msg, load_state) => {
-            return update_load(msg, load_state, state);
-        }
-        Message::Normal(msg) => return update_normal(msg, state),
-        Message::LabelInput(msg, label_state) => {
-            update_label_input(msg, label_state, state)
-        }
-        Message::FilenameInput(msg, filename_state) => {
-            return update_filename_input(msg, filename_state, state);
-        }
-        Message::Move(msg) => update_move(msg, state),
-        Message::Insert(msg) => update_insert(msg, state),
-        Message::Save(msg, save_state) => {
-            return update_save(msg, save_state, state);
-        }
-        Message::Continue(mode) => Model { state, mode },
+        Message::Continue(model) => model,
     };
     Command::None(model)
 }

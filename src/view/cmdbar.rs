@@ -8,7 +8,6 @@ use crate::{
         ConfirmState,
         FilenameState,
         LabelState,
-        Mode,
         Model,
     },
     view::style,
@@ -75,7 +74,7 @@ fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
 
 // Return the input mode key-command pairs.
 fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair> {
-    if label_state.is_empty() {
+    if label_state.input.is_empty() {
         vec![CANCEL]
     } else {
         vec![SUBMIT, CANCEL]
@@ -107,17 +106,16 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 
 /// Return the command bar widget based on the current `model`.
 pub fn command_bar(model: &Model) -> Line {
-    let pairs = match &model.mode {
-        Mode::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
-        Mode::Load(load_state) => load_mode_commands(load_state.size()),
-        Mode::Normal => normal_mode_commands(model.state.focus.as_ref()),
-        Mode::LabelInput(label_state) => label_input_commands(label_state),
-        Mode::FilenameInput(filename_state) => {
-            filename_input_commands(filename_state)
-        }
-        Mode::Move => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
-        Mode::Insert => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
-        Mode::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
+    let pairs = match model {
+        Model::Load(load_state) => load_mode_commands(load_state.size()),
+        Model::Normal(state) => normal_mode_commands(state.focus.as_ref()),
+        Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
+        Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
+        Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
+        Model::LabelInput(label_state) => label_input_commands(label_state),
+        Model::FilenameInput(filename_state) =>
+            filename_input_commands(filename_state),
+        Model::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
     };
     to_command_bar(pairs)
 }

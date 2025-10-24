@@ -7,12 +7,11 @@ use std::{
 use fs2::FileExt;
 
 use crate::{
-    message::Command,
     model::{
+        ConfirmState,
         FilenameAction,
         FilenameState,
         FilenameStatus,
-        Mode,
         Model,
         PostSaveAction,
         SessionState,
@@ -42,6 +41,19 @@ pub struct OpenDataFile {
     path: PathBuf,
     _file: File,
     changed: bool,
+}
+
+/// A message indicating an IO action to perform.
+pub enum Command {
+    None(Model),
+    Load,
+    InitSession(FileEntry),
+    CheckFileExists(FilenameState),
+    RenameFile(String, LoadState),
+    SaveNew(String, SessionState, PostSaveAction),
+    Save(SessionState, PostSaveAction),
+    DeleteFile(LoadState),
+    Quit,
 }
 
 impl FileEntry {
@@ -199,10 +211,11 @@ fn init_model(file_entry: FileEntry) -> Model {
         _file: file,
         changed: false,
     };
-    Model {
-        mode: Mode::Normal,
-        state: SessionState { focus, maybe_file: Some(open_file) },
-    }
+    let state = SessionState {
+        focus,
+        maybe_file: Some(open_file),
+    };
+    Model::Normal(state)
 }
 
 // Check whether `filename` exists in the app directory.
@@ -267,55 +280,50 @@ pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
         Command::None(model) => model,
         Command::Load => match get_load_state() {
-            Some(load_state) => Model::load(load_state),
-            None => Model::default(),
+            Some(load_state) => Model::Load(load_state),
+            None => Model::Confirm(ConfirmState::NewSession),
         }
         Command::InitSession(file_entry) => init_model(file_entry),
-        Command::CheckFileExists(state, filename_state) => {
-            let status = match filename_exists(filename_state.trimmed()) {
-                true => FilenameStatus::Exists,
-                false => FilenameStatus::Valid,
+        Command::CheckFileExists(filename_state) => {
+            let status = if filename_exists(filename_state.trimmed()) {
+                FilenameStatus::Exists
+            } else {
+                FilenameStatus::Valid
             };
-            let mode = Mode::FilenameInput(filename_state.set_status(status));
-            Model { state, mode }
+            Model::FilenameInput(filename_state.set_status(status))
         }
-        Command::Rename(state, filename, mut load_state) => {
-            let status = match filename_exists(&filename) {
-                true => FilenameStatus::Exists,
-                false => match load_state.rename(&filename) {
-                    Err(_) => FilenameStatus::Invalid,
-                    Ok(()) => {
-                        let mode = Mode::Load(load_state);
-                        return Some(Model { state, mode });
-                    }
-                }
+        Command::RenameFile(filename, mut load_state) => {
+            let status = if filename_exists(&filename) {
+                FilenameStatus::Exists
+            } else if load_state.rename(&filename).is_err() {
+                FilenameStatus::Invalid
+            } else {
+                return Some(Model::Load(load_state))
             };
             let filename_state = FilenameState {
                 input: filename,
+                status,
                 action: FilenameAction::Rename(load_state),
-                status,
             };
-            let mode = Mode::FilenameInput(filename_state);
-            Model { state, mode }
+            Model::FilenameInput(filename_state)
         }
-        Command::SaveNew(state, filename, post_save) => {
-            let status = match filename_exists(&filename) {
-                true => FilenameStatus::Exists,
-                false => match save_new(&state.focus, &filename) {
-                    Err(_) => FilenameStatus::Invalid,
-                    Ok(()) => return match post_save {
-                        PostSaveAction::Load => execute_command(Command::Load),
-                        PostSaveAction::Quit => None,
-                    }
+        Command::SaveNew(filename, session, post_save) => {
+            let status = if filename_exists(&filename) {
+                FilenameStatus::Exists
+            } else if save_new(&session.focus, &filename).is_err() {
+                FilenameStatus::Invalid
+            } else {
+                return match post_save {
+                    PostSaveAction::Load => execute_command(Command::Load),
+                    PostSaveAction::Quit => None,
                 }
             };
             let filename_state = FilenameState {
                 input: filename,
-                action: FilenameAction::SaveNew(post_save),
                 status,
+                action: FilenameAction::SaveNew { session, post_save },
             };
-            let mode = Mode::FilenameInput(filename_state);
-            Model { state, mode }
+            Model::FilenameInput(filename_state)
         }
         Command::Save(state, action) => {
             save(state);
@@ -325,8 +333,8 @@ pub fn execute_command(command: Command) -> Option<Model> {
             }
         }
         Command::DeleteFile(load_state) => match load_state.delete() {
-            Some(load_state) => Model::load(load_state),
-            None => Model::default(),
+            Some(load_state) => Model::Load(load_state),
+            None => Model::Confirm(ConfirmState::NewSession),
         }
         Command::Quit => return None,
     };
