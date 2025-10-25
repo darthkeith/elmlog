@@ -111,6 +111,17 @@ impl LabelState {
         self.input.pop();
         self
     }
+
+    /// Set the label of the focused node to the trimmed user input.
+    pub fn set_label(self) -> SessionState {
+        let Self { input, session, .. } = self;
+        let label = input.trim().to_string();
+        SessionState {
+            focus: session.focus.set_label(label),
+            changed: true,
+            ..session
+        }
+    }
 }
 
 impl FilenameState {
@@ -292,7 +303,6 @@ impl SessionState {
     pub fn insert_parent(self) -> Self {
         Self {
             focus: self.focus.insert_parent(),
-            changed: true,
             ..self
         }
     }
@@ -301,7 +311,6 @@ impl SessionState {
     pub fn insert_child(self) -> Self {
         Self {
             focus: self.focus.insert_child(),
-            changed: true,
             ..self
         }
     }
@@ -310,7 +319,6 @@ impl SessionState {
     pub fn insert_prev(self) -> Self {
         Self {
             focus: self.focus.insert_prev(),
-            changed: true,
             ..self
         }
     }
@@ -319,25 +327,15 @@ impl SessionState {
     pub fn insert_next(self) -> Self {
         Self {
             focus: self.focus.insert_next(),
-            changed: true,
             ..self
         }
     }
 
-    /// Delete the selected item.
-    pub fn delete(self) -> Self {
+    /// Delete the selected item and optionally mark the state as changed.
+    pub fn delete(self, commit_change: bool) -> Self {
         Self {
             focus: self.focus.delete(),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Set the label of the focused node.
-    pub fn set_label(self, label: String) -> Self {
-        Self {
-            focus: self.focus.set_label(label),
-            changed: true,
+            changed: self.changed || commit_change,
             ..self
         }
     }

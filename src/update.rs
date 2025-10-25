@@ -67,7 +67,11 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         NormalMsg::Move => Model::Move(state),
         NormalMsg::Nest => Model::Normal(state.nest()),
         NormalMsg::Flatten => Model::Normal(state.flatten()),
-        NormalMsg::Delete => Model::Confirm(ConfirmState::DeleteItem(state)),
+        NormalMsg::Delete => if state.focus.is_some() {
+            Model::Confirm(ConfirmState::DeleteItem(state))
+        } else {
+            Model::Normal(state)
+        }
         NormalMsg::Load => if state.changed {
             Model::Save(SaveState::new_load(state))
         } else {
@@ -133,27 +137,27 @@ fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
 
 // Update the Model based on a Label Input mode message.
 fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
-    let label_state = match msg {
-        LabelMsg::Edit(edit) => match edit {
-            InputEdit::Append(c) => label_state.append(c),
-            InputEdit::PopChar => label_state.pop(),
+    match msg {
+        LabelMsg::Edit(edit) => {
+            let label_state = match edit {
+                InputEdit::Append(c) => label_state.append(c),
+                InputEdit::PopChar => label_state.pop(),
+            };
+            Model::LabelInput(label_state)
         }
         LabelMsg::Submit => if label_state.input.is_empty() {
-            label_state
+            Model::LabelInput(label_state)
         } else {
-            let label = label_state.input.trim().to_string();
-            let state = label_state.session.set_label(label);
-            return Model::Normal(state);
+            Model::Normal(label_state.set_label())
         }
         LabelMsg::Cancel => {
             let state = match label_state.action {
-                LabelAction::Insert => label_state.session.delete(),
+                LabelAction::Insert => label_state.session.delete(false),
                 LabelAction::Rename => label_state.session,
             };
-            return Model::Normal(state);
+            Model::Normal(state)
         }
-    };
-    Model::LabelInput(label_state)
+    }
 }
 
 // Update the Model based on a Filename Input mode message.
@@ -202,10 +206,10 @@ fn update_confirm(msg: ConfirmMsg, confirm_state: ConfirmState) -> Command {
     let model = match msg {
         ConfirmMsg::Confirm => match confirm_state {
             ConfirmState::NewSession => Model::Normal(SessionState::new()),
-            ConfirmState::DeleteItem(state) => Model::Normal(state.delete()),
-            ConfirmState::DeleteFile(load_state) => {
-                return Command::DeleteFile(load_state);
-            }
+            ConfirmState::DeleteItem(state) =>
+                Model::Normal(state.delete(true)),
+            ConfirmState::DeleteFile(load_state) =>
+                return Command::DeleteFile(load_state),
         }
         ConfirmMsg::Cancel => match confirm_state {
             ConfirmState::NewSession =>
