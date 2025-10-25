@@ -24,7 +24,7 @@ use crate::{
         SaveState,
         SessionState,
     },
-    zipper::{FocusNode, FocusNodeExt},
+    zipper::FocusNode,
 };
 
 // Update the Model based on a Load mode message.
@@ -53,7 +53,7 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         NormalMsg::Descend => Model::Normal(state.focus_child()),
         NormalMsg::Previous => Model::Normal(state.focus_prev()),
         NormalMsg::Next => Model::Normal(state.focus_next()),
-        NormalMsg::Rename => match state.focus.clone_label() {
+        NormalMsg::Rename => match state.clone_label() {
             Some(label) =>
                 Model::LabelInput(LabelState::new_rename(label, state)),
             None => Model::Normal(state),

@@ -82,8 +82,8 @@ impl FocusNode {
         }
     }
 
-    // Focus on the parent of the current focused node (if present).
-    fn focus_parent(self) -> Self {
+    /// Focus on the parent of the current focused node (if present).
+    pub fn focus_parent(self) -> Self {
         match self.parent{
             Some(parent) => {
                 let node = Node {
@@ -103,8 +103,8 @@ impl FocusNode {
         }
     }
 
-    // Focus on the first child of the current focused node (if present).
-    fn focus_child(self) -> Self {
+    /// Focus on the first child of the current focused node (if present).
+    pub fn focus_child(self) -> Self {
         match self.child{
             Some(child) => {
                 let parent = PathNode {
@@ -125,8 +125,8 @@ impl FocusNode {
         }
     }
 
-    // Focus on the previous sibling of the current focused node (if present).
-    fn focus_prev(self) -> Self {
+    /// Focus on the previous sibling of the current focused node (if present).
+    pub fn focus_prev(self) -> Self {
         match self.prev {
             Some(prev) => {
                 let next = Node {
@@ -146,8 +146,8 @@ impl FocusNode {
         }
     }
 
-    // Focus on the next sibling of the current focused node (if present).
-    fn focus_next(self) -> Self {
+    /// Focus on the next sibling of the current focused node (if present).
+    pub fn focus_next(self) -> Self {
         match self.next {
             Some(next) => {
                 let prev = RevNode {
@@ -167,8 +167,8 @@ impl FocusNode {
         }
     }
 
-    // Move the focused node's subtree to be its parent's next sibling.
-    fn promote(self) -> Self {
+    /// Move the focused node's subtree to be its parent's next sibling.
+    pub fn promote(self) -> Self {
         match self.parent {
             Some(parent) => {
                 let prev = RevNode {
@@ -187,8 +187,8 @@ impl FocusNode {
         }
     }
 
-    // Move the focused node's subtree to be its previous sibling's last child.
-    fn demote(self) -> Self {
+    /// Move the focused node's subtree to be its previous sibling's last child.
+    pub fn demote(self) -> Self {
         match self.prev {
             Some(prev) => {
                 let parent = PathNode {
@@ -208,8 +208,8 @@ impl FocusNode {
         }
     }
 
-    // Swap the focused node's subtree with its previous sibling (if present).
-    fn swap_prev(self) -> Self {
+    /// Swap the focused node's subtree with its previous sibling (if present).
+    pub fn swap_prev(self) -> Self {
         match self.prev {
             Some(prev) => {
                 let next = Node {
@@ -227,8 +227,8 @@ impl FocusNode {
         }
     }
 
-    // Swap the focused node's subtree with its next sibling (if present).
-    fn swap_next(self) -> Self {
+    /// Swap the focused node's subtree with its next sibling (if present).
+    pub fn swap_next(self) -> Self {
         match self.next {
             Some(next) => {
                 let prev = RevNode {
@@ -246,8 +246,8 @@ impl FocusNode {
         }
     }
 
-    // Adjoin the siblings of the focused node to its children, preserving order.
-    fn nest(self) -> Self {
+    /// Adjoin the siblings of the focused node to its children, preserving order.
+    pub fn nest(self) -> Self {
         let child_plus_next = join_siblings(
             reverse_siblings(self.child),
             self.next
@@ -260,8 +260,8 @@ impl FocusNode {
         }
     }
 
-    // Insert the focused node's children before its subsequent siblings.
-    fn flatten(self) -> Self {
+    /// Insert the focused node's children before its subsequent siblings.
+    pub fn flatten(self) -> Self {
         let child_plus_next = join_siblings(
             reverse_siblings(self.child),
             self.next
@@ -273,8 +273,8 @@ impl FocusNode {
         }
     }
 
-    // Insert a new node as the parent of the focused node.
-    fn insert_parent(self) -> Self {
+    /// Insert a new node as the parent of the focused node.
+    pub fn insert_parent(self) -> Self {
         let child = Node {
             child: self.child,
             next: None,
@@ -287,8 +287,8 @@ impl FocusNode {
         }
     }
 
-    // Insert a new child node above the focused node's children.
-    fn insert_child(self) -> Self {
+    /// Insert a new child node above the focused node's children.
+    pub fn insert_child(self) -> Self {
         let parent = PathNode {
             parent: self.parent,
             prev: self.prev,
@@ -304,8 +304,8 @@ impl FocusNode {
         }
     }
 
-    // Insert a new node as the previous sibling of the focused node.
-    fn insert_prev(self) -> Self {
+    /// Insert a new node as the previous sibling of the focused node.
+    pub fn insert_prev(self) -> Self {
         let next = Node {
             child: self.child,
             next: self.next,
@@ -319,8 +319,8 @@ impl FocusNode {
         }
     }
 
-    // Insert a new node as the next sibling of the focused node.
-    fn insert_next(self) -> Self {
+    /// Insert a new node as the next sibling of the focused node.
+    pub fn insert_next(self) -> Self {
         let prev = RevNode {
             child: self.child,
             prev: self.prev,
@@ -334,8 +334,8 @@ impl FocusNode {
         }
     }
 
-    // Delete the focused node.
-    fn delete(self) -> Option<Self> {
+    /// Delete the focused node.
+    pub fn delete(self) -> Option<Self> {
         let focus = self.flatten();
         let new_focus = if let Some(next) = focus.next {
             Self {
@@ -367,86 +367,12 @@ impl FocusNode {
         Some(new_focus)
     }
 
-    fn set_label(self, label: String) -> Self {
+    pub fn set_label(self, label: String) -> Self {
         Self { label, ..self }
     }
 
-    fn clone_label(&self) -> String {
+    pub fn clone_label(&self) -> String {
         self.label.clone()
-    }
-}
-
-pub trait FocusNodeExt {
-    fn focus_parent(self) -> Option<FocusNode>;
-    fn focus_child(self) -> Option<FocusNode>;
-    fn focus_prev(self) -> Option<FocusNode>;
-    fn focus_next(self) -> Option<FocusNode>;
-    fn promote(self) -> Option<FocusNode>;
-    fn demote(self) -> Option<FocusNode>;
-    fn swap_prev(self) -> Option<FocusNode>;
-    fn swap_next(self) -> Option<FocusNode>;
-    fn nest(self) -> Option<FocusNode>;
-    fn flatten(self) -> Option<FocusNode>;
-    fn insert_parent(self) -> Option<FocusNode>;
-    fn insert_child(self) -> Option<FocusNode>;
-    fn insert_prev(self) -> Option<FocusNode>;
-    fn insert_next(self) -> Option<FocusNode>;
-    fn delete(self) -> Option<FocusNode>;
-    fn set_label(self, label: String) -> Option<FocusNode>;
-    fn clone_label(&self) -> Option<String>;
-}
-
-impl FocusNodeExt for Option<FocusNode> {
-    fn focus_parent(self) -> Option<FocusNode> {
-        self.map(FocusNode::focus_parent)
-    }
-    fn focus_child(self) -> Option<FocusNode> {
-        self.map(FocusNode::focus_child)
-    }
-    fn focus_prev(self) -> Option<FocusNode> {
-        self.map(FocusNode::focus_prev)
-    }
-    fn focus_next(self) -> Option<FocusNode> {
-        self.map(FocusNode::focus_next)
-    }
-    fn promote(self) -> Option<FocusNode> {
-        self.map(FocusNode::promote)
-    }
-    fn demote(self) -> Option<FocusNode> {
-        self.map(FocusNode::demote)
-    }
-    fn swap_prev(self) -> Option<FocusNode> {
-        self.map(FocusNode::swap_prev)
-    }
-    fn swap_next(self) -> Option<FocusNode> {
-        self.map(FocusNode::swap_next)
-    }
-    fn nest(self) -> Option<FocusNode> {
-        self.map(FocusNode::nest)
-    }
-    fn flatten(self) -> Option<FocusNode> {
-        self.map(FocusNode::flatten)
-    }
-    fn insert_parent(self) -> Option<FocusNode> {
-        self.map(FocusNode::insert_parent)
-    }
-    fn insert_child(self) -> Option<FocusNode> {
-        self.map(FocusNode::insert_child)
-    }
-    fn insert_prev(self) -> Option<FocusNode> {
-        self.map(FocusNode::insert_prev)
-    }
-    fn insert_next(self) -> Option<FocusNode> {
-        self.map(FocusNode::insert_next)
-    }
-    fn delete(self) -> Option<FocusNode> {
-        self.and_then(FocusNode::delete)
-    }
-    fn set_label(self, label: String) -> Option<FocusNode> {
-        self.map(|focus| focus.set_label(label))
-    }
-    fn clone_label(&self) -> Option<String> {
-        self.as_ref().map(FocusNode::clone_label)
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     io::{LoadState, OpenDataFile},
-    zipper::{FocusNode, FocusNodeExt},
+    zipper::FocusNode,
 };
 
 /// Persistent state for an active session.
@@ -117,7 +117,7 @@ impl LabelState {
         let Self { input, session, .. } = self;
         let label = input.trim().to_string();
         SessionState {
-            focus: session.focus.set_label(label),
+            focus: session.focus.map(|focus| focus.set_label(label)),
             changed: true,
             ..session
         }
@@ -216,7 +216,7 @@ impl SessionState {
     /// Focus on the parent of the current focused node (if present).
     pub fn focus_parent(self) -> Self {
         Self {
-            focus: self.focus.focus_parent(),
+            focus: self.focus.map(FocusNode::focus_parent),
             ..self
         }
     }
@@ -224,7 +224,7 @@ impl SessionState {
     /// Focus on the first child of the current focused node (if present).
     pub fn focus_child(self) -> Self {
         Self {
-            focus: self.focus.focus_child(),
+            focus: self.focus.map(FocusNode::focus_child),
             ..self
         }
     }
@@ -232,7 +232,7 @@ impl SessionState {
     /// Focus on the previous sibling of the current focused node (if present).
     pub fn focus_prev(self) -> Self {
         Self {
-            focus: self.focus.focus_prev(),
+            focus: self.focus.map(FocusNode::focus_prev),
             ..self
         }
     }
@@ -240,7 +240,7 @@ impl SessionState {
     /// Focus on the next sibling of the current focused node (if present).
     pub fn focus_next(self) -> Self {
         Self {
-            focus: self.focus.focus_next(),
+            focus: self.focus.map(FocusNode::focus_next),
             ..self
         }
     }
@@ -248,7 +248,7 @@ impl SessionState {
     /// Move the focused node's subtree to be its parent's next sibling.
     pub fn promote(self) -> Self {
         Self {
-            focus: self.focus.promote(),
+            focus: self.focus.map(FocusNode::promote),
             changed: true,
             ..self
         }
@@ -257,7 +257,7 @@ impl SessionState {
     /// Move the focused node's subtree to be its previous sibling's last child.
     pub fn demote(self) -> Self {
         Self {
-            focus: self.focus.demote(),
+            focus: self.focus.map(FocusNode::demote),
             changed: true,
             ..self
         }
@@ -266,7 +266,7 @@ impl SessionState {
     /// Swap the focused node's subtree with its previous sibling (if present).
     pub fn swap_prev(self) -> Self {
         Self {
-            focus: self.focus.swap_prev(),
+            focus: self.focus.map(FocusNode::swap_prev),
             changed: true,
             ..self
         }
@@ -275,7 +275,7 @@ impl SessionState {
     /// Swap the focused node's subtree with its next sibling (if present).
     pub fn swap_next(self) -> Self {
         Self {
-            focus: self.focus.swap_next(),
+            focus: self.focus.map(FocusNode::swap_next),
             changed: true,
             ..self
         }
@@ -284,7 +284,7 @@ impl SessionState {
     /// Move the siblings of the focused node to be its children.
     pub fn nest(self) -> Self {
         Self {
-            focus: self.focus.nest(),
+            focus: self.focus.map(FocusNode::nest),
             changed: true,
             ..self
         }
@@ -293,7 +293,7 @@ impl SessionState {
     /// Insert the focused node's children before its subsequent siblings.
     pub fn flatten(self) -> Self {
         Self {
-            focus: self.focus.flatten(),
+            focus: self.focus.map(FocusNode::flatten),
             changed: true,
             ..self
         }
@@ -302,7 +302,7 @@ impl SessionState {
     /// Insert a new node as the parent of the focused node.
     pub fn insert_parent(self) -> Self {
         Self {
-            focus: self.focus.insert_parent(),
+            focus: self.focus.map(FocusNode::insert_parent),
             ..self
         }
     }
@@ -310,7 +310,7 @@ impl SessionState {
     /// Insert a new child node above the focused node's children.
     pub fn insert_child(self) -> Self {
         Self {
-            focus: self.focus.insert_child(),
+            focus: self.focus.map(FocusNode::insert_child),
             ..self
         }
     }
@@ -318,7 +318,7 @@ impl SessionState {
     /// Insert a new node as the previous sibling of the focused node.
     pub fn insert_prev(self) -> Self {
         Self {
-            focus: self.focus.insert_prev(),
+            focus: self.focus.map(FocusNode::insert_prev),
             ..self
         }
     }
@@ -326,7 +326,7 @@ impl SessionState {
     /// Insert a new node as the next sibling of the focused node.
     pub fn insert_next(self) -> Self {
         Self {
-            focus: self.focus.insert_next(),
+            focus: self.focus.map(FocusNode::insert_next),
             ..self
         }
     }
@@ -334,10 +334,14 @@ impl SessionState {
     /// Delete the selected item and optionally mark the state as changed.
     pub fn delete(self, commit_change: bool) -> Self {
         Self {
-            focus: self.focus.delete(),
+            focus: self.focus.and_then(FocusNode::delete),
             changed: self.changed || commit_change,
             ..self
         }
+    }
+
+    pub fn clone_label(&self) -> Option<String> {
+        self.focus.as_ref().map(FocusNode::clone_label)
     }
 
     /// Return the filename if it exists.
