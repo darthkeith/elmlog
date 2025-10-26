@@ -24,9 +24,16 @@ enum IndentBlock {
     VertBar,
 }
 
+// Data needed to render a single tree line.
+struct TreeLine<'a> {
+    tree_prefix: String,
+    label: &'a str,
+    is_focused: bool,
+}
+
 // Iterator type returning the strings used to display the forest.
 struct ForestIter<'a> {
-    prefix: Vec<IndentBlock>,
+    prefix_stack: Vec<IndentBlock>,
     node_iter: Box<dyn Iterator<Item = NodeInfo<'a>> + 'a>,
 }
 
@@ -36,14 +43,14 @@ impl<'a> ForestIter<'a> {
             .into_iter()
             .flat_map(focus_iter);
         ForestIter {
-            prefix: Vec::new(),
+            prefix_stack: Vec::new(),
             node_iter: Box::new(node_iter),
         }
     }
 }
 
 impl<'a> Iterator for ForestIter<'a> {
-    type Item = (String, &'a str, bool);
+    type Item = TreeLine<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let NodeInfo {
@@ -52,31 +59,31 @@ impl<'a> Iterator for ForestIter<'a> {
             is_last_sibling,
             is_focused,
         } = self.node_iter.next()?;
-        let mut tree_row = String::from(" ");
+        let mut tree_prefix = String::from(" ");
         match position {
             NodePosition::Root => {
-                self.prefix.clear();
-                return Some((tree_row, label, is_focused));
+                self.prefix_stack.clear();
+                return Some(TreeLine { tree_prefix, label, is_focused });
             }
             NodePosition::FirstChild => (),
             NodePosition::SubsequentChild => {
-                while let Some(IndentBlock::Spacer) = self.prefix.pop() {}
+                while let Some(IndentBlock::Spacer) = self.prefix_stack.pop() {}
             }
         }
-        for block in &self.prefix {
-            tree_row.push_str(match block {
+        for block in &self.prefix_stack {
+            tree_prefix.push_str(match block {
                 IndentBlock::Spacer => "   ",
                 IndentBlock::VertBar => "│  ",
             });
         }
         if is_last_sibling {
-            tree_row.push_str("└──");
-            self.prefix.push(IndentBlock::Spacer);
+            tree_prefix.push_str("└──");
+            self.prefix_stack.push(IndentBlock::Spacer);
         } else {
-            tree_row.push_str("├──");
-            self.prefix.push(IndentBlock::VertBar);
+            tree_prefix.push_str("├──");
+            self.prefix_stack.push(IndentBlock::VertBar);
         }
-        Some((tree_row, label, is_focused))
+        Some(TreeLine { tree_prefix, label, is_focused })
     }
 }
 
@@ -91,10 +98,10 @@ fn forest<'a>(
     let mut focus_index = 0;
     let lines: Vec<_> = ForestIter::new(focus)
         .enumerate()
-        .map(|(i, (tree_row, label, is_focused))| {
+        .map(|(i, TreeLine {tree_prefix, label, is_focused})| {
             let spans = if is_focused {
                 focus_index = i;
-                let tree_span = Span::styled(tree_row, selected_tree_style);
+                let tree_span = Span::styled(tree_prefix, selected_tree_style);
                 let mut line_spans = vec![tree_span];
                 match label_override {
                     Some(input) => {
@@ -112,7 +119,7 @@ fn forest<'a>(
                 line_spans
             } else {
                 vec![
-                    Span::styled(tree_row, style::TREE),
+                    Span::styled(tree_prefix, style::TREE),
                     Span::raw(label),
                 ]
             };
@@ -131,19 +138,14 @@ pub fn normal(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::DEFAULT_BOLD, style::TREE)
 }
 
-/// Return a forest widget for Move mode.
-pub fn move_mode(focus: Option<&FocusNode>) -> Scroll {
-    forest(focus, None, style::MOVE_TEXT, style::MOVE_TREE)
-}
-
-/// Return a forest widget for confirming a deletion.
-pub fn delete(focus: Option<&FocusNode>) -> Scroll {
-    forest(focus, None, style::DELETE, style::TREE_DELETE)
-}
-
 /// Return a forest widget for selecting an insert position.
 pub fn insert(focus: Option<&FocusNode>) -> Scroll {
     forest(focus, None, style::INSERT_TEXT, style::INSERT_TREE)
+}
+
+/// Return a forest widget for Move mode.
+pub fn move_mode(focus: Option<&FocusNode>) -> Scroll {
+    forest(focus, None, style::MOVE_TEXT, style::MOVE_TREE)
 }
 
 /// Return a forest widget with user `input` at the focused node.
@@ -152,5 +154,10 @@ pub fn input<'a>(
     input: &'a str,
 ) -> Scroll<'a> {
     forest(focus, Some(input), style::DEFAULT_BOLD, style::TREE)
+}
+
+/// Return a forest widget for confirming a deletion.
+pub fn delete(focus: Option<&FocusNode>) -> Scroll {
+    forest(focus, None, style::DELETE, style::TREE_DELETE)
 }
 
