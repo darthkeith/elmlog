@@ -61,7 +61,7 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
+fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
     if focus.is_none() {
         pairs.push(INSERT);
@@ -73,7 +73,7 @@ fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair> {
 }
 
 // Return the input mode key-command pairs.
-fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair> {
+fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair<'static>> {
     if label_state.input.is_empty() {
         vec![CANCEL]
     } else {
@@ -82,7 +82,7 @@ fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair> {
 }
 
 // Return the input mode key-command pairs.
-fn filename_input_commands(filename_state: &FilenameState) -> Vec<KeyPair> {
+fn filename_input_commands(filename_state: &FilenameState) -> Vec<KeyPair<'static>> {
     if filename_state.is_valid() {
         vec![SUBMIT, CANCEL]
     } else {
@@ -105,7 +105,7 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 }
 
 /// Return the command bar widget based on the current `model`.
-pub fn command_bar(model: &Model) -> Line {
+pub fn command_bar(model: &Model) -> Line<'static> {
     let pairs = match model {
         Model::Load(load_state) => load_mode_commands(load_state.size()),
         Model::Normal(state) => normal_mode_commands(state.focus.as_ref()),

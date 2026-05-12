@@ -71,7 +71,7 @@ impl<'a> Iterator for NodePreOrderIter<'a> {
 fn node_iter(
     maybe_node: Option<&Node>,
     position: NodePosition,
-) -> impl Iterator<Item = NodeInfo> {
+) -> impl Iterator<Item = NodeInfo<'_>> {
     maybe_node.into_iter().flat_map(move |node| {
         NodePreOrderIter {
             stack: vec![Frame { node, position }]
@@ -83,7 +83,7 @@ fn node_iter(
 fn rev_node_iter(
     mut prev: Option<&RevNode>,
     is_root: bool,
-) -> impl Iterator<Item = NodeInfo> {
+) -> impl Iterator<Item = NodeInfo<'_>> {
     let mut stack = Vec::new();
     while let Some(rev_node) = prev {
         stack.push(rev_node);
@@ -114,7 +114,7 @@ fn rev_node_iter(
 }
 
 // Pre-order iterator over the focused node and its siblings' subtrees.
-fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
+fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
     let is_root = focus.parent.is_none();
     let (position, next_pos) = if is_root {
         (NodePosition::Root, NodePosition::Root)
@@ -140,7 +140,7 @@ fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
 }
 
 /// Pre-order iterator over all nodes in the forest.
-pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo> {
+pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
     let mut iter: Box<dyn Iterator<Item = NodeInfo>> =
         Box::new(siblings_iter(focus));
     let ancestors = std::iter::successors(

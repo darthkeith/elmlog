@@ -111,7 +111,7 @@ fn main_paragraph_scroll(text: Text) -> Paragraph {
 }
 
 // Return Load mode Scroll with selected file highlighted.
-fn load(load_state: &LoadState, highlight: Style) -> Scroll {
+fn load(load_state: &LoadState, highlight: Style) -> Scroll<'static> {
     let selected = load_state.index();
     let lines = load_state.filename_iter()
         .enumerate()
@@ -128,17 +128,17 @@ fn load(load_state: &LoadState, highlight: Style) -> Scroll {
 }
 
 // Return Load mode Scroll with normal highlight.
-fn load_normal(load_state: &LoadState) -> Scroll {
+fn load_normal(load_state: &LoadState) -> Scroll<'static> {
     load(load_state, style::DEFAULT_HL)
 }
 
 // Return Load mode Scroll with selected file highlighted in red for deletion.
-fn load_delete(load_state: &LoadState) -> Scroll {
+fn load_delete(load_state: &LoadState) -> Scroll<'static> {
     load(load_state, style::DELETE)
 }
 
 // Return the text input widget given the `input` string.
-fn text_input(input: &str) -> Paragraph {
+fn text_input(input: &str) -> Paragraph<'static> {
     let content = format!("❯ {input}").into();
     let cursor = "█".set_style(style::CURSOR);
     let text = Line::from(vec![content, cursor])

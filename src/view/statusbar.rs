@@ -41,12 +41,12 @@ const INSERT: &str = "Enter position to insert new item";
 const SAVE: &str = "Save changes?";
 const UNTITLED: &str = "Untitled";
 
-fn info(text: &str) -> Span {
+fn info(text: &str) -> Span<'_> {
     format!("[{text}]").into()
 }
 
 // Status bar Line with the `message`.
-fn status(text: &str) -> Vec<Span> {
+fn status(text: &str) -> Vec<Span<'_>> {
     vec![text.into()]
 }
 
@@ -59,7 +59,7 @@ fn status_info<'a>(message: &'a str, maybe_info: Option<&'a str>) -> Vec<Span<'a
 }
 
 // Normal mode status bar Line with the filename, if it exists.
-fn status_normal(maybe_filename: Option<&str>) -> Vec<Span> {
+fn status_normal(maybe_filename: Option<&str>) -> Vec<Span<'_>> {
     vec![match maybe_filename {
         Some(filename) => filename.bold(),
         None => info(UNTITLED),
@@ -67,7 +67,7 @@ fn status_normal(maybe_filename: Option<&str>) -> Vec<Span> {
 }
 
 /// Return the status bar widget based on the `model`.
-pub fn status_bar(model: &Model) -> Line {
+pub fn status_bar(model: &Model) -> Line<'_> {
     let content = match model {
         Model::Load(_) => status(LOAD),
         Model::Normal(state) => status_normal(state.get_filename()),

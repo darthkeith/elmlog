@@ -115,7 +115,7 @@ fn scroll_window(mut iter: ForestIter, window_height: usize) -> ScrollWindow {
     let mut line_queue: VecDeque<TreeLine> =
         VecDeque::with_capacity(window_height);
     let mut has_more_above = false;
-    while let Some(tree_line) = iter.next() {
+    for tree_line in iter.by_ref() {
         if line_queue.len() == window_height {
             line_queue.pop_front();
             has_more_above = true;
@@ -132,7 +132,7 @@ fn scroll_window(mut iter: ForestIter, window_height: usize) -> ScrollWindow {
     let mut focus_idx = line_queue.len() - 1;
     let center_idx = window_height / 2;
     let mut has_more_below = false;
-    while let Some(tree_line) = iter.next() {
+    for tree_line in iter {
         if line_queue.len() < window_height {
             line_queue.push_back(tree_line);
         } else if focus_idx <= center_idx {
@@ -238,17 +238,17 @@ impl<'a> Widget for ForestScroll<'a> {
 }
 
 /// Return a ForestScroll widget for Normal mode.
-pub fn normal(focus: Option<&FocusNode>) -> ForestScroll {
+pub fn normal(focus: Option<&FocusNode>) -> ForestScroll<'_> {
     ForestScroll::new(focus, FocusStyle::Normal)
 }
 
 /// Return a ForestScroll widget for selecting an insert position.
-pub fn insert(focus: Option<&FocusNode>) -> ForestScroll {
+pub fn insert(focus: Option<&FocusNode>) -> ForestScroll<'_> {
     ForestScroll::new(focus, FocusStyle::Insert)
 }
 
 /// Return a ForestScroll widget for Move mode.
-pub fn move_mode(focus: Option<&FocusNode>) -> ForestScroll {
+pub fn move_mode(focus: Option<&FocusNode>) -> ForestScroll<'_> {
     ForestScroll::new(focus, FocusStyle::Move)
 }
 
@@ -261,7 +261,7 @@ pub fn input<'a>(
 }
 
 /// Return a ForestScroll widget for confirming a deletion.
-pub fn delete(focus: Option<&FocusNode>) -> ForestScroll {
+pub fn delete(focus: Option<&FocusNode>) -> ForestScroll<'_> {
     ForestScroll::new(focus, FocusStyle::Delete)
 }
 
