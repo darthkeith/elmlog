@@ -64,7 +64,11 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
             let state = SessionState {focus: Some(FocusNode::new()), ..state };
             Model::LabelInput(LabelState::new_insert(state))
         }
-        NormalMsg::Move => Model::Move(state),
+        NormalMsg::Move => if state.focus.is_some() {
+            Model::Move(state)
+        } else {
+            Model::Normal(state)
+        }
         NormalMsg::Nest => Model::Normal(state.nest()),
         NormalMsg::Flatten => Model::Normal(state.flatten()),
         NormalMsg::Delete => if state.focus.is_some() {
