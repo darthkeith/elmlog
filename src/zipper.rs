@@ -167,19 +167,19 @@ impl FocusNode {
         }
     }
 
-    /// Move the focused node's subtree to be its parent's next sibling.
+    /// Move the focused node's subtree to be its parent's previous sibling.
     pub fn promote(self) -> Self {
         match self.parent {
             Some(parent) => {
-                let prev = RevNode {
+                let next = Node {
                     child: join_siblings(self.prev, self.next),
-                    prev: parent.prev,
+                    next: parent.next,
                     label: parent.label,
                 };
                 Self {
                     parent: parent.parent,
-                    prev: Some(Box::new(prev)),
-                    next: parent.next,
+                    prev: parent.prev,
+                    next: Some(Box::new(next)),
                     ..self
                 }
             }
@@ -187,20 +187,20 @@ impl FocusNode {
         }
     }
 
-    /// Move the focused node's subtree to be its previous sibling's last child.
+    /// Move the focused node's subtree to be its next sibling's first child.
     pub fn demote(self) -> Self {
-        match self.prev {
-            Some(prev) => {
+        match self.next {
+            Some(next) => {
                 let parent = PathNode {
                     parent: self.parent,
-                    prev: prev.prev,
-                    next: self.next,
-                    label: prev.label,
+                    prev: self.prev,
+                    next: next.next,
+                    label: next.label,
                 };
                 Self {
                     parent: Some(Box::new(parent)),
-                    prev: reverse_siblings(prev.child),
-                    next: None,
+                    prev: None,
+                    next: next.child,
                     ..self
                 }
             }

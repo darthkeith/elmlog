@@ -245,7 +245,7 @@ impl SessionState {
         }
     }
 
-    /// Move the focused node's subtree to be its parent's next sibling.
+    /// Move the focused node's subtree to be its parent's previous sibling.
     pub fn promote(self) -> Self {
         Self {
             focus: self.focus.map(FocusNode::promote),
@@ -254,7 +254,7 @@ impl SessionState {
         }
     }
 
-    /// Move the focused node's subtree to be its previous sibling's last child.
+    /// Move the focused node's subtree to be its next sibling's first child.
     pub fn demote(self) -> Self {
         Self {
             focus: self.focus.map(FocusNode::demote),
