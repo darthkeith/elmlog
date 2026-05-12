@@ -11,7 +11,7 @@ use ratatui::{
     style::{Style, Styled},
     text::{Line, Text},
     widgets::{
-        block::Padding,
+        Padding,
         Block,
         Borders,
         Paragraph,
