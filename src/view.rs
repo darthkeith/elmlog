@@ -212,4 +212,3 @@ pub fn view(model: &Model, frame: &mut Frame) {
     }
     frame.render_widget(command_bar(model), command_bar_area);
 }
-

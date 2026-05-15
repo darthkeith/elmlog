@@ -349,4 +349,3 @@ impl SessionState {
         self.maybe_file.as_ref().map(|file| file.name.as_str())
     }
 }
-

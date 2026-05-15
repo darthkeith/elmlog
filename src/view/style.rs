@@ -34,4 +34,3 @@ pub const CURSOR: Style = DEFAULT.add_modifier(Modifier::SLOW_BLINK);
 pub const CMD_KEY: Style = Style::new().fg(DARKER_WARM_GRAY).bg(DARK_IVORY)
     .add_modifier(Modifier::BOLD);
 pub const CMD_NAME: Style = ACCENT.add_modifier(Modifier::ITALIC);
-
