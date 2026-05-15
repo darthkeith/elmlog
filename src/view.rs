@@ -1,5 +1,6 @@
 mod cmdbar;
 mod forest;
+mod scroll;
 mod statusbar;
 mod style;
 
