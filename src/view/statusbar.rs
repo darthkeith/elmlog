@@ -117,4 +117,3 @@ pub fn status_bar(model: &Model) -> Line<'_> {
         .left_aligned()
         .set_style(style::ACCENT)
 }
-

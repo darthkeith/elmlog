@@ -264,4 +264,3 @@ pub fn input<'a>(
 pub fn delete(focus: Option<&FocusNode>) -> ForestScroll<'_> {
     ForestScroll::new(focus, FocusStyle::Delete)
 }
-

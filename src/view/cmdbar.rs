@@ -119,4 +119,3 @@ pub fn command_bar(model: &Model) -> Line<'static> {
     };
     to_command_bar(pairs)
 }
-

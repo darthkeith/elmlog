@@ -249,4 +249,3 @@ pub fn update(message: Message) -> Command {
     };
     Command::None(model)
 }
-

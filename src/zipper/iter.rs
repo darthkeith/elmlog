@@ -174,4 +174,3 @@ pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
     }
     iter
 }
-

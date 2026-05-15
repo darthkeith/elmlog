@@ -242,4 +242,3 @@ pub fn handle_input(model: Model) -> Result<Message> {
     }
     Ok(key_to_message(model, key.code))
 }
-

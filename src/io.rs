@@ -325,4 +325,3 @@ pub fn execute_command(command: Command) -> Option<Model> {
     };
     Some(model)
 }
-

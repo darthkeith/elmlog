@@ -36,4 +36,3 @@ fn main() -> Result<()> {
     ratatui::restore();
     result
 }
-
