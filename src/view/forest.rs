@@ -11,7 +11,7 @@ use crate::{
         style,
         top_mid_bottom,
     },
-    zipper::{
+    zipper::forest::{
         FocusNode,
         iter::{
             NodeInfo,

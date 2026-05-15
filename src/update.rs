@@ -24,7 +24,7 @@ use crate::{
         SaveState,
         SessionState,
     },
-    zipper::FocusNode,
+    zipper::forest::FocusNode,
 };
 
 // Update the Model based on a Load mode message.

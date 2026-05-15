@@ -11,7 +11,7 @@ use crate::{
         Model,
     },
     view::style,
-    zipper::FocusNode,
+    zipper::forest::FocusNode,
 };
 
 type KeyPair<'a> = (&'a str, &'a str);

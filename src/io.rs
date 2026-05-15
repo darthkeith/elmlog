@@ -16,7 +16,7 @@ use crate::{
         PostSaveAction,
         SessionState,
     },
-    zipper::FocusNode,
+    zipper::forest::FocusNode,
 };
 
 const APP_DIR: &str = "elmlog";

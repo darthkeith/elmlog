@@ -1,6 +1,6 @@
 use crate::{
     io::{LoadState, OpenDataFile},
-    zipper::FocusNode,
+    zipper::forest::FocusNode,
 };
 
 /// Persistent state for an active session.

@@ -1,4 +1,4 @@
-use crate::zipper::{
+use crate::zipper::forest::{
     Node,
     RevNode,
     FocusNode,
