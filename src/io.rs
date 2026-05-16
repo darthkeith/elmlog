@@ -67,8 +67,8 @@ impl FileEntry {
 }
 
 impl LoadState {
-    /// Move the selected FileEntry.
-    pub fn move_file_entry(mut self) -> FileEntry {
+    /// Extract the selected FileEntry, consuming the instance.
+    pub fn extract_selected(mut self) -> FileEntry {
         self.files.swap_remove(self.index)
     }
 

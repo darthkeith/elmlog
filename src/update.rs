@@ -33,7 +33,7 @@ fn update_load(msg: LoadMsg, load_state: LoadState) -> Command {
         LoadMsg::Decrement => Model::Load(load_state.decrement()),
         LoadMsg::Increment => Model::Load(load_state.increment()),
         LoadMsg::Open => {
-            let file_entry = load_state.move_file_entry();
+            let file_entry = load_state.extract_selected();
             return Command::InitSession(file_entry);
         }
         LoadMsg::New => Model::Normal(SessionState::new()),
