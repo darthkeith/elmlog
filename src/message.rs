@@ -2,16 +2,14 @@ use std::io::Result;
 
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
-use crate::{
-    io::LoadState,
-    model::{
-        ConfirmState,
-        FilenameState,
-        LabelState,
-        Model,
-        SaveState,
-        SessionState,
-    },
+use crate::model::{
+    ConfirmState,
+    FilenameState,
+    LabelState,
+    LoadState,
+    Model,
+    SaveState,
+    SessionState,
 };
 
 /// A message sent in Load mode.

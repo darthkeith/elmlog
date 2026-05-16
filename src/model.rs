@@ -1,7 +1,30 @@
-use crate::{
-    io::{LoadState, OpenDataFile},
-    zipper::FocusNode,
+use std::{
+    fs::File,
+    path::PathBuf
 };
+
+use crate::zipper::FocusNode;
+
+/// The `name` and `path` of a file.
+pub struct FileEntry {
+    pub name: String,
+    pub path: PathBuf,
+}
+
+/// List of `files` in the app directory and `index` of the current selection.
+pub struct LoadState {
+    pub files: Vec<FileEntry>,
+    pub index: usize,
+}
+
+/// A file locked for exclusive data access.
+///
+/// `_file` is never accessed and is only stored to keep the lock active.
+pub struct OpenDataFile {
+    pub name: String,
+    pub path: PathBuf,
+    pub _file: File,
+}
 
 /// Persistent state for an active session.
 pub struct SessionState {
@@ -77,6 +100,54 @@ pub enum Model {
     LabelInput(LabelState),
     FilenameInput(FilenameState),
     Confirm(ConfirmState),
+}
+
+impl LoadState {
+    /// Extract the selected FileEntry, consuming the instance.
+    pub fn extract_selected(mut self) -> FileEntry {
+        self.files.swap_remove(self.index)
+    }
+
+    /// Decrement the `index`.
+    pub fn decrement(self) -> Self {
+        if self.index == 0 {
+            self
+        } else {
+            LoadState {
+                index: self.index - 1,
+                ..self
+            }
+        }
+    }
+
+    /// Increment the `index`.
+    pub fn increment(self) -> Self {
+        if self.index + 1 == self.files.len() {
+            self
+        } else {
+            LoadState {
+                index: self.index + 1,
+                ..self
+            }
+        }
+    }
+
+    /// Iterate over the filenames.
+    pub fn filename_iter(&self) -> impl Iterator<Item = &str> {
+        self.files
+            .iter()
+            .map(|f| f.name.as_str())
+    }
+
+    /// Return the total number of files.
+    pub fn size(&self) -> usize {
+        self.files.len()
+    }
+
+    /// Return the current index.
+    pub fn index(&self) -> usize {
+        self.index
+    }
 }
 
 impl LabelState {

@@ -21,10 +21,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    io::LoadState,
-    model::{ConfirmState, Model},
-};
+use crate::model::{ConfirmState, LoadState, Model};
 
 use self::{
     cmdbar::command_bar,

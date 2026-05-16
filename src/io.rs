@@ -9,10 +9,13 @@ use fs2::FileExt;
 use crate::{
     model::{
         ConfirmState,
+        FileEntry,
         FilenameAction,
         FilenameState,
         FilenameStatus,
+        LoadState,
         Model,
+        OpenDataFile,
         PostSaveAction,
         SessionState,
     },
@@ -20,27 +23,6 @@ use crate::{
 };
 
 const APP_DIR: &str = "elmlog";
-
-/// The `name` and `path` of a file.
-pub struct FileEntry {
-    name: String,
-    path: PathBuf,
-}
-
-/// List of `files` in the app directory and `index` of the current selection.
-pub struct LoadState {
-    files: Vec<FileEntry>,
-    index: usize,
-}
-
-/// A file locked for exclusive data access.
-///
-/// The File is only stored to keep the lock active.
-pub struct OpenDataFile {
-    pub name: String,
-    path: PathBuf,
-    _file: File,
-}
 
 /// A message indicating an IO action to perform.
 pub enum Command {
@@ -55,87 +37,6 @@ pub enum Command {
     Quit,
 }
 
-impl FileEntry {
-    fn rename(&self, filename: &str) -> Result<Self> {
-        let path = app_dir_path().join(filename);
-        fs::rename(&self.path, &path)?;
-        Ok(FileEntry {
-            name: filename.to_string(),
-            path,
-        })
-    }
-}
-
-impl LoadState {
-    /// Extract the selected FileEntry, consuming the instance.
-    pub fn extract_selected(mut self) -> FileEntry {
-        self.files.swap_remove(self.index)
-    }
-
-    /// Decrement the `index`.
-    pub fn decrement(self) -> Self {
-        if self.index == 0 {
-            self
-        } else {
-            LoadState {
-                index: self.index - 1,
-                ..self
-            }
-        }
-    }
-
-    /// Increment the `index`.
-    pub fn increment(self) -> Self {
-        if self.index + 1 == self.files.len() {
-            self
-        } else {
-            LoadState {
-                index: self.index + 1,
-                ..self
-            }
-        }
-    }
-
-    /// Iterate over the filenames.
-    pub fn filename_iter(&self) -> impl Iterator<Item = &str> {
-        self.files
-            .iter()
-            .map(|f| f.name.as_str())
-    }
-
-    /// Return the total number of files.
-    pub fn size(&self) -> usize {
-        self.files.len()
-    }
-
-    /// Return the current index.
-    pub fn index(&self) -> usize {
-        self.index
-    }
-
-    // Rename the selected file.
-    fn rename(&mut self, filename: &str) -> Result<()> {
-        let i = self.index;
-        self.files[i] = self.files[i].rename(filename)?;
-        Ok(())
-    }
-
-    // Delete the currently selected file and remove it from the list.
-    // Return None if there are no files left.
-    fn delete(mut self) -> Option<Self> {
-        let entry = self.files.remove(self.index);
-        fs::remove_file(entry.path)
-            .expect("Failed to delete file");
-        if self.files.is_empty() {
-            return None;
-        }
-        if self.index == self.files.len() {
-            self.index -= 1;
-        }
-        Some(self)
-    }
-}
-
 // Return the application directory path, creating any missing directories.
 fn app_dir_path() -> PathBuf {
     let data_dir = dirs::data_dir()
@@ -144,6 +45,37 @@ fn app_dir_path() -> PathBuf {
     fs::create_dir_all(&path)
         .expect("Failed to create data directory");
     path
+}
+
+// Rename a FileEntry and return the new one.
+fn rename_file(file: &FileEntry, filename: &str) -> Result<FileEntry> {
+    let path = app_dir_path().join(filename);
+    fs::rename(&file.path, &path)?;
+    Ok(FileEntry {
+        name: filename.to_string(),
+        path,
+    })
+}
+
+fn rename_selected_file(load_state: &mut LoadState, filename: &str) -> Result<()> {
+    let i = load_state.index;
+    load_state.files[i] = rename_file(&load_state.files[i], filename)?;
+    Ok(())
+}
+
+// Delete the currently selected file and remove it from the list.
+// Return None if there are no files left.
+fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
+    let entry = load_state.files.remove(load_state.index);
+    fs::remove_file(entry.path)
+        .expect("Failed to delete file");
+    if load_state.files.is_empty() {
+        return None;
+    }
+    if load_state.index == load_state.files.len() {
+        load_state.index -= 1;
+    }
+    Some(load_state)
 }
 
 // Return the LoadState if there is a least one data file.
@@ -280,7 +212,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::RenameFile(filename, mut load_state) => {
             let status = if filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if load_state.rename(&filename).is_err() {
+            } else if rename_selected_file(&mut load_state, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
                 return Some(Model::Load(load_state))
@@ -317,7 +249,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 PostSaveAction::Quit => None,
             }
         }
-        Command::DeleteFile(load_state) => match load_state.delete() {
+        Command::DeleteFile(load_state) => match delete_selected_file(load_state) {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
         }

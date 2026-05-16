@@ -1,5 +1,5 @@
 use crate::{
-    io::{Command, LoadState},
+    io::Command,
     message::{
         ConfirmMsg,
         FilenameMsg,
@@ -19,6 +19,7 @@ use crate::{
         FilenameStatus,
         LabelAction,
         LabelState,
+        LoadState,
         Model,
         PostSaveAction,
         SaveState,
