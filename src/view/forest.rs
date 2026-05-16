@@ -1,23 +1,18 @@
-use std::collections::VecDeque;
-
-use ratatui::{
-    prelude::{Buffer, Rect, Widget},
-    text::{Line, Span, Text},
-    widgets::Block,
+use std::{
+    borrow::Cow,
+    collections::VecDeque,
 };
+
+use ratatui::text::{Line, Span, Text};
 
 use crate::{
     view::{
+        scroll::{ScrollArea, ScrollContent},
         style,
-        top_mid_bottom,
     },
     zipper::{
         FocusNode,
-        iter::{
-            NodeInfo,
-            NodePosition,
-            focus_iter,
-        },
+        iter::{NodeInfo, NodePosition, focus_iter},
     },
 };
 
@@ -27,8 +22,8 @@ enum IndentBlock {
     VertBar,
 }
 
-// Data needed to render a single tree line in the TUI.
-struct TreeLine<'a> {
+// Data used to render a single forest line in the TUI.
+struct LineContent<'a> {
     tree_prefix: String,
     label: &'a str,
     is_focused: bool,
@@ -53,7 +48,7 @@ impl<'a> ForestIter<'a> {
 }
 
 impl<'a> Iterator for ForestIter<'a> {
-    type Item = TreeLine<'a>;
+    type Item = LineContent<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let NodeInfo {
@@ -66,7 +61,7 @@ impl<'a> Iterator for ForestIter<'a> {
         match position {
             NodePosition::Root => {
                 self.prefix_stack.clear();
-                return Some(TreeLine { tree_prefix, label, is_focused });
+                return Some(LineContent { tree_prefix, label, is_focused });
             }
             NodePosition::FirstChild => (),
             NodePosition::SubsequentChild => {
@@ -86,39 +81,42 @@ impl<'a> Iterator for ForestIter<'a> {
             tree_prefix.push_str("├──");
             self.prefix_stack.push(IndentBlock::VertBar);
         }
-        Some(TreeLine { tree_prefix, label, is_focused })
+        Some(LineContent { tree_prefix, label, is_focused })
     }
 }
 
-// TreeLine data for the visible window, plus flags for more above/below.
-struct ScrollWindow<'a> {
-    lines: Vec<TreeLine<'a>>,
-    has_more_above: bool,
-    has_more_below: bool,
+// Content of the visible window, plus flags for if there is more to scroll.
+struct ForestWindow<'a> {
+    items: Vec<LineContent<'a>>,
+    more_above: bool,
+    more_below: bool,
 }
 
-impl ScrollWindow<'_> {
+impl ForestWindow<'_> {
     fn empty() -> Self {
-        ScrollWindow {
-            lines: Vec::new(),
-            has_more_above: false,
-            has_more_below: false,
+        Self {
+            items: Vec::new(),
+            more_above: false,
+            more_below: false,
         }
     }
 }
 
 // Build a window of visible lines centering the focused line.
-fn scroll_window(mut iter: ForestIter, window_height: usize) -> ScrollWindow {
+fn build_forest_window(
+    mut iter: ForestIter,
+    window_height: usize
+) -> ForestWindow {
     if window_height == 0 {
-        return ScrollWindow::empty();
+        return ForestWindow::empty();
     }
-    let mut line_queue: VecDeque<TreeLine> =
+    let mut line_queue: VecDeque<LineContent> =
         VecDeque::with_capacity(window_height);
-    let mut has_more_above = false;
+    let mut more_above = false;
     for tree_line in iter.by_ref() {
         if line_queue.len() == window_height {
             line_queue.pop_front();
-            has_more_above = true;
+            more_above = true;
         }
         if tree_line.is_focused {
             line_queue.push_back(tree_line);
@@ -127,28 +125,28 @@ fn scroll_window(mut iter: ForestIter, window_height: usize) -> ScrollWindow {
         line_queue.push_back(tree_line);
     }
     if line_queue.is_empty() {
-        return ScrollWindow::empty();
+        return ForestWindow::empty();
     }
     let mut focus_idx = line_queue.len() - 1;
     let center_idx = window_height / 2;
-    let mut has_more_below = false;
+    let mut more_below = false;
     for tree_line in iter {
         if line_queue.len() < window_height {
             line_queue.push_back(tree_line);
         } else if focus_idx <= center_idx {
-            has_more_below = true;
+            more_below = true;
             break;
         } else {
             line_queue.pop_front();
             line_queue.push_back(tree_line);
-            has_more_above = true;
+            more_above = true;
             focus_idx -= 1;
         }
     }
-    ScrollWindow {
-        lines: line_queue.into_iter().collect(),
-        has_more_above,
-        has_more_below,
+    ForestWindow {
+        items: line_queue.into_iter().collect(),
+        more_above,
+        more_below,
     }
 }
 
@@ -161,106 +159,80 @@ enum FocusStyle<'a> {
     Delete,
 }
 
-// Convert TreeLines into styled Text based on focus style.
-fn lines_to_text<'a>(
-    lines: Vec<TreeLine<'a>>,
-    style: FocusStyle<'a>,
-) -> Text<'a> {
-    let lines = lines.into_iter().map(|TreeLine { tree_prefix, label, is_focused }| {
-        let mut spans = vec![Span::styled(tree_prefix, style::TEXT_TREE)];
-        if is_focused {
-            match style {
-                FocusStyle::Normal => {
-                    spans.push(Span::styled(label, style::TEXT_SELECTED));
-                    Line::from(spans).style(style::BG_DEFAULT)
-                }
-                FocusStyle::Insert => {
-                    spans.push(Span::styled(label, style::TEXT_SELECTED));
-                    Line::from(spans).style(style::BG_INSERT)
-                }
-                FocusStyle::Move => {
-                    spans.push(Span::styled(label, style::TEXT_SELECTED));
-                    Line::from(spans).style(style::BG_MOVE)
-                }
-                FocusStyle::Input(input) => {
-                    let text = format!("{input}█");
-                    spans.push(Span::styled(text, style::TEXT_SELECTED));
-                    Line::from(spans).style(style::BG_INPUT)
-                }
-                FocusStyle::Delete => {
-                    spans.push(Span::styled(label, style::TEXT_SELECTED));
-                    Line::from(spans).style(style::BG_DELETE)
-                }
-            }
-        } else {
-            spans.push(Span::styled(label, style::TEXT_DEFAULT));
-            Line::from(spans).style(style::BG_DEFAULT)
+// Construct a styled UI Line from its content.
+fn format_line<'a>(item: LineContent<'a>, style: &FocusStyle<'a>) -> Line<'a> {
+    let LineContent { tree_prefix, label, is_focused } = item;
+    let prefix_span = Span::styled(tree_prefix, style::TEXT_TREE);
+    let (text, text_style, bg_style) = if is_focused {
+        let (text, bg_style) = match style {
+            FocusStyle::Normal => (Cow::Borrowed(label), style::BG_DEFAULT),
+            FocusStyle::Insert => (Cow::Borrowed(label), style::BG_INSERT),
+            FocusStyle::Move => (Cow::Borrowed(label), style::BG_MOVE),
+            FocusStyle::Input(input) => (Cow::Owned(format!("{input}█")), style::BG_INPUT),
+            FocusStyle::Delete => (Cow::Borrowed(label), style::BG_DELETE),
+        };
+        (text, style::TEXT_SELECTED, bg_style)
+    } else {
+        (Cow::Borrowed(label), style::TEXT_DEFAULT, style::BG_DEFAULT)
+    };
+    let label_span = Span::styled(text, text_style);
+    let spans = vec![prefix_span, label_span];
+    Line::from(spans).style(bg_style)
+}
+
+// Construct a ScrollArea to display the forest, styling the focused line.
+fn new_scroll_area<'a>(
+    focus: Option<&'a FocusNode>,
+    style: FocusStyle<'a>
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    let build = move |height| {
+        let ForestWindow {
+            items,
+            more_above,
+            more_below,
+        } = build_forest_window(ForestIter::new(focus), height);
+        let lines = items.into_iter().map(|item| format_line(item, &style));
+        ScrollContent {
+            text: Text::from_iter(lines),
+            more_above,
+            more_below,
         }
-    });
-    Text::from_iter(lines)
+    };
+    ScrollArea { build }
 }
 
-// Widget for displaying a forest view centering the focused line.
-pub struct ForestScroll<'a> {
-    iter: ForestIter<'a>,
-    style: FocusStyle<'a>,
+/// Return a ScrollArea widget for Normal mode.
+pub fn normal<'a>(
+    focus: Option<&'a FocusNode>
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    new_scroll_area(focus, FocusStyle::Normal)
 }
 
-impl<'a> ForestScroll<'a> {
-    fn new(focus: Option<&'a FocusNode>, style: FocusStyle<'a>) -> Self {
-        Self {
-            iter: ForestIter::new(focus),
-            style,
-        }
-    }
+/// Return a ScrollArea widget for selecting an insert position.
+pub fn insert<'a>(
+    focus: Option<&'a FocusNode>
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    new_scroll_area(focus, FocusStyle::Insert)
 }
 
-impl<'a> Widget for ForestScroll<'a> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let [top_line, mid_area, bottom_line] = top_mid_bottom(area);
-        let ScrollWindow {
-            lines,
-            has_more_above,
-            has_more_below,
-        } = scroll_window(self.iter, mid_area.height as usize);
-        Block::new().style(style::BG_DEFAULT)
-            .render(mid_area, buf);
-        lines_to_text(lines, self.style)
-            .render(mid_area, buf);
-        let scroll_hint = |has_more: bool| if has_more { " ..." } else { "" };
-        Text::from(scroll_hint(has_more_above))
-            .style(style::DEFAULT)
-            .render(top_line, buf);
-        Text::from(scroll_hint(has_more_below))
-            .style(style::DEFAULT)
-            .render(bottom_line, buf);
-    }
+/// Return a ScrollArea widget for Move mode.
+pub fn move_mode<'a>(
+    focus: Option<&'a FocusNode>
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    new_scroll_area(focus, FocusStyle::Move)
 }
 
-/// Return a ForestScroll widget for Normal mode.
-pub fn normal(focus: Option<&FocusNode>) -> ForestScroll<'_> {
-    ForestScroll::new(focus, FocusStyle::Normal)
-}
-
-/// Return a ForestScroll widget for selecting an insert position.
-pub fn insert(focus: Option<&FocusNode>) -> ForestScroll<'_> {
-    ForestScroll::new(focus, FocusStyle::Insert)
-}
-
-/// Return a ForestScroll widget for Move mode.
-pub fn move_mode(focus: Option<&FocusNode>) -> ForestScroll<'_> {
-    ForestScroll::new(focus, FocusStyle::Move)
-}
-
-/// Return a ForestScroll widget with user `input` on the focused line.
+/// Return a ScrollArea widget with user `input` on the focused line.
 pub fn input<'a>(
     focus: Option<&'a FocusNode>,
     input: &'a str,
-) -> ForestScroll<'a> {
-    ForestScroll::new(focus, FocusStyle::Input(input))
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    new_scroll_area(focus, FocusStyle::Input(input))
 }
 
-/// Return a ForestScroll widget for confirming a deletion.
-pub fn delete(focus: Option<&FocusNode>) -> ForestScroll<'_> {
-    ForestScroll::new(focus, FocusStyle::Delete)
+/// Return a ScrollArea widget for confirming a deletion.
+pub fn delete<'a>(
+    focus: Option<&'a FocusNode>
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    new_scroll_area(focus, FocusStyle::Delete)
 }
