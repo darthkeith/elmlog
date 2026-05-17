@@ -1,18 +1,24 @@
 pub mod fs;
 
-use std::io::Result;
+use std::{
+    io::Result,
+    path::Path,
+};
 
-use crate::model::{
-    ConfirmState,
-    FileEntry,
-    FilenameAction,
-    FilenameState,
-    FilenameStatus,
-    LoadState,
-    Model,
-    OpenDataFile,
-    PostSaveAction,
-    SessionState,
+use crate::{
+    model::{
+        ConfirmState,
+        FileEntry,
+        FilenameAction,
+        FilenameState,
+        FilenameStatus,
+        LoadState,
+        Model,
+        OpenDataFile,
+        PostSaveAction,
+        SessionState,
+    },
+    zipper::FocusNode,
 };
 
 /// A message indicating an IO action to perform.
@@ -90,6 +96,30 @@ fn init_model(file_entry: FileEntry) -> Model {
     Model::Normal(state)
 }
 
+// Write the forest to an existing file at `path`.
+fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
+    fs::set_read_only(path, false);
+    let file = fs::open_write_locked(path);
+    bincode::serialize_into(&file, focus)
+        .expect("Failed to serialize data");
+    fs::set_read_only(path, true);
+}
+
+// Save the current session `state`.
+fn save(state: SessionState) {
+    let (focus, maybe_path) = state.unlock_state();
+    if let Some(path) = maybe_path {
+        write_to_file(&focus, &path);
+    }
+}
+
+// Save the forest to `filename`.
+fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
+    let path = fs::create_new_file(filename)?;
+    write_to_file(focus, &path);
+    Ok(())
+}
+
 /// Execute `command` and return the updated Model.
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
@@ -125,7 +155,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::SaveNew(filename, session, post_save) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if fs::save_new(&session.focus, &filename).is_err() {
+            } else if save_new(&session.focus, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
                 return match post_save {
@@ -141,7 +171,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
             Model::FilenameInput(filename_state)
         }
         Command::Save(state, action) => {
-            fs::save(state);
+            save(state);
             return match action {
                 PostSaveAction::Load => execute_command(Command::Load),
                 PostSaveAction::Quit => None,

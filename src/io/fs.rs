@@ -6,11 +6,6 @@ use std::{
 
 use fs2::FileExt;
 
-use crate::{
-    model::SessionState,
-    zipper::FocusNode,
-};
-
 const APP_DIR: &str = "elmlog";
 
 // Return the application directory path, creating any missing directories.
@@ -70,8 +65,8 @@ pub fn open_read_locked(path: &Path) -> File {
     file
 }
 
-// Open a file in write mode and lock it.
-fn open_write_locked(path: &Path) -> File {
+/// Open a file in write mode and lock it.
+pub fn open_write_locked(path: &Path) -> File {
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
@@ -87,8 +82,8 @@ pub fn filename_exists(filename: &str) -> bool {
     path.exists()
 }
 
-// Set whether the file's permissions are read only.
-fn set_read_only(path: &Path, read_only: bool) {
+/// Set whether the file's permissions are read only.
+pub fn set_read_only(path: &Path, read_only: bool) {
     let mut permissions = File::open(path)
         .expect("Failed to open file")
         .metadata()
@@ -99,33 +94,9 @@ fn set_read_only(path: &Path, read_only: bool) {
         .expect("Failed to set file permissions");
 }
 
-// Write the forest to an existing file at `path`.
-fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
-    set_read_only(path, false);
-    let file = open_write_locked(path);
-    bincode::serialize_into(&file, focus)
-        .expect("Failed to serialize data");
-    set_read_only(path, true);
-}
-
-/// Save the current session `state`.
-pub fn save(state: SessionState) {
-    let (focus, maybe_path) = state.unlock_state();
-    if let Some(path) = maybe_path {
-        write_to_file(&focus, &path);
-    }
-}
-
-// Create a new file in the app directory and return its path.
-fn create_new_file(filename: &str) -> Result<PathBuf> {
+/// Create a new file in the app directory and return its path.
+pub fn create_new_file(filename: &str) -> Result<PathBuf> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
     Ok(path)
-}
-
-/// Save the forest to `filename`.
-pub fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
-    let path = create_new_file(filename)?;
-    write_to_file(focus, &path);
-    Ok(())
 }
