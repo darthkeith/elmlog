@@ -29,21 +29,11 @@ fn app_dir_path() -> PathBuf {
     path
 }
 
-// Rename a FileEntry and return the new one.
-fn rename_file(file: &FileEntry, filename: &str) -> Result<FileEntry> {
-    let path = app_dir_path().join(filename);
-    fs::rename(&file.path, &path)?;
-    Ok(FileEntry {
-        name: filename.to_string(),
-        path,
-    })
-}
-
-/// Rename the selected file in the LoadState to `filename`.
-pub fn rename_selected_file(load_state: &mut LoadState, filename: &str) -> Result<()> {
-    let i = load_state.index;
-    load_state.files[i] = rename_file(&load_state.files[i], filename)?;
-    Ok(())
+/// Rename a file and return its new path.
+pub fn rename_file(old_path: &PathBuf, filename: &str) -> Result<PathBuf> {
+    let new_path = app_dir_path().join(filename);
+    fs::rename(old_path, &new_path)?;
+    Ok(new_path)
 }
 
 /// Delete the currently selected file and remove it from the list.

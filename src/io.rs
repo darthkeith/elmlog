@@ -1,5 +1,7 @@
 pub mod fs;
 
+use std::io::Result;
+
 use crate::{
     model::{
         ConfirmState,
@@ -27,6 +29,21 @@ pub enum Command {
     Quit,
 }
 
+/// Rename the selected file in the LoadState to `filename`.
+pub fn rename_selected_file(
+    load_state: &mut LoadState,
+    filename: &str
+) -> Result<()> {
+    let i = load_state.index;
+    let old_path = &load_state.files[i].path;
+    let new_path = fs::rename_file(old_path, filename)?;
+    load_state.files[i] = FileEntry {
+        name: filename.to_string(),
+        path: new_path,
+    };
+    Ok(())
+}
+
 /// Execute `command` and return the updated Model.
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
@@ -47,7 +64,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::RenameFile(filename, mut load_state) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if fs::rename_selected_file(&mut load_state, &filename).is_err() {
+            } else if rename_selected_file(&mut load_state, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
                 return Some(Model::Load(load_state))
