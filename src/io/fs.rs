@@ -87,15 +87,6 @@ pub fn filename_exists(filename: &str) -> bool {
     path.exists()
 }
 
-// Return the forest and data file path (if present) from the session state.
-// The locked File is implicitly dropped to unlock it.
-fn unlock_state(state: SessionState) -> (Option<FocusNode>, Option<PathBuf>) {
-    let SessionState { focus, maybe_file, .. } = state;
-    let maybe_path = maybe_file
-        .map(|open_file| open_file.path);
-    (focus, maybe_path)
-}
-
 // Set whether the file's permissions are read only.
 fn set_read_only(path: &Path, read_only: bool) {
     let mut permissions = File::open(path)
@@ -119,7 +110,7 @@ fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
 
 /// Save the current session `state`.
 pub fn save(state: SessionState) {
-    let (focus, maybe_path) = unlock_state(state);
+    let (focus, maybe_path) = state.unlock_state();
     if let Some(path) = maybe_path {
         write_to_file(&focus, &path);
     }

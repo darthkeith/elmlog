@@ -419,4 +419,14 @@ impl SessionState {
     pub fn get_filename(&self) -> Option<&str> {
         self.maybe_file.as_ref().map(|file| file.name.as_str())
     }
+
+    /// Return the forest and data file path (if present) from the session state.
+    ///
+    /// The locked File is implicitly dropped to unlock it.
+    pub fn unlock_state(self) -> (Option<FocusNode>, Option<PathBuf>) {
+        let Self { focus, maybe_file, .. } = self;
+        let maybe_path = maybe_file
+            .map(|open_file| open_file.path);
+        (focus, maybe_path)
+    }
 }
