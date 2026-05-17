@@ -57,13 +57,12 @@ fn lock(file: &File) {
         .expect("File is currently locked");
 }
 
-// Load a forest from a serialized data `file`.
-fn load_forest(mut file: &File) -> Option<FocusNode> {
+// Return a buffer containing all of the file's bytes.
+fn read_all_bytes(mut file: &File) -> Vec<u8> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
         .expect("Failed to read file");
-    bincode::deserialize(&buffer)
-        .expect("Failed to deserialize data")
+    buffer
 }
 
 /// Initialize a Model from a saved file.
@@ -74,7 +73,8 @@ pub fn init_model(file_entry: FileEntry) -> Model {
         .open(&path)
         .expect("Failed to open file");
     lock(&file);
-    let focus = load_forest(&file);
+    let focus = bincode::deserialize(&read_all_bytes(&file))
+        .expect("Failed to deserialize data");
     let open_file = OpenDataFile {
         name,
         path,
