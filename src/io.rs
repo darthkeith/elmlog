@@ -2,18 +2,17 @@ pub mod fs;
 
 use std::io::Result;
 
-use crate::{
-    model::{
-        ConfirmState,
-        FileEntry,
-        FilenameAction,
-        FilenameState,
-        FilenameStatus,
-        LoadState,
-        Model,
-        PostSaveAction,
-        SessionState,
-    },
+use crate::model::{
+    ConfirmState,
+    FileEntry,
+    FilenameAction,
+    FilenameState,
+    FilenameStatus,
+    LoadState,
+    Model,
+    OpenDataFile,
+    PostSaveAction,
+    SessionState,
 };
 
 /// A message indicating an IO action to perform.
@@ -29,8 +28,8 @@ pub enum Command {
     Quit,
 }
 
-/// Rename the selected file in the LoadState to `filename`.
-pub fn rename_selected_file(
+// Rename the selected file in the LoadState to `filename`.
+fn rename_selected_file(
     load_state: &mut LoadState,
     filename: &str
 ) -> Result<()> {
@@ -44,10 +43,9 @@ pub fn rename_selected_file(
     Ok(())
 }
 
-/// Delete the currently selected file and remove it from the list.
-///
-/// Return None if there are no files left.
-pub fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
+// Delete the currently selected file and remove it from the list.
+// Return None if there are no files left.
+fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
     let entry = load_state.files.remove(load_state.index);
     std::fs::remove_file(entry.path)
         .expect("Failed to delete file");
@@ -60,8 +58,8 @@ pub fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
     Some(load_state)
 }
 
-/// Return the LoadState if there is a least one data file.
-pub fn get_load_state() -> Option<LoadState> {
+// Return the LoadState if there is a least one data file.
+fn get_load_state() -> Option<LoadState> {
     let files: Vec<_> = fs::scan_app_dir()
         .expect("Unable to read app directory")
         .into_iter()
@@ -73,6 +71,25 @@ pub fn get_load_state() -> Option<LoadState> {
     Some(LoadState { files, index: 0 })
 }
 
+// Initialize a Model from a saved file.
+fn init_model(file_entry: FileEntry) -> Model {
+    let FileEntry { name, path } = file_entry;
+    let file = fs::open_read_locked(&path);
+    let focus = bincode::deserialize(&fs::read_all_bytes(&file))
+        .expect("Failed to deserialize data");
+    let open_file = OpenDataFile {
+        name,
+        path,
+        _file: file,
+    };
+    let state = SessionState {
+        focus,
+        maybe_file: Some(open_file),
+        changed: false,
+    };
+    Model::Normal(state)
+}
+
 /// Execute `command` and return the updated Model.
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
@@ -81,7 +98,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
         }
-        Command::InitSession(file_entry) => fs::init_model(file_entry),
+        Command::InitSession(file_entry) => init_model(file_entry),
         Command::CheckFileExists(filename_state) => {
             let status = if fs::filename_exists(filename_state.trimmed()) {
                 FilenameStatus::Exists

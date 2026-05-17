@@ -7,12 +7,7 @@ use std::{
 use fs2::FileExt;
 
 use crate::{
-    model::{
-        FileEntry,
-        Model,
-        OpenDataFile,
-        SessionState,
-    },
+    model::SessionState,
     zipper::FocusNode,
 };
 
@@ -57,16 +52,16 @@ fn lock(file: &File) {
         .expect("File is currently locked");
 }
 
-// Return a buffer containing all of the file's bytes.
-fn read_all_bytes(mut file: &File) -> Vec<u8> {
+/// Return a buffer containing all of the file's bytes.
+pub fn read_all_bytes(mut file: &File) -> Vec<u8> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
         .expect("Failed to read file");
     buffer
 }
 
-// Open a file in read mode and lock it.
-fn open_read_locked(path: &Path) -> File {
+/// Open a file in read mode and lock it.
+pub fn open_read_locked(path: &Path) -> File {
     let file = OpenOptions::new()
         .read(true)
         .open(path)
@@ -84,25 +79,6 @@ fn open_write_locked(path: &Path) -> File {
         .expect("Failed to write to file");
     lock(&file);
     file
-}
-
-/// Initialize a Model from a saved file.
-pub fn init_model(file_entry: FileEntry) -> Model {
-    let FileEntry { name, path } = file_entry;
-    let file = open_read_locked(&path);
-    let focus = bincode::deserialize(&read_all_bytes(&file))
-        .expect("Failed to deserialize data");
-    let open_file = OpenDataFile {
-        name,
-        path,
-        _file: file,
-    };
-    let state = SessionState {
-        focus,
-        maybe_file: Some(open_file),
-        changed: false,
-    };
-    Model::Normal(state)
 }
 
 /// Check whether `filename` exists in the app directory.
