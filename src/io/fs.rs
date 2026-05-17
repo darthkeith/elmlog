@@ -116,10 +116,16 @@ pub fn save(state: SessionState) {
     }
 }
 
-/// Save the forest to `filename`.
-pub fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
+// Create a new file in the app directory and return its path.
+fn create_new_file(filename: &str) -> Result<PathBuf> {
     let path = app_dir_path().join(filename);
     File::create_new(&path)?;
+    Ok(path)
+}
+
+/// Save the forest to `filename`.
+pub fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
+    let path = create_new_file(filename)?;
     write_to_file(focus, &path);
     Ok(())
 }
