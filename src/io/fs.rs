@@ -36,22 +36,6 @@ pub fn rename_file(old_path: &PathBuf, filename: &str) -> Result<PathBuf> {
     Ok(new_path)
 }
 
-/// Delete the currently selected file and remove it from the list.
-///
-/// Return None if there are no files left.
-pub fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
-    let entry = load_state.files.remove(load_state.index);
-    fs::remove_file(entry.path)
-        .expect("Failed to delete file");
-    if load_state.files.is_empty() {
-        return None;
-    }
-    if load_state.index == load_state.files.len() {
-        load_state.index -= 1;
-    }
-    Some(load_state)
-}
-
 /// Return the LoadState if there is a least one data file.
 pub fn get_load_state() -> Option<LoadState> {
     let files: Vec<FileEntry> = fs::read_dir(app_dir_path())

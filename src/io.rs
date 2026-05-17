@@ -44,6 +44,22 @@ pub fn rename_selected_file(
     Ok(())
 }
 
+/// Delete the currently selected file and remove it from the list.
+///
+/// Return None if there are no files left.
+pub fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
+    let entry = load_state.files.remove(load_state.index);
+    std::fs::remove_file(entry.path)
+        .expect("Failed to delete file");
+    if load_state.files.is_empty() {
+        return None;
+    }
+    if load_state.index == load_state.files.len() {
+        load_state.index -= 1;
+    }
+    Some(load_state)
+}
+
 /// Execute `command` and return the updated Model.
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
@@ -101,7 +117,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 PostSaveAction::Quit => None,
             }
         }
-        Command::DeleteFile(load_state) => match fs::delete_selected_file(load_state) {
+        Command::DeleteFile(load_state) => match delete_selected_file(load_state) {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
         }
