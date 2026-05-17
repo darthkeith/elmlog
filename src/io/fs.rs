@@ -29,7 +29,7 @@ fn app_dir_path() -> PathBuf {
 }
 
 /// Rename a file and return its new path.
-pub fn rename_file(old_path: &PathBuf, filename: &str) -> Result<PathBuf> {
+pub fn rename_file(old_path: &Path, filename: &str) -> Result<PathBuf> {
     let new_path = app_dir_path().join(filename);
     fs::rename(old_path, &new_path)?;
     Ok(new_path)
@@ -65,14 +65,31 @@ fn read_all_bytes(mut file: &File) -> Vec<u8> {
     buffer
 }
 
+// Open a file in read mode and lock it.
+fn open_read_locked(path: &Path) -> File {
+    let file = OpenOptions::new()
+        .read(true)
+        .open(path)
+        .expect("Failed to open file");
+    lock(&file);
+    file
+}
+
+// Open a file in write mode and lock it.
+fn open_write_locked(path: &Path) -> File {
+    let file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .expect("Failed to write to file");
+    lock(&file);
+    file
+}
+
 /// Initialize a Model from a saved file.
 pub fn init_model(file_entry: FileEntry) -> Model {
     let FileEntry { name, path } = file_entry;
-    let file = OpenOptions::new()
-        .read(true)
-        .open(&path)
-        .expect("Failed to open file");
-    lock(&file);
+    let file = open_read_locked(&path);
     let focus = bincode::deserialize(&read_all_bytes(&file))
         .expect("Failed to deserialize data");
     let open_file = OpenDataFile {
@@ -118,12 +135,7 @@ fn set_read_only(path: &Path, read_only: bool) {
 // Write the forest to an existing file at `path`.
 fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
     set_read_only(path, false);
-    let file = OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .open(path)
-        .expect("Failed to write to file");
-    lock(&file);
+    let file = open_write_locked(path);
     bincode::serialize_into(&file, focus)
         .expect("Failed to serialize data");
     set_read_only(path, true);
