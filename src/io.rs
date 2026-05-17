@@ -60,11 +60,24 @@ pub fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
     Some(load_state)
 }
 
+/// Return the LoadState if there is a least one data file.
+pub fn get_load_state() -> Option<LoadState> {
+    let files: Vec<_> = fs::scan_app_dir()
+        .expect("Unable to read app directory")
+        .into_iter()
+        .map(|(name, path)| FileEntry { name, path })
+        .collect();
+    if files.is_empty() {
+        return None;
+    }
+    Some(LoadState { files, index: 0 })
+}
+
 /// Execute `command` and return the updated Model.
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
         Command::None(model) => model,
-        Command::Load => match fs::get_load_state() {
+        Command::Load => match get_load_state() {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
         }

@@ -9,7 +9,6 @@ use fs2::FileExt;
 use crate::{
     model::{
         FileEntry,
-        LoadState,
         Model,
         OpenDataFile,
         SessionState,
@@ -36,10 +35,9 @@ pub fn rename_file(old_path: &PathBuf, filename: &str) -> Result<PathBuf> {
     Ok(new_path)
 }
 
-/// Return the LoadState if there is a least one data file.
-pub fn get_load_state() -> Option<LoadState> {
-    let files: Vec<FileEntry> = fs::read_dir(app_dir_path())
-        .expect("Unable to read app directory")
+/// Return the filenames and paths of the files in the app directory.
+pub fn scan_app_dir() -> Result<Vec<(String, PathBuf)>> {
+    let files = fs::read_dir(app_dir_path())?
         .filter_map(Result::ok)
         .map(|entry| {
             let name = entry
@@ -47,13 +45,10 @@ pub fn get_load_state() -> Option<LoadState> {
                 .to_string_lossy()
                 .into_owned();
             let path = entry.path();
-            FileEntry { name, path }
+            (name, path)
         })
         .collect();
-    match files.len() {
-        0 => None,
-        _ => Some(LoadState { files, index: 0 }),
-    }
+    Ok(files)
 }
 
 // Lock the `file` for exclusive data access.
