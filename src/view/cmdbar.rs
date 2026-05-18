@@ -107,7 +107,7 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 /// Return the command bar widget based on the current `model`.
 pub fn command_bar(model: &Model) -> Line<'static> {
     let pairs = match model {
-        Model::Load(load_state) => load_mode_commands(load_state.size()),
+        Model::Load(load_state) => load_mode_commands(load_state.files.len()),
         Model::Normal(state) => normal_mode_commands(state.focus.as_ref()),
         Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],

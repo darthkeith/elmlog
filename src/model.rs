@@ -113,7 +113,7 @@ impl LoadState {
         if self.index == 0 {
             self
         } else {
-            LoadState {
+            Self {
                 index: self.index - 1,
                 ..self
             }
@@ -125,28 +125,11 @@ impl LoadState {
         if self.index + 1 == self.files.len() {
             self
         } else {
-            LoadState {
+            Self {
                 index: self.index + 1,
                 ..self
             }
         }
-    }
-
-    /// Iterate over the filenames.
-    pub fn filename_iter(&self) -> impl Iterator<Item = &str> {
-        self.files
-            .iter()
-            .map(|f| f.name.as_str())
-    }
-
-    /// Return the total number of files.
-    pub fn size(&self) -> usize {
-        self.files.len()
-    }
-
-    /// Return the current index.
-    pub fn index(&self) -> usize {
-        self.index
     }
 }
 

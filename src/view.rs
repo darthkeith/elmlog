@@ -8,7 +8,7 @@ use std::cmp::min;
 
 use ratatui::{
     layout::{Constraint, Layout},
-    prelude::{Buffer, Rect, Widget},
+    prelude::Rect,
     style::{Style, Styled},
     text::{Line, Text},
     widgets::{
@@ -21,40 +21,35 @@ use ratatui::{
     Frame,
 };
 
-use crate::model::{ConfirmState, LoadState, Model};
+use crate::{
+    model::{ConfirmState, LoadState, Model},
+    view::scroll::{ScrollArea, ScrollContent},
+};
 
 use self::{
     cmdbar::command_bar,
     statusbar::status_bar,
 };
 
-// Scroll offset and flags for scrolling indicators.
+// Start index and indicators used for scrolling through a file list.
 struct ScrollInfo {
-    offset: u16,
-    is_more_above: bool,
-    is_more_below: bool,
+    start: usize,
+    more_above: bool,
+    more_below: bool,
 }
 
-// A widget containing scrolling text.
-struct Scroll<'a> {
-    text: Text<'a>,
-    list_size: usize,
-    index: usize,
-}
-
-// Calculate the scroll offset and other scroll info.
 fn compute_scroll_info(
     area_height: usize,
     list_size: usize,
     index: usize
 ) -> ScrollInfo {
     let centered = index.saturating_sub(area_height / 2);
-    let max_offset = list_size.saturating_sub(area_height);
-    let offset = min(centered, max_offset);
+    let max_start = list_size.saturating_sub(area_height);
+    let start = min(centered, max_start);
     ScrollInfo {
-        offset: offset as u16,
-        is_more_above: offset > 0,
-        is_more_below: offset < max_offset,
+        start,
+        more_above: start > 0,
+        more_below: start < max_start,
     }
 }
 
@@ -66,25 +61,6 @@ fn top_mid_bottom(area: Rect) -> [Rect; 3] {
         Constraint::Length(1),
     ])
     .areas(area)
-}
-
-impl Widget for Scroll<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let [top_line, mid_area, bottom_line] = top_mid_bottom(area);
-        let Scroll { text, list_size, index } = self;
-        let ScrollInfo { offset, is_more_above, is_more_below } =
-            compute_scroll_info(mid_area.height as usize, list_size, index);
-        main_paragraph_scroll(text)
-            .scroll((offset, 0))
-            .render(mid_area, buf);
-        let scroll_hint = |is_more: bool| if is_more { " ..." } else { "" };
-        Text::from(scroll_hint(is_more_above))
-            .style(style::DEFAULT)
-            .render(top_line, buf);
-        Text::from(scroll_hint(is_more_below))
-            .style(style::DEFAULT)
-            .render(bottom_line, buf);
-    }
 }
 
 // Create a paragraph with the `text` and `padding`.
@@ -103,35 +79,51 @@ fn main_paragraph(text: Text) -> Paragraph {
     pad_main_paragraph(text, Padding::uniform(1))
 }
 
-// Style the `text` to display in the main area for scrolling.
-fn main_paragraph_scroll(text: Text) -> Paragraph {
-    pad_main_paragraph(text, Padding::horizontal(1))
+fn load<'a>(
+    load_state: &'a LoadState,
+    highlight: Style
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
+    let build = move |area_height| {
+        let size = load_state.files.len();
+        let index = load_state.index;
+        let ScrollInfo {
+            start,
+            more_above,
+            more_below,
+        } = compute_scroll_info(area_height, size, index);
+        let end = std::cmp::min(start + area_height, size);
+        let selected = index - start;
+        let lines = load_state.files[start..end]
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| {
+                let line_style = if i == selected {
+                    highlight
+                } else {
+                    style::DEFAULT
+                };
+                Line::styled(format!("  {}", entry.name), line_style)
+            });
+        ScrollContent {
+            text: Text::from_iter(lines),
+            more_above,
+            more_below,
+        }
+    };
+    ScrollArea { build }
 }
 
-// Return Load mode Scroll with selected file highlighted.
-fn load(load_state: &LoadState, highlight: Style) -> Scroll<'static> {
-    let selected = load_state.index();
-    let lines = load_state.filename_iter()
-        .enumerate()
-        .map(|(i, filename)| {
-            let text = format!(" {filename} ");
-            let line_style = if i == selected { highlight } else { style::DEFAULT };
-            Line::styled(text, line_style)
-        });
-    Scroll {
-        text: Text::from_iter(lines),
-        list_size: load_state.size(),
-        index: load_state.index(),
-    }
-}
-
-// Return Load mode Scroll with normal highlight.
-fn load_normal(load_state: &LoadState) -> Scroll<'static> {
+// Return Load mode widget with normal highlight.
+fn load_normal<'a>(
+    load_state: &'a LoadState
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     load(load_state, style::DEFAULT_HL)
 }
 
-// Return Load mode Scroll with selected file highlighted in red for deletion.
-fn load_delete(load_state: &LoadState) -> Scroll<'static> {
+// Return Load mode widget with highlight for deletion.
+fn load_delete<'a>(
+    load_state: &'a LoadState
+) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     load(load_state, style::DELETE)
 }
 
