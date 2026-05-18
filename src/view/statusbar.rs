@@ -12,7 +12,10 @@ use crate::{
         Model,
         PostSaveAction,
     },
-    view::style
+    view::{
+        INDENT,
+        style,
+    },
 };
 
 mod confirm {
@@ -111,7 +114,7 @@ pub fn status_bar(model: &Model) -> Line<'_> {
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
         }
     };
-    let mut spans = vec![" ".into()];
+    let mut spans = vec![Span::raw(INDENT)];
     spans.extend(content);
     Line::from(spans)
         .left_aligned()

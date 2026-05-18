@@ -31,6 +31,9 @@ use self::{
     statusbar::status_bar,
 };
 
+const INDENT: &str      = "  ";
+const SCROLL_HINT: &str = "  ...";
+
 // Start index and indicators used for scrolling through a file list.
 struct ScrollInfo {
     start: usize,
@@ -102,7 +105,7 @@ fn load<'a>(
                 } else {
                     style::DEFAULT
                 };
-                Line::styled(format!("  {}", entry.name), line_style)
+                Line::styled(format!("{INDENT}{}", entry.name), line_style)
             });
         ScrollContent {
             text: Text::from_iter(lines),

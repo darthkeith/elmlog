@@ -7,6 +7,7 @@ use ratatui::text::{Line, Span, Text};
 
 use crate::{
     view::{
+        INDENT,
         scroll::{ScrollArea, ScrollContent},
         style,
     },
@@ -57,7 +58,7 @@ impl<'a> Iterator for ForestIter<'a> {
             is_last_sibling,
             is_focused,
         } = self.node_iter.next()?;
-        let mut tree_prefix = String::from("  ");  // Left padding
+        let mut tree_prefix = String::new();
         match position {
             NodePosition::Root => {
                 self.prefix_stack.clear();
@@ -176,7 +177,7 @@ fn format_line<'a>(item: LineContent<'a>, style: &FocusStyle<'a>) -> Line<'a> {
         (Cow::Borrowed(label), style::TEXT_DEFAULT, style::BG_DEFAULT)
     };
     let label_span = Span::styled(text, text_style);
-    let spans = vec![prefix_span, label_span];
+    let spans = vec![Span::raw(INDENT), prefix_span, label_span];
     Line::from(spans).style(bg_style)
 }
 

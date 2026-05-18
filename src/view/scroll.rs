@@ -5,6 +5,7 @@ use ratatui::{
 };
 
 use crate::view::{
+    SCROLL_HINT,
     style,
     top_mid_bottom,
 };
@@ -23,7 +24,7 @@ where
 }
 
 fn scroll_hint(more: bool) -> &'static str{
-    if more {" ..."} else { "" }
+    if more { SCROLL_HINT } else { "" }
 }
 
 impl<'a, F> Widget for ScrollArea<'a, F>
