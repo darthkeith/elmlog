@@ -1,71 +1,75 @@
 pub mod iter;
 
+use std::rc::Rc;
+
 use serde::{Serialize, Deserialize};
 
 // A node in a multi-way forest stored using child-sibling representation.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Node {
-    child: Option<Box<Node>>,
-    next: Option<Box<Node>>,
-    label: String,
+    child: Option<Rc<Node>>,
+    next: Option<Rc<Node>>,
+    label: Rc<str>,
 }
 
 // A node with a reversed sibling chain for leftward traversal.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct RevNode {
-    child: Option<Box<Node>>,
-    prev: Option<Box<RevNode>>,
-    label: String,
+    child: Option<Rc<Node>>,
+    prev: Option<Rc<RevNode>>,
+    label: Rc<str>,
 }
 
 // A node in the path from the focused node up to the root of its tree.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct PathNode {
-    parent: Option<Box<PathNode>>,
-    prev: Option<Box<RevNode>>,
-    next: Option<Box<Node>>,
-    label: String,
+    parent: Option<Rc<PathNode>>,
+    prev: Option<Rc<RevNode>>,
+    next: Option<Rc<Node>>,
+    label: Rc<str>,
 }
 
 /// The focused node in a zipper for a multi-way forest.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FocusNode {
-    parent: Option<Box<PathNode>>,
-    child: Option<Box<Node>>,
-    prev: Option<Box<RevNode>>,
-    next: Option<Box<Node>>,
-    label: String,
+    parent: Option<Rc<PathNode>>,
+    child: Option<Rc<Node>>,
+    prev: Option<Rc<RevNode>>,
+    next: Option<Rc<Node>>,
+    label: Rc<str>,
 }
 
 
 // Join two sibling chains into one forest.
 fn join_siblings(
-    mut left: Option<Box<RevNode>>,
-    mut right: Option<Box<Node>>,
-) -> Option<Box<Node>> {
-    while let Some(curr) = left {
+    mut left: Option<Rc<RevNode>>,
+    mut right: Option<Rc<Node>>,
+) -> Option<Rc<Node>> {
+    while let Some(curr_rc) = left {
+        let curr = Rc::unwrap_or_clone(curr_rc);
         left = curr.prev;
         let node = Node {
             child: curr.child,
             next: right,
             label: curr.label,
         };
-        right = Some(Box::new(node));
+        right = Some(Rc::new(node));
     }
     right
 }
 
 // Reverse the direction of the node’s sibling chain.
-fn reverse_siblings(mut node: Option<Box<Node>>) -> Option<Box<RevNode>> {
+fn reverse_siblings(mut node: Option<Rc<Node>>) -> Option<Rc<RevNode>> {
     let mut reversed = None;
-    while let Some(curr) = node {
+    while let Some(curr_rc) = node {
+        let curr = Rc::unwrap_or_clone(curr_rc);
         node = curr.next;
         let rev_node = RevNode {
             child: curr.child,
             prev: reversed,
             label: curr.label,
         };
-        reversed = Some(Box::new(rev_node));
+        reversed = Some(Rc::new(rev_node));
     }
     reversed
 }
@@ -78,14 +82,15 @@ impl FocusNode {
             child: None,
             prev: None,
             next: None,
-            label: String::new(),
+            label: Rc::from(""),
         }
     }
 
     /// Focus on the parent of the current focused node (if present).
     pub fn focus_parent(self) -> Self {
         match self.parent{
-            Some(parent) => {
+            Some(parent_rc) => {
+                let parent = Rc::unwrap_or_clone(parent_rc);
                 let node = Node {
                     child: self.child,
                     next: self.next,
@@ -93,7 +98,7 @@ impl FocusNode {
                 };
                 Self {
                     parent: parent.parent,
-                    child: join_siblings(self.prev, Some(Box::new(node))),
+                    child: join_siblings(self.prev, Some(Rc::new(node))),
                     prev: parent.prev,
                     next: parent.next,
                     label: parent.label,
@@ -106,7 +111,8 @@ impl FocusNode {
     /// Focus on the first child of the current focused node (if present).
     pub fn focus_child(self) -> Self {
         match self.child{
-            Some(child) => {
+            Some(child_rc) => {
+                let child = Rc::unwrap_or_clone(child_rc);
                 let parent = PathNode {
                     parent: self.parent,
                     prev: self.prev,
@@ -114,7 +120,7 @@ impl FocusNode {
                     label: self.label,
                 };
                 Self {
-                    parent: Some(Box::new(parent)),
+                    parent: Some(Rc::new(parent)),
                     child: child.child,
                     prev: None,
                     next: child.next,
@@ -128,7 +134,8 @@ impl FocusNode {
     /// Focus on the previous sibling of the current focused node (if present).
     pub fn focus_prev(self) -> Self {
         match self.prev {
-            Some(prev) => {
+            Some(prev_rc) => {
+                let prev = Rc::unwrap_or_clone(prev_rc);
                 let next = Node {
                     child: self.child,
                     next: self.next,
@@ -138,7 +145,7 @@ impl FocusNode {
                     parent: self.parent,
                     child: prev.child,
                     prev: prev.prev,
-                    next: Some(Box::new(next)),
+                    next: Some(Rc::new(next)),
                     label: prev.label,
                 }
             }
@@ -149,7 +156,8 @@ impl FocusNode {
     /// Focus on the next sibling of the current focused node (if present).
     pub fn focus_next(self) -> Self {
         match self.next {
-            Some(next) => {
+            Some(next_rc) => {
+                let next = Rc::unwrap_or_clone(next_rc);
                 let prev = RevNode {
                     child: self.child,
                     prev: self.prev,
@@ -158,7 +166,7 @@ impl FocusNode {
                 Self {
                     parent: self.parent,
                     child: next.child,
-                    prev: Some(Box::new(prev)),
+                    prev: Some(Rc::new(prev)),
                     next: next.next,
                     label: next.label,
                 }
@@ -170,7 +178,8 @@ impl FocusNode {
     /// Move the focused node's subtree to be its parent's previous sibling.
     pub fn promote(self) -> Self {
         match self.parent {
-            Some(parent) => {
+            Some(parent_rc) => {
+                let parent = Rc::unwrap_or_clone(parent_rc);
                 let next = Node {
                     child: join_siblings(self.prev, self.next),
                     next: parent.next,
@@ -179,7 +188,7 @@ impl FocusNode {
                 Self {
                     parent: parent.parent,
                     prev: parent.prev,
-                    next: Some(Box::new(next)),
+                    next: Some(Rc::new(next)),
                     ..self
                 }
             }
@@ -190,7 +199,8 @@ impl FocusNode {
     /// Move the focused node's subtree to be its next sibling's first child.
     pub fn demote(self) -> Self {
         match self.next {
-            Some(next) => {
+            Some(next_rc) => {
+                let next = Rc::unwrap_or_clone(next_rc);
                 let parent = PathNode {
                     parent: self.parent,
                     prev: self.prev,
@@ -198,7 +208,7 @@ impl FocusNode {
                     label: next.label,
                 };
                 Self {
-                    parent: Some(Box::new(parent)),
+                    parent: Some(Rc::new(parent)),
                     prev: None,
                     next: next.child,
                     ..self
@@ -211,7 +221,8 @@ impl FocusNode {
     /// Swap the focused node's subtree with its previous sibling (if present).
     pub fn swap_prev(self) -> Self {
         match self.prev {
-            Some(prev) => {
+            Some(prev_rc) => {
+                let prev = Rc::unwrap_or_clone(prev_rc);
                 let next = Node {
                     child: prev.child,
                     next: self.next,
@@ -219,7 +230,7 @@ impl FocusNode {
                 };
                 Self {
                     prev: prev.prev,
-                    next: Some(Box::new(next)),
+                    next: Some(Rc::new(next)),
                     ..self
                 }
             }
@@ -230,14 +241,15 @@ impl FocusNode {
     /// Swap the focused node's subtree with its next sibling (if present).
     pub fn swap_next(self) -> Self {
         match self.next {
-            Some(next) => {
+            Some(next_rc) => {
+                let next = Rc::unwrap_or_clone(next_rc);
                 let prev = RevNode {
                     child: next.child,
                     prev: self.prev,
                     label: next.label,
                 };
                 Self {
-                    prev: Some(Box::new(prev)),
+                    prev: Some(Rc::new(prev)),
                     next: next.next,
                     ..self
                 }
@@ -281,8 +293,8 @@ impl FocusNode {
             label: self.label,
         };
         Self {
-            child: Some(Box::new(child)),
-            label: String::new(),
+            child: Some(Rc::new(child)),
+            label: Rc::from(""),
             ..self
         }
     }
@@ -296,11 +308,11 @@ impl FocusNode {
             label: self.label,
         };
         Self {
-            parent: Some(Box::new(parent)),
+            parent: Some(Rc::new(parent)),
             child: self.child,
             prev: None,
             next: None,
-            label: String::new(),
+            label: Rc::from(""),
         }
     }
 
@@ -313,8 +325,8 @@ impl FocusNode {
         };
         Self {
             child: None,
-            next: Some(Box::new(next)),
-            label: String::new(),
+            next: Some(Rc::new(next)),
+            label: Rc::from(""),
             ..self
         }
     }
@@ -328,8 +340,8 @@ impl FocusNode {
         };
         Self {
             child: None,
-            prev: Some(Box::new(prev)),
-            label: String::new(),
+            prev: Some(Rc::new(prev)),
+            label: Rc::from(""),
             ..self
         }
     }
@@ -337,7 +349,8 @@ impl FocusNode {
     /// Delete the focused node.
     pub fn delete(self) -> Option<Self> {
         let focus = self.flatten();
-        let new_focus = if let Some(next) = focus.next {
+        let new_focus = if let Some(next_rc) = focus.next {
+            let next = Rc::unwrap_or_clone(next_rc);
             Self {
                 parent: focus.parent,
                 child: next.child,
@@ -345,7 +358,8 @@ impl FocusNode {
                 next: next.next,
                 label: next.label,
             }
-        } else if let Some(prev) = focus.prev {
+        } else if let Some(prev_rc) = focus.prev {
+            let prev = Rc::unwrap_or_clone(prev_rc);
             Self {
                 parent: focus.parent,
                 child: prev.child,
@@ -353,7 +367,8 @@ impl FocusNode {
                 next: None,
                 label: prev.label,
             }
-        } else if let Some(parent) = focus.parent {
+        } else if let Some(parent_rc) = focus.parent {
+            let parent = Rc::unwrap_or_clone(parent_rc);
             Self {
                 parent: parent.parent,
                 child: None,
@@ -368,10 +383,13 @@ impl FocusNode {
     }
 
     pub fn set_label(self, label: String) -> Self {
-        Self { label, ..self }
+        Self {
+            label: Rc::from(label),
+            ..self
+        }
     }
 
     pub fn clone_label(&self) -> String {
-        self.label.clone()
+        self.label.to_string()
     }
 }
