@@ -50,10 +50,10 @@ fn update_load(msg: LoadMsg, load_state: LoadState) -> Command {
 // Update the Model based on a Normal mode message.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let model = match msg {
-        NormalMsg::Ascend => Model::Normal(state.focus_parent()),
-        NormalMsg::Descend => Model::Normal(state.focus_child()),
-        NormalMsg::Previous => Model::Normal(state.focus_prev()),
-        NormalMsg::Next => Model::Normal(state.focus_next()),
+        NormalMsg::Ascend => Model::Normal(state.navigate(FocusNode::focus_parent)),
+        NormalMsg::Descend => Model::Normal(state.navigate(FocusNode::focus_child)),
+        NormalMsg::Previous => Model::Normal(state.navigate(FocusNode::focus_prev)),
+        NormalMsg::Next => Model::Normal(state.navigate(FocusNode::focus_next)),
         NormalMsg::Rename => match state.clone_label() {
             Some(label) =>
                 Model::LabelInput(LabelState::new_rename(label, state)),
@@ -70,8 +70,8 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         } else {
             Model::Normal(state)
         }
-        NormalMsg::Nest => Model::Normal(state.nest()),
-        NormalMsg::Flatten => Model::Normal(state.flatten()),
+        NormalMsg::Nest => Model::Normal(state.map_focus(FocusNode::nest)),
+        NormalMsg::Flatten => Model::Normal(state.map_focus(FocusNode::flatten)),
         NormalMsg::Delete => if state.focus.is_some() {
             Model::Confirm(ConfirmState::DeleteItem(state))
         } else {
@@ -106,10 +106,10 @@ fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
 // Update the Model based on a Move mode message.
 fn update_move(msg: MoveMsg, state: SessionState) -> Model {
     let state = match msg {
-        MoveMsg::Promote => state.promote(),
-        MoveMsg::Demote => state.demote(),
-        MoveMsg::Backward => state.swap_prev(),
-        MoveMsg::Forward => state.swap_next(),
+        MoveMsg::Promote => state.map_focus(FocusNode::promote),
+        MoveMsg::Demote => state.map_focus(FocusNode::demote),
+        MoveMsg::Backward => state.map_focus(FocusNode::swap_prev),
+        MoveMsg::Forward => state.map_focus(FocusNode::swap_next),
         MoveMsg::Done => return Model::Normal(state),
     };
     Model::Move(state)

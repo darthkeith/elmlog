@@ -267,88 +267,27 @@ impl SessionState {
         }
     }
 
-    /// Focus on the parent of the current focused node (if present).
-    pub fn focus_parent(self) -> Self {
+    /// Apply a navigation function to the focused node.
+    pub fn navigate<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
         Self {
-            focus: self.focus.map(FocusNode::focus_parent),
+            focus: self.focus.map(f),
             ..self
         }
     }
 
-    /// Focus on the first child of the current focused node (if present).
-    pub fn focus_child(self) -> Self {
+    /// Apply a function to the focused node and track if a change occurred.
+    pub fn map_focus<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
+        let old_focus = self.focus.clone();
+        let new_focus = self.focus.map(f);
         Self {
-            focus: self.focus.map(FocusNode::focus_child),
-            ..self
-        }
-    }
-
-    /// Focus on the previous sibling of the current focused node (if present).
-    pub fn focus_prev(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::focus_prev),
-            ..self
-        }
-    }
-
-    /// Focus on the next sibling of the current focused node (if present).
-    pub fn focus_next(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::focus_next),
-            ..self
-        }
-    }
-
-    /// Move the focused node's subtree to be its parent's previous sibling.
-    pub fn promote(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::promote),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Move the focused node's subtree to be its next sibling's first child.
-    pub fn demote(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::demote),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Swap the focused node's subtree with its previous sibling (if present).
-    pub fn swap_prev(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::swap_prev),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Swap the focused node's subtree with its next sibling (if present).
-    pub fn swap_next(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::swap_next),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Move the siblings of the focused node to be its children.
-    pub fn nest(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::nest),
-            changed: true,
-            ..self
-        }
-    }
-
-    /// Insert the focused node's children before its subsequent siblings.
-    pub fn flatten(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::flatten),
-            changed: true,
+            changed:  self.changed || new_focus != old_focus,
+            focus: new_focus,
             ..self
         }
     }

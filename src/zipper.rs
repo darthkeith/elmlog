@@ -5,7 +5,7 @@ use std::rc::Rc;
 use serde::{Serialize, Deserialize};
 
 // A node in a multi-way forest stored using child-sibling representation.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct Node {
     child: Option<Rc<Node>>,
     next: Option<Rc<Node>>,
@@ -13,7 +13,7 @@ struct Node {
 }
 
 // A node with a reversed sibling chain for leftward traversal.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct RevNode {
     child: Option<Rc<Node>>,
     prev: Option<Rc<RevNode>>,
@@ -21,7 +21,7 @@ struct RevNode {
 }
 
 // A node in the path from the focused node up to the root of its tree.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct PathNode {
     parent: Option<Rc<PathNode>>,
     prev: Option<Rc<RevNode>>,
@@ -30,7 +30,7 @@ struct PathNode {
 }
 
 /// The focused node in a zipper for a multi-way forest.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FocusNode {
     parent: Option<Rc<PathNode>>,
     child: Option<Rc<Node>>,
