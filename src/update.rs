@@ -17,7 +17,6 @@ use crate::{
         FilenameAction,
         FilenameState,
         FilenameStatus,
-        LabelAction,
         LabelState,
         LoadState,
         Model,
@@ -63,7 +62,8 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
             Model::Insert(state)
         } else {
             let state = SessionState {focus: Some(FocusNode::new()), ..state };
-            Model::LabelInput(LabelState::new_insert(state))
+            let fallback_changed = state.changed;
+            Model::LabelInput(LabelState::new_insert(state, None, fallback_changed))
         }
         NormalMsg::Move => if state.focus.is_some() {
             Model::Move(state)
@@ -93,14 +93,16 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
 
 // Update the Model based on an Insert mode message.
 fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
+    let fallback_focus = state.focus.clone();
+    let fallback_changed = state.changed;
     let state = match msg {
-        InsertMsg::Parent => state.insert_parent(),
-        InsertMsg::Child => state.insert_child(),
-        InsertMsg::Before => state.insert_prev(),
-        InsertMsg::After => state.insert_next(),
+        InsertMsg::Parent => state.insert(FocusNode::insert_parent),
+        InsertMsg::Child => state.insert(FocusNode::insert_child),
+        InsertMsg::Before => state.insert(FocusNode::insert_prev),
+        InsertMsg::After => state.insert(FocusNode::insert_next),
         InsertMsg::Back => return Model::Normal(state),
     };
-    Model::LabelInput(LabelState::new_insert(state))
+    Model::LabelInput(LabelState::new_insert(state, fallback_focus, fallback_changed))
 }
 
 // Update the Model based on a Move mode message.
@@ -155,13 +157,7 @@ fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
         } else {
             Model::Normal(label_state.set_label())
         }
-        LabelMsg::Cancel => {
-            let state = match label_state.action {
-                LabelAction::Insert => label_state.session.delete(false),
-                LabelAction::Rename => label_state.session,
-            };
-            Model::Normal(state)
-        }
+        LabelMsg::Cancel => Model::Normal(label_state.fallback()),
     }
 }
 
@@ -212,7 +208,7 @@ fn update_confirm(msg: ConfirmMsg, confirm_state: ConfirmState) -> Command {
         ConfirmMsg::Confirm => match confirm_state {
             ConfirmState::NewSession => Model::Normal(SessionState::new()),
             ConfirmState::DeleteItem(state) =>
-                Model::Normal(state.delete(true)),
+                Model::Normal(state.delete()),
             ConfirmState::DeleteFile(load_state) =>
                 return Command::DeleteFile(load_state),
         }

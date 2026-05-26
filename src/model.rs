@@ -54,6 +54,8 @@ pub enum LabelAction {
 
 /// Current user input label and action to be performed with it.
 pub struct LabelState {
+    fallback_focus: Option<FocusNode>,
+    fallback_changed: bool,
     pub input: String,
     pub action: LabelAction,
     pub session: SessionState,
@@ -135,8 +137,14 @@ impl LoadState {
 
 impl LabelState {
     /// Create a LabelState to insert a new item.
-    pub fn new_insert(session: SessionState) -> Self {
+    pub fn new_insert(
+        session: SessionState,
+        fallback_focus: Option<FocusNode>,
+        fallback_changed: bool,
+    ) -> Self {
         Self {
+            fallback_focus,
+            fallback_changed,
             input: String::new(),
             action: LabelAction::Insert,
             session,
@@ -146,6 +154,8 @@ impl LabelState {
     /// Create a LabelState to rename the `label` of the focused node.
     pub fn new_rename(label: String, session: SessionState) -> Self {
         Self {
+            fallback_focus: session.focus.clone(),
+            fallback_changed: session.changed,
             input: label,
             action: LabelAction::Rename,
             session,
@@ -174,6 +184,15 @@ impl LabelState {
             focus: session.focus.map(|focus| focus.set_label(label)),
             changed: true,
             ..session
+        }
+    }
+
+    /// Fallback to the previous state.
+    pub fn fallback(self) -> SessionState {
+        SessionState {
+            focus: self.fallback_focus,
+            maybe_file: self.session.maybe_file,
+            changed: self.fallback_changed,
         }
     }
 }
@@ -278,6 +297,18 @@ impl SessionState {
         }
     }
 
+    /// Apply a node insertion function and mark that a change occurred.
+    pub fn insert<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
+        Self {
+            focus: self.focus.map(f),
+            changed: true,
+            ..self
+        }
+    }
+
     /// Apply a function to the focused node and track if a change occurred.
     pub fn map_focus<F>(self, f: F) -> Self
     where
@@ -292,43 +323,11 @@ impl SessionState {
         }
     }
 
-    /// Insert a new node as the parent of the focused node.
-    pub fn insert_parent(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::insert_parent),
-            ..self
-        }
-    }
-
-    /// Insert a new child node above the focused node's children.
-    pub fn insert_child(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::insert_child),
-            ..self
-        }
-    }
-
-    /// Insert a new node as the previous sibling of the focused node.
-    pub fn insert_prev(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::insert_prev),
-            ..self
-        }
-    }
-
-    /// Insert a new node as the next sibling of the focused node.
-    pub fn insert_next(self) -> Self {
-        Self {
-            focus: self.focus.map(FocusNode::insert_next),
-            ..self
-        }
-    }
-
     /// Delete the selected item and optionally mark the state as changed.
-    pub fn delete(self, commit_change: bool) -> Self {
+    pub fn delete(self) -> Self {
         Self {
             focus: self.focus.and_then(FocusNode::delete),
-            changed: self.changed || commit_change,
+            changed: true,
             ..self
         }
     }
