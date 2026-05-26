@@ -122,6 +122,7 @@ fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
             let SaveState { save, post_save, session } = save_state;
             if save {
                 if session.maybe_file.is_some() {
+                    let session = session.navigate(FocusNode::focus_first_root);
                     return Command::Save(session, post_save);
                 } else {
                     let state = FilenameState::new_save(session, post_save);
@@ -182,8 +183,11 @@ fn update_filename_input(
             return match filename_state.action {
                 FilenameAction::Rename(load_state) =>
                     Command::RenameFile(filename, load_state),
-                FilenameAction::SaveNew { session, post_save } =>
-                    Command::SaveNew(filename, session, post_save),
+                FilenameAction::SaveNew { session, post_save } => {
+                    let focus = session.forest.focus.clone();
+                    let initial_focus = focus.map(FocusNode::focus_first_root);
+                    Command::SaveNew(initial_focus, filename, session, post_save)
+                },
             }
         }
         FilenameMsg::Cancel => {

@@ -346,6 +346,18 @@ impl FocusNode {
         }
     }
 
+    /// Focus on the first root of the forest.
+    pub fn focus_first_root(self) -> Self {
+        let mut focus = self;
+        while focus.parent.is_some() {
+            focus = focus.focus_parent();
+        }
+        while focus.prev.is_some() {
+            focus = focus.focus_prev();
+        }
+        focus
+    }
+
     /// Delete the focused node.
     pub fn delete(self) -> Option<Self> {
         let focus = self.flatten();

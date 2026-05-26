@@ -29,7 +29,7 @@ pub enum Command {
     InitSession(FileEntry),
     CheckFileExists(FilenameState),
     RenameFile(String, LoadState),
-    SaveNew(String, SessionState, PostSaveAction),
+    SaveNew(Option<FocusNode>, String, SessionState, PostSaveAction),
     Save(SessionState, PostSaveAction),
     DeleteFile(LoadState),
     Quit,
@@ -156,10 +156,10 @@ pub fn execute_command(command: Command) -> Option<Model> {
             };
             Model::FilenameInput(filename_state)
         }
-        Command::SaveNew(filename, session, post_save) => {
+        Command::SaveNew(initial_focus, filename, session, post_save) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if save_new(&session.forest.focus, &filename).is_err() {
+            } else if save_new(&initial_focus, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
                 return match post_save {
