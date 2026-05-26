@@ -58,31 +58,29 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
                 Model::LabelInput(LabelState::new_rename(label, state)),
             None => Model::Normal(state),
         }
-        NormalMsg::Insert => if state.focus.is_some() {
+        NormalMsg::Insert => if state.is_empty() {
+            Model::LabelInput(LabelState::new_insert_empty(state))
+        } else {
             Model::Insert(state)
-        } else {
-            let state = SessionState {focus: Some(FocusNode::new()), ..state };
-            let fallback_changed = state.changed;
-            Model::LabelInput(LabelState::new_insert(state, None, fallback_changed))
         }
-        NormalMsg::Move => if state.focus.is_some() {
-            Model::Move(state)
-        } else {
+        NormalMsg::Move => if state.is_empty() {
             Model::Normal(state)
+        } else {
+            Model::Move(state)
         }
         NormalMsg::Nest => Model::Normal(state.map_focus(FocusNode::nest)),
         NormalMsg::Flatten => Model::Normal(state.map_focus(FocusNode::flatten)),
-        NormalMsg::Delete => if state.focus.is_some() {
-            Model::Confirm(ConfirmState::DeleteItem(state))
-        } else {
+        NormalMsg::Delete => if state.is_empty() {
             Model::Normal(state)
+        } else {
+            Model::Confirm(ConfirmState::DeleteItem(state))
         }
-        NormalMsg::Load => if state.changed {
+        NormalMsg::Load => if state.is_changed() {
             Model::Save(SaveState::new_load(state))
         } else {
             return Command::Load
         }
-        NormalMsg::Quit => if state.changed {
+        NormalMsg::Quit => if state.is_changed() {
             Model::Save(SaveState::new_quit(state))
         } else {
             return Command::Quit
@@ -93,8 +91,7 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
 
 // Update the Model based on an Insert mode message.
 fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
-    let fallback_focus = state.focus.clone();
-    let fallback_changed = state.changed;
+    let fallback = state.forest.clone();
     let state = match msg {
         InsertMsg::Parent => state.insert(FocusNode::insert_parent),
         InsertMsg::Child => state.insert(FocusNode::insert_child),
@@ -102,7 +99,7 @@ fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
         InsertMsg::After => state.insert(FocusNode::insert_next),
         InsertMsg::Back => return Model::Normal(state),
     };
-    Model::LabelInput(LabelState::new_insert(state, fallback_focus, fallback_changed))
+    Model::LabelInput(LabelState::new_insert(state, fallback))
 }
 
 // Update the Model based on a Move mode message.

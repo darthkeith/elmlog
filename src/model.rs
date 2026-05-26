@@ -26,11 +26,17 @@ pub struct OpenDataFile {
     pub _file: File,
 }
 
+/// A snapshot of the forest and its unsaved status.
+#[derive(Clone)]
+pub struct ForestState {
+    pub focus: Option<FocusNode>,
+    pub changed: bool,
+}
+
 /// Persistent state for an active session.
 pub struct SessionState {
-    pub focus: Option<FocusNode>,
+    pub forest: ForestState,
     pub maybe_file: Option<OpenDataFile>,
-    pub changed: bool,
 }
 
 /// Action to perform after saving.
@@ -54,8 +60,7 @@ pub enum LabelAction {
 
 /// Current user input label and action to be performed with it.
 pub struct LabelState {
-    fallback_focus: Option<FocusNode>,
-    fallback_changed: bool,
+    fallback: ForestState,
     pub input: String,
     pub action: LabelAction,
     pub session: SessionState,
@@ -137,25 +142,37 @@ impl LoadState {
 
 impl LabelState {
     /// Create a LabelState to insert a new item.
-    pub fn new_insert(
-        session: SessionState,
-        fallback_focus: Option<FocusNode>,
-        fallback_changed: bool,
-    ) -> Self {
+    pub fn new_insert(session: SessionState, fallback: ForestState) -> Self {
         Self {
-            fallback_focus,
-            fallback_changed,
+            fallback,
             input: String::new(),
             action: LabelAction::Insert,
             session,
         }
     }
 
+    /// Create a LabelState to insert an item into an empty forest.
+    pub fn new_insert_empty(session: SessionState) -> Self {
+        let forest = ForestState {
+            focus: Some(FocusNode::new()),
+            changed: true,
+        };
+        let new_session = SessionState {
+            forest,
+            maybe_file: session.maybe_file,
+        };
+        Self {
+            fallback: session.forest,
+            input: String::new(),
+            action: LabelAction::Insert,
+            session: new_session,
+        }
+    }
+
     /// Create a LabelState to rename the `label` of the focused node.
     pub fn new_rename(label: String, session: SessionState) -> Self {
         Self {
-            fallback_focus: session.focus.clone(),
-            fallback_changed: session.changed,
+            fallback: session.forest.clone(),
             input: label,
             action: LabelAction::Rename,
             session,
@@ -180,9 +197,12 @@ impl LabelState {
     pub fn set_label(self) -> SessionState {
         let Self { input, session, .. } = self;
         let label = input.trim().to_string();
-        SessionState {
-            focus: session.focus.map(|focus| focus.set_label(label)),
+        let forest = ForestState {
+            focus: session.forest.focus.map(|focus| focus.set_label(label)),
             changed: true,
+        };
+        SessionState {
+            forest,
             ..session
         }
     }
@@ -190,9 +210,8 @@ impl LabelState {
     /// Fallback to the previous state.
     pub fn fallback(self) -> SessionState {
         SessionState {
-            focus: self.fallback_focus,
-            maybe_file: self.session.maybe_file,
-            changed: self.fallback_changed,
+            forest: self.fallback,
+            ..self.session
         }
     }
 }
@@ -276,18 +295,16 @@ impl SaveState {
     }
 }
 
-impl SessionState {
-    // Create a SessionState with an empty forest and no saved file.
-    pub fn new() -> Self {
+impl ForestState {
+    fn empty() -> Self {
         Self {
             focus: None,
-            maybe_file: None,
             changed: false,
         }
     }
 
-    /// Apply a navigation function to the focused node.
-    pub fn navigate<F>(self, f: F) -> Self
+    // Apply a navigation function to the focused node.
+    fn navigate<F>(self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
@@ -297,20 +314,19 @@ impl SessionState {
         }
     }
 
-    /// Apply a node insertion function and mark that a change occurred.
-    pub fn insert<F>(self, f: F) -> Self
+    // Apply a node insertion function and mark the state as changed.
+    fn insert<F>(self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
         Self {
             focus: self.focus.map(f),
             changed: true,
-            ..self
         }
     }
 
-    /// Apply a function to the focused node and track if a change occurred.
-    pub fn map_focus<F>(self, f: F) -> Self
+    // Apply a function to the focused node and track if a change occurred.
+    fn map_focus<F>(self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
@@ -319,21 +335,78 @@ impl SessionState {
         Self {
             changed:  self.changed || new_focus != old_focus,
             focus: new_focus,
-            ..self
         }
     }
 
-    /// Delete the selected item and optionally mark the state as changed.
-    pub fn delete(self) -> Self {
+    // Delete the focused node and mark the state as changed.
+    fn delete(self) -> Self {
         Self {
             focus: self.focus.and_then(FocusNode::delete),
             changed: true,
+        }
+    }
+}
+
+impl SessionState {
+    /// Create a SessionState with an empty forest and no saved file.
+    pub fn new() -> Self {
+        Self {
+            forest: ForestState::empty(),
+            maybe_file: None,
+        }
+    }
+
+    pub fn navigate<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
+        Self {
+            forest: self.forest.navigate(f),
             ..self
         }
     }
 
+    pub fn insert<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
+        Self {
+            forest: self.forest.insert(f),
+            ..self
+        }
+    }
+
+    pub fn map_focus<F>(self, f: F) -> Self
+    where
+        F: FnOnce(FocusNode) -> FocusNode,
+    {
+        Self {
+            forest: self.forest.map_focus(f),
+            ..self
+        }
+    }
+
+    pub fn delete(self) -> Self {
+        Self {
+            forest: self.forest.delete(),
+            ..self
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.forest.focus.is_none()
+    }
+
+    pub fn is_changed(&self) -> bool {
+        self.forest.changed
+    }
+
+    pub fn focus(&self) -> Option<&FocusNode> {
+        self.forest.focus.as_ref()
+    }
+
     pub fn clone_label(&self) -> Option<String> {
-        self.focus.as_ref().map(FocusNode::clone_label)
+        self.focus().map(FocusNode::clone_label)
     }
 
     /// Return the filename if it exists.
@@ -345,9 +418,9 @@ impl SessionState {
     ///
     /// The locked File is implicitly dropped to unlock it.
     pub fn unlock_state(self) -> (Option<FocusNode>, Option<PathBuf>) {
-        let Self { focus, maybe_file, .. } = self;
+        let Self { forest, maybe_file } = self;
         let maybe_path = maybe_file
             .map(|open_file| open_file.path);
-        (focus, maybe_path)
+        (forest.focus, maybe_path)
     }
 }

@@ -170,21 +170,21 @@ pub fn view(model: &Model, frame: &mut Frame) {
         Model::Load(load_state) =>
             frame.render_widget(load_normal(load_state), main_area),
         Model::Normal(state) => {
-            let forest = forest::normal(state.focus.as_ref());
+            let forest = forest::normal(state.focus());
             frame.render_widget(forest, main_area);
         }
         Model::Insert(state) => {
-            let forest = forest::insert(state.focus.as_ref());
+            let forest = forest::insert(state.focus());
             frame.render_widget(forest, main_area);
         }
         Model::Move(state) => {
-            let forest = forest::move_mode(state.focus.as_ref());
+            let forest = forest::move_mode(state.focus());
             frame.render_widget(forest, main_area);
         }
         Model::Save(save_state) =>
             frame.render_widget(save_query(save_state.save), main_area),
         Model::LabelInput(label_state) => {
-            let focus = label_state.session.focus.as_ref();
+            let focus = label_state.session.focus();
             let forest = forest::input(focus, &label_state.input);
             frame.render_widget(forest, main_area);
         }
@@ -196,7 +196,7 @@ pub fn view(model: &Model, frame: &mut Frame) {
                 frame.render_widget(empty, main_area);
             }
             ConfirmState::DeleteItem(state) => {
-                let forest = forest::delete(state.focus.as_ref());
+                let forest = forest::delete(state.focus());
                 frame.render_widget(forest, main_area);
             }
             ConfirmState::DeleteFile(load_state) =>

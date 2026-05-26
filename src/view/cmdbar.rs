@@ -108,7 +108,7 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 pub fn command_bar(model: &Model) -> Line<'static> {
     let pairs = match model {
         Model::Load(load_state) => load_mode_commands(load_state.files.len()),
-        Model::Normal(state) => normal_mode_commands(state.focus.as_ref()),
+        Model::Normal(state) => normal_mode_commands(state.focus()),
         Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],

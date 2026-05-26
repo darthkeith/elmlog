@@ -12,6 +12,7 @@ use crate::{
         FilenameAction,
         FilenameState,
         FilenameStatus,
+        ForestState,
         LoadState,
         Model,
         OpenDataFile,
@@ -83,17 +84,20 @@ fn init_model(file_entry: FileEntry) -> Model {
     let file = fs::open_read_locked(&path);
     let focus = bincode::deserialize(&fs::read_all_bytes(&file))
         .expect("Failed to deserialize data");
+    let forest = ForestState {
+        focus,
+        changed: false,
+    };
     let open_file = OpenDataFile {
         name,
         path,
         _file: file,
     };
-    let state = SessionState {
-        focus,
+    let session = SessionState {
+        forest,
         maybe_file: Some(open_file),
-        changed: false,
     };
-    Model::Normal(state)
+    Model::Normal(session)
 }
 
 // Write the forest to an existing file at `path`.
@@ -155,7 +159,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::SaveNew(filename, session, post_save) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if save_new(&session.focus, &filename).is_err() {
+            } else if save_new(&session.forest.focus, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
                 return match post_save {
