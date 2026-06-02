@@ -36,6 +36,7 @@ pub struct ForestState {
 /// Persistent state for an active session.
 pub struct SessionState {
     pub forest: ForestState,
+    pub history: Vec<ForestState>,
     pub maybe_file: Option<OpenDataFile>,
 }
 
@@ -141,12 +142,12 @@ impl LoadState {
 }
 
 impl LabelState {
-    /// Create a LabelState to insert a new item.
-    pub fn new_insert(session: SessionState, fallback: ForestState) -> Self {
+    /// Create a LabelState to rename the `label` of the focused node.
+    pub fn new_rename(label: String, session: SessionState) -> Self {
         Self {
-            fallback,
-            input: String::new(),
-            action: LabelAction::Insert,
+            fallback: session.forest.clone(),
+            input: label,
+            action: LabelAction::Rename,
             session,
         }
     }
@@ -159,7 +160,7 @@ impl LabelState {
         };
         let new_session = SessionState {
             forest,
-            maybe_file: session.maybe_file,
+            ..session
         };
         Self {
             fallback: session.forest,
@@ -169,12 +170,12 @@ impl LabelState {
         }
     }
 
-    /// Create a LabelState to rename the `label` of the focused node.
-    pub fn new_rename(label: String, session: SessionState) -> Self {
+    /// Create a LabelState to insert a new item.
+    pub fn new_insert(session: SessionState, fallback: ForestState) -> Self {
         Self {
-            fallback: session.forest.clone(),
-            input: label,
-            action: LabelAction::Rename,
+            fallback,
+            input: String::new(),
+            action: LabelAction::Insert,
             session,
         }
     }
@@ -195,16 +196,14 @@ impl LabelState {
 
     /// Set the label of the focused node to the trimmed user input.
     pub fn set_label(self) -> SessionState {
-        let Self { input, session, .. } = self;
+        let Self { fallback, input, mut session, .. } = self;
         let label = input.trim().to_string();
-        let forest = ForestState {
+        session.forest = ForestState {
             focus: session.forest.focus.map(|focus| focus.set_label(label)),
             changed: true,
         };
-        SessionState {
-            forest,
-            ..session
-        }
+        session.history.push(fallback);
+        session
     }
 
     /// Fallback to the previous state.
@@ -295,102 +294,67 @@ impl SaveState {
     }
 }
 
-impl ForestState {
-    fn empty() -> Self {
-        Self {
-            focus: None,
-            changed: false,
-        }
-    }
-
-    // Apply a navigation function to the focused node.
-    fn navigate<F>(self, f: F) -> Self
-    where
-        F: FnOnce(FocusNode) -> FocusNode,
-    {
-        Self {
-            focus: self.focus.map(f),
-            ..self
-        }
-    }
-
-    // Apply a node insertion function and mark the state as changed.
-    fn insert<F>(self, f: F) -> Self
-    where
-        F: FnOnce(FocusNode) -> FocusNode,
-    {
-        Self {
-            focus: self.focus.map(f),
-            changed: true,
-        }
-    }
-
-    // Apply a function to the focused node and track if a change occurred.
-    fn map_focus<F>(self, f: F) -> Self
-    where
-        F: FnOnce(FocusNode) -> FocusNode,
-    {
-        let old_focus = self.focus.clone();
-        let new_focus = self.focus.map(f);
-        Self {
-            changed:  self.changed || new_focus != old_focus,
-            focus: new_focus,
-        }
-    }
-
-    // Delete the focused node and mark the state as changed.
-    fn delete(self) -> Self {
-        Self {
-            focus: self.focus.and_then(FocusNode::delete),
-            changed: true,
-        }
-    }
-}
-
 impl SessionState {
     /// Create a SessionState with an empty forest and no saved file.
     pub fn new() -> Self {
         Self {
-            forest: ForestState::empty(),
+            forest: ForestState {
+                focus: None,
+                changed: false,
+            },
+            history: Vec::new(),
             maybe_file: None,
         }
     }
 
-    pub fn navigate<F>(self, f: F) -> Self
+    /// Apply a navigation function to the focused node.
+    pub fn navigate<F>(mut self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
-        Self {
-            forest: self.forest.navigate(f),
-            ..self
-        }
+        self.forest.focus = self.forest.focus.map(f);
+        self
     }
 
-    pub fn insert<F>(self, f: F) -> Self
+    /// Apply a node insertion function and mark the state as changed.
+    pub fn insert<F>(mut self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
-        Self {
-            forest: self.forest.insert(f),
-            ..self
-        }
+        self.forest.focus = self.forest.focus.map(f);
+        self.forest.changed = true;
+        self
     }
 
+    /// Apply a function to the focused node and update the history.
     pub fn map_focus<F>(self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
+        let Self {forest, mut history, .. } = self;
+        let old_forest = forest.clone();
+        let new_focus = forest.focus.map(f);
+        let is_distinct = new_focus != old_forest.focus;
+        let new_forest = ForestState {
+            focus: new_focus,
+            changed: old_forest.changed || is_distinct,
+        };
+        if is_distinct {
+            history.push(old_forest);
+        }
         Self {
-            forest: self.forest.map_focus(f),
+            forest: new_forest,
+            history,
             ..self
         }
     }
 
-    pub fn delete(self) -> Self {
-        Self {
-            forest: self.forest.delete(),
-            ..self
-        }
+    /// Delete the focused node and mark the state as changed.
+    pub fn delete(mut self) -> Self {
+        self.history.push(self.forest.clone());
+        self.forest.focus = self.forest.focus.and_then(FocusNode::delete);
+        self.forest.changed = true;
+        self
     }
 
     pub fn is_empty(&self) -> bool {
@@ -418,7 +382,7 @@ impl SessionState {
     ///
     /// The locked File is implicitly dropped to unlock it.
     pub fn unlock_state(self) -> (Option<FocusNode>, Option<PathBuf>) {
-        let Self { forest, maybe_file } = self;
+        let Self { forest, maybe_file, .. } = self;
         let maybe_path = maybe_file
             .map(|open_file| open_file.path);
         (forest.focus, maybe_path)
