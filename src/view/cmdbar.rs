@@ -19,10 +19,11 @@ type KeyPair<'a> = (&'a str, &'a str);
 const LOAD_NAVIGATE: KeyPair = ("JK │ ↓↑", "Navigate");
 const NAVIGATE: KeyPair = ("HJKL │ ←↓↑→", "Navigate");
 const OPEN: KeyPair = ("Enter", "Open");
+const NEW: KeyPair = ("N", "New");
+const RENAME: KeyPair = ("R", "Rename");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
 const DONE: KeyPair = ("Enter", "Done");
-const NEW: KeyPair = ("N", "New");
 const QUIT: KeyPair = ("Q", "Quit");
 const MOVE: KeyPair = ("M", "Move");
 const NEST: KeyPair = ("N", "Nest");
@@ -31,7 +32,7 @@ const DOWN: KeyPair = ("J │ ↓", "Down");
 const UP: KeyPair = ("K │ ↑", "Up");
 const PROMOTE: KeyPair = ("H │ ←", "Promote");
 const DEMOTE: KeyPair = ("L │ →", "Demote");
-const RENAME: KeyPair = ("R", "Rename");
+const EDIT: KeyPair = ("E", "Edit");
 const INSERT: KeyPair = ("I", "Insert");
 const PARENT: KeyPair = ("H", "Parent");
 const CHILD: KeyPair = ("L", "Child");
@@ -67,7 +68,7 @@ fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
     if session.focus().is_none() {
         pairs.push(INSERT);
     } else {
-        pairs.extend(&[NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE]);
+        pairs.extend(&[NAVIGATE, EDIT, MOVE, NEST, FLATTEN, INSERT, DELETE]);
     }
     if !session.history.is_empty() {
         pairs.push(UNDO);

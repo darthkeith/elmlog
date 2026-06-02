@@ -53,7 +53,7 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         NormalMsg::Descend => Model::Normal(state.navigate(FocusNode::focus_child)),
         NormalMsg::Previous => Model::Normal(state.navigate(FocusNode::focus_prev)),
         NormalMsg::Next => Model::Normal(state.navigate(FocusNode::focus_next)),
-        NormalMsg::Rename => match state.clone_label() {
+        NormalMsg::Edit => match state.clone_label() {
             Some(label) =>
                 Model::LabelInput(LabelState::new_rename(label, state)),
             None => Model::Normal(state),
