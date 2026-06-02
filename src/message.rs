@@ -35,6 +35,7 @@ pub enum NormalMsg {
     Nest,
     Flatten,
     Delete,
+    Undo,
     Load,
     Quit,
 }
@@ -133,6 +134,7 @@ fn to_normal_msg(key: KeyCode, state: SessionState) -> Message {
         KeyCode::Char('n') => NormalMsg::Nest,
         KeyCode::Char('f') => NormalMsg::Flatten,
         KeyCode::Char('d') => NormalMsg::Delete,
+        KeyCode::Char('u') => NormalMsg::Undo,
         KeyCode::Char('q') => NormalMsg::Quit,
         KeyCode::Left => NormalMsg::Ascend,
         KeyCode::Right => NormalMsg::Descend,
@@ -222,8 +224,8 @@ fn key_to_message(model: Model, key: KeyCode) -> Message {
         Model::Normal(session_state) => to_normal_msg(key, session_state),
         Model::Insert(session_state) => to_insert_msg(key, session_state),
         Model::Move(session_state) => to_move_msg(key, session_state),
-        Model::LabelInput(label_state) => to_label_input_msg(key, label_state),
         Model::Save(save_state) => to_save_msg(key, save_state),
+        Model::LabelInput(label_state) => to_label_input_msg(key, label_state),
         Model::FilenameInput(filename_state) =>
             to_filename_input_msg(key, filename_state),
         Model::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),

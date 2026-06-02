@@ -9,9 +9,9 @@ use crate::{
         FilenameState,
         LabelState,
         Model,
+        SessionState,
     },
     view::style,
-    zipper::FocusNode,
 };
 
 type KeyPair<'a> = (&'a str, &'a str);
@@ -38,6 +38,7 @@ const CHILD: KeyPair = ("L", "Child");
 const BEFORE: KeyPair = ("K", "Before");
 const AFTER: KeyPair = ("J", "After");
 const DELETE: KeyPair = ("D", "Delete");
+const UNDO: KeyPair = ("U", "Undo");
 const BACK: KeyPair = ("Bksp", "Back");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
@@ -61,12 +62,15 @@ fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
 }
 
 // Return the normal mode key-command pairs.
-fn normal_mode_commands(focus: Option<&FocusNode>) -> Vec<KeyPair<'static>> {
+fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
     let mut pairs = Vec::new();
-    if focus.is_none() {
+    if session.focus().is_none() {
         pairs.push(INSERT);
     } else {
         pairs.extend(&[NAVIGATE, RENAME, MOVE, NEST, FLATTEN, INSERT, DELETE]);
+    }
+    if !session.history.is_empty() {
+        pairs.push(UNDO);
     }
     pairs.extend(&[BACK, QUIT]);
     pairs
@@ -108,7 +112,7 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
 pub fn command_bar(model: &Model) -> Line<'static> {
     let pairs = match model {
         Model::Load(load_state) => load_mode_commands(load_state.files.len()),
-        Model::Normal(state) => normal_mode_commands(state.focus()),
+        Model::Normal(state) => normal_mode_commands(state),
         Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
         Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],

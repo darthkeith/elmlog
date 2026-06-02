@@ -357,6 +357,13 @@ impl SessionState {
         self
     }
 
+    pub fn undo(mut self) -> Self {
+        if let Some(forest) = self.history.pop() {
+            self.forest = forest;
+        }
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
         self.forest.focus.is_none()
     }
