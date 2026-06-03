@@ -95,7 +95,7 @@ fn init_model(file_entry: FileEntry) -> Model {
     };
     let session = SessionState {
         forest,
-        history: Vec::new(),
+        undo_stack: Vec::new(),
         maybe_file: Some(open_file),
     };
     Model::Normal(session)

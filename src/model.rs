@@ -36,7 +36,7 @@ pub struct ForestState {
 /// Persistent state for an active session.
 pub struct SessionState {
     pub forest: ForestState,
-    pub history: Vec<ForestState>,
+    pub undo_stack: Vec<ForestState>,
     pub maybe_file: Option<OpenDataFile>,
 }
 
@@ -202,7 +202,7 @@ impl LabelState {
             focus: session.forest.focus.map(|focus| focus.set_label(label)),
             changed: true,
         };
-        session.history.push(fallback);
+        session.undo_stack.push(fallback);
         session
     }
 
@@ -302,7 +302,7 @@ impl SessionState {
                 focus: None,
                 changed: false,
             },
-            history: Vec::new(),
+            undo_stack: Vec::new(),
             maybe_file: None,
         }
     }
@@ -331,7 +331,7 @@ impl SessionState {
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
-        let Self {forest, mut history, .. } = self;
+        let Self {forest, mut undo_stack, .. } = self;
         let old_forest = forest.clone();
         let new_focus = forest.focus.map(f);
         let is_distinct = new_focus != old_forest.focus;
@@ -340,25 +340,25 @@ impl SessionState {
             changed: old_forest.changed || is_distinct,
         };
         if is_distinct {
-            history.push(old_forest);
+            undo_stack.push(old_forest);
         }
         Self {
             forest: new_forest,
-            history,
+            undo_stack,
             ..self
         }
     }
 
     /// Delete the focused node and mark the state as changed.
     pub fn delete(mut self) -> Self {
-        self.history.push(self.forest.clone());
+        self.undo_stack.push(self.forest.clone());
         self.forest.focus = self.forest.focus.and_then(FocusNode::delete);
         self.forest.changed = true;
         self
     }
 
     pub fn undo(mut self) -> Self {
-        if let Some(forest) = self.history.pop() {
+        if let Some(forest) = self.undo_stack.pop() {
             self.forest = forest;
         }
         self

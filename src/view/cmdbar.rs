@@ -70,7 +70,7 @@ fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
     } else {
         pairs.extend(&[NAVIGATE, EDIT, MOVE, NEST, FLATTEN, INSERT, DELETE]);
     }
-    if !session.history.is_empty() {
+    if !session.undo_stack.is_empty() {
         pairs.push(UNDO);
     }
     pairs.extend(&[BACK, QUIT]);
