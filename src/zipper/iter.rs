@@ -1,8 +1,4 @@
-use crate::zipper::{
-    Node,
-    RevNode,
-    FocusNode,
-};
+use crate::zipper::{FocusNode, Node, RevNode};
 
 // Indicates a node's structural position within the forest.
 #[derive(Clone, Copy)]
@@ -72,11 +68,11 @@ fn node_iter(
     maybe_node: Option<&Node>,
     position: NodePosition,
 ) -> impl Iterator<Item = NodeInfo<'_>> {
-    maybe_node.into_iter().flat_map(move |node| {
-        NodePreOrderIter {
-            stack: vec![Frame { node, position }]
-        }
-    })
+    maybe_node
+        .into_iter()
+        .flat_map(move |node| NodePreOrderIter {
+            stack: vec![Frame { node, position }],
+        })
 }
 
 // Pre-order iterator over the subtree, if any, and its previous siblings.
@@ -104,12 +100,9 @@ fn rev_node_iter(
             is_last_sibling: false,
             is_focused: false,
         };
-        let child_iter = node_iter(
-            rev_node.child.as_deref(),
-            NodePosition::FirstChild,
-        );
-        std::iter::once(info)
-            .chain(child_iter)
+        let child_iter =
+            node_iter(rev_node.child.as_deref(), NodePosition::FirstChild);
+        std::iter::once(info).chain(child_iter)
     })
 }
 
@@ -131,7 +124,8 @@ fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
     };
     let prev_iter = rev_node_iter(focus.prev.as_deref(), is_root);
     let focus_iter = std::iter::once(focus_info);
-    let child_iter = node_iter(focus.child.as_deref(), NodePosition::FirstChild);
+    let child_iter =
+        node_iter(focus.child.as_deref(), NodePosition::FirstChild);
     let next_iter = node_iter(focus.next.as_deref(), next_pos);
     prev_iter
         .chain(focus_iter)
@@ -143,10 +137,10 @@ fn siblings_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
 pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
     let mut iter: Box<dyn Iterator<Item = NodeInfo>> =
         Box::new(siblings_iter(focus));
-    let ancestors = std::iter::successors(
-        focus.parent.as_deref(),
-        |path_node| path_node.parent.as_deref()
-    );
+    let ancestors =
+        std::iter::successors(focus.parent.as_deref(), |path_node| {
+            path_node.parent.as_deref()
+        });
     for path_node in ancestors {
         let is_root = path_node.parent.is_none();
         let (position, next_pos) = if is_root {
@@ -166,10 +160,7 @@ pub fn focus_iter(focus: &FocusNode) -> impl Iterator<Item = NodeInfo<'_>> {
         let path_node_iter = std::iter::once(path_node_info);
         let next_iter = node_iter(path_node.next.as_deref(), next_pos);
         iter = Box::new(
-            prev_iter
-                .chain(path_node_iter)
-                .chain(iter)
-                .chain(next_iter)
+            prev_iter.chain(path_node_iter).chain(iter).chain(next_iter),
         );
     }
     iter

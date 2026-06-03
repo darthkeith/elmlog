@@ -1,28 +1,12 @@
 use crate::{
     io::Command,
     message::{
-        ConfirmMsg,
-        FilenameMsg,
-        InputEdit,
-        InsertMsg,
-        LabelMsg,
-        LoadMsg,
-        Message,
-        MoveMsg,
-        NormalMsg,
-        SaveMsg,
+        ConfirmMsg, FilenameMsg, InputEdit, InsertMsg, LabelMsg, LoadMsg,
+        Message, MoveMsg, NormalMsg, SaveMsg,
     },
     model::{
-        ConfirmState,
-        FilenameAction,
-        FilenameState,
-        FilenameStatus,
-        LabelState,
-        LoadState,
-        Model,
-        PostSaveAction,
-        SaveState,
-        SessionState,
+        ConfirmState, FilenameAction, FilenameState, FilenameStatus,
+        LabelState, LoadState, Model, PostSaveAction, SaveState, SessionState,
     },
     zipper::FocusNode,
 };
@@ -37,10 +21,10 @@ fn update_load(msg: LoadMsg, load_state: LoadState) -> Command {
             return Command::InitSession(file_entry);
         }
         LoadMsg::New => Model::Normal(SessionState::new()),
-        LoadMsg::Rename =>
-            Model::FilenameInput(FilenameState::new_rename(load_state)),
-        LoadMsg::Delete =>
-            Model::Confirm(ConfirmState::DeleteFile(load_state)),
+        LoadMsg::Rename => {
+            Model::FilenameInput(FilenameState::new_rename(load_state))
+        }
+        LoadMsg::Delete => Model::Confirm(ConfirmState::DeleteFile(load_state)),
         LoadMsg::Quit => return Command::Quit,
     };
     Command::None(model)
@@ -49,43 +33,62 @@ fn update_load(msg: LoadMsg, load_state: LoadState) -> Command {
 // Update the Model based on a Normal mode message.
 fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
     let model = match msg {
-        NormalMsg::Ascend => Model::Normal(state.navigate(FocusNode::focus_parent)),
-        NormalMsg::Descend => Model::Normal(state.navigate(FocusNode::focus_child)),
-        NormalMsg::Previous => Model::Normal(state.navigate(FocusNode::focus_prev)),
+        NormalMsg::Ascend => {
+            Model::Normal(state.navigate(FocusNode::focus_parent))
+        }
+        NormalMsg::Descend => {
+            Model::Normal(state.navigate(FocusNode::focus_child))
+        }
+        NormalMsg::Previous => {
+            Model::Normal(state.navigate(FocusNode::focus_prev))
+        }
         NormalMsg::Next => Model::Normal(state.navigate(FocusNode::focus_next)),
         NormalMsg::Edit => match state.clone_label() {
-            Some(label) =>
-                Model::LabelInput(LabelState::new_rename(label, state)),
+            Some(label) => {
+                Model::LabelInput(LabelState::new_rename(label, state))
+            }
             None => Model::Normal(state),
+        },
+        NormalMsg::Insert => {
+            if state.is_empty() {
+                Model::LabelInput(LabelState::new_insert_empty(state))
+            } else {
+                Model::Insert(state)
+            }
         }
-        NormalMsg::Insert => if state.is_empty() {
-            Model::LabelInput(LabelState::new_insert_empty(state))
-        } else {
-            Model::Insert(state)
-        }
-        NormalMsg::Move => if state.is_empty() {
-            Model::Normal(state)
-        } else {
-            Model::Move(state)
+        NormalMsg::Move => {
+            if state.is_empty() {
+                Model::Normal(state)
+            } else {
+                Model::Move(state)
+            }
         }
         NormalMsg::Nest => Model::Normal(state.map_focus(FocusNode::nest)),
-        NormalMsg::Flatten => Model::Normal(state.map_focus(FocusNode::flatten)),
-        NormalMsg::Delete => if state.is_empty() {
-            Model::Normal(state)
-        } else {
-            Model::Confirm(ConfirmState::DeleteItem(state))
+        NormalMsg::Flatten => {
+            Model::Normal(state.map_focus(FocusNode::flatten))
+        }
+        NormalMsg::Delete => {
+            if state.is_empty() {
+                Model::Normal(state)
+            } else {
+                Model::Confirm(ConfirmState::DeleteItem(state))
+            }
         }
         NormalMsg::Undo => Model::Normal(state.undo()),
         NormalMsg::Redo => Model::Normal(state.redo()),
-        NormalMsg::Load => if state.is_changed() {
-            Model::Save(SaveState::new_load(state))
-        } else {
-            return Command::Load
+        NormalMsg::Load => {
+            if state.is_changed() {
+                Model::Save(SaveState::new_load(state))
+            } else {
+                return Command::Load;
+            }
         }
-        NormalMsg::Quit => if state.is_changed() {
-            Model::Save(SaveState::new_quit(state))
-        } else {
-            return Command::Quit
+        NormalMsg::Quit => {
+            if state.is_changed() {
+                Model::Save(SaveState::new_quit(state))
+            } else {
+                return Command::Quit;
+            }
         }
     };
     Command::None(model)
@@ -121,7 +124,11 @@ fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
     let model = match msg {
         SaveMsg::Toggle => Model::Save(save_state.toggle()),
         SaveMsg::Confirm => {
-            let SaveState { save, post_save, session } = save_state;
+            let SaveState {
+                save,
+                post_save,
+                session,
+            } = save_state;
             if save {
                 if session.maybe_file.is_some() {
                     let session = session.navigate(FocusNode::focus_first_root);
@@ -152,10 +159,12 @@ fn update_label_input(msg: LabelMsg, label_state: LabelState) -> Model {
             };
             Model::LabelInput(label_state)
         }
-        LabelMsg::Submit => if label_state.input.is_empty() {
-            Model::LabelInput(label_state)
-        } else {
-            Model::Normal(label_state.set_label())
+        LabelMsg::Submit => {
+            if label_state.input.is_empty() {
+                Model::LabelInput(label_state)
+            } else {
+                Model::Normal(label_state.set_label())
+            }
         }
         LabelMsg::Cancel => Model::Normal(label_state.fallback()),
     }
@@ -175,29 +184,38 @@ fn update_filename_input(
             if filename_state.input.is_empty() {
                 filename_state.set_status(FilenameStatus::Empty)
             } else {
-                return Command::CheckFileExists(filename_state)
+                return Command::CheckFileExists(filename_state);
             }
         }
-        FilenameMsg::Submit => if filename_state.input.is_empty() {
-            filename_state.set_status(FilenameStatus::Empty)
-        } else {
-            let filename = filename_state.trimmed().to_string();
-            return match filename_state.action {
-                FilenameAction::Rename(load_state) =>
-                    Command::RenameFile(filename, load_state),
-                FilenameAction::SaveNew { session, post_save } => {
-                    let focus = session.forest.focus.clone();
-                    let initial_focus = focus.map(FocusNode::focus_first_root);
-                    Command::SaveNew(initial_focus, filename, session, post_save)
-                },
+        FilenameMsg::Submit => {
+            if filename_state.input.is_empty() {
+                filename_state.set_status(FilenameStatus::Empty)
+            } else {
+                let filename = filename_state.trimmed().to_string();
+                return match filename_state.action {
+                    FilenameAction::Rename(load_state) => {
+                        Command::RenameFile(filename, load_state)
+                    }
+                    FilenameAction::SaveNew { session, post_save } => {
+                        let focus = session.forest.focus.clone();
+                        let initial_focus =
+                            focus.map(FocusNode::focus_first_root);
+                        Command::SaveNew(
+                            initial_focus,
+                            filename,
+                            session,
+                            post_save,
+                        )
+                    }
+                };
             }
         }
         FilenameMsg::Cancel => {
             let model = match filename_state.action {
-                FilenameAction::Rename(load_state) =>
-                    Model::Load(load_state),
-                FilenameAction::SaveNew { session, .. } =>
-                    Model::Normal(session),
+                FilenameAction::Rename(load_state) => Model::Load(load_state),
+                FilenameAction::SaveNew { session, .. } => {
+                    Model::Normal(session)
+                }
             };
             return Command::None(model);
         }
@@ -210,17 +228,18 @@ fn update_confirm(msg: ConfirmMsg, confirm_state: ConfirmState) -> Command {
     let model = match msg {
         ConfirmMsg::Confirm => match confirm_state {
             ConfirmState::NewSession => Model::Normal(SessionState::new()),
-            ConfirmState::DeleteItem(state) =>
-                Model::Normal(state.delete()),
-            ConfirmState::DeleteFile(load_state) =>
-                return Command::DeleteFile(load_state),
-        }
+            ConfirmState::DeleteItem(state) => Model::Normal(state.delete()),
+            ConfirmState::DeleteFile(load_state) => {
+                return Command::DeleteFile(load_state);
+            }
+        },
         ConfirmMsg::Cancel => match confirm_state {
-            ConfirmState::NewSession =>
-                Model::Confirm(ConfirmState::NewSession),
+            ConfirmState::NewSession => {
+                Model::Confirm(ConfirmState::NewSession)
+            }
             ConfirmState::DeleteItem(state) => Model::Normal(state),
             ConfirmState::DeleteFile(load_state) => Model::Load(load_state),
-        }
+        },
     };
     Command::None(model)
 }
@@ -228,20 +247,27 @@ fn update_confirm(msg: ConfirmMsg, confirm_state: ConfirmState) -> Command {
 /// Update the Model based on the `message` and return an IO Command.
 pub fn update(message: Message) -> Command {
     let model = match message {
-        Message::Load(load_msg, load_state) =>
-            return update_load(load_msg, load_state),
-        Message::Normal(normal_msg, session_state) =>
-            return update_normal(normal_msg, session_state),
-        Message::Insert(insert_msg, session_state) =>
-            update_insert(insert_msg, session_state),
-        Message::Move(move_msg, session_state) =>
-            update_move(move_msg, session_state),
-        Message::Save(save_msg, save_state) =>
-            return update_save(save_msg, save_state),
-        Message::LabelInput(label_msg, label_state) =>
-            update_label_input(label_msg, label_state),
-        Message::FilenameInput(filename_msg, filename_state) =>
-            return update_filename_input(filename_msg, filename_state),
+        Message::Load(load_msg, load_state) => {
+            return update_load(load_msg, load_state);
+        }
+        Message::Normal(normal_msg, session_state) => {
+            return update_normal(normal_msg, session_state);
+        }
+        Message::Insert(insert_msg, session_state) => {
+            update_insert(insert_msg, session_state)
+        }
+        Message::Move(move_msg, session_state) => {
+            update_move(move_msg, session_state)
+        }
+        Message::Save(save_msg, save_state) => {
+            return update_save(save_msg, save_state);
+        }
+        Message::LabelInput(label_msg, label_state) => {
+            update_label_input(label_msg, label_state)
+        }
+        Message::FilenameInput(filename_msg, filename_state) => {
+            return update_filename_input(filename_msg, filename_state);
+        }
         Message::Confirm(confirm_msg, confirm_state) => {
             return update_confirm(confirm_msg, confirm_state);
         }

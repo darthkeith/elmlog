@@ -1,22 +1,11 @@
 pub mod fs;
 
-use std::{
-    io::Result,
-    path::Path,
-};
+use std::{io::Result, path::Path};
 
 use crate::{
     model::{
-        ConfirmState,
-        FileEntry,
-        FilenameAction,
-        FilenameState,
-        FilenameStatus,
-        ForestState,
-        LoadState,
-        Model,
-        OpenDataFile,
-        PostSaveAction,
+        ConfirmState, FileEntry, FilenameAction, FilenameState, FilenameStatus,
+        ForestState, LoadState, Model, OpenDataFile, PostSaveAction,
         SessionState,
     },
     zipper::FocusNode,
@@ -38,7 +27,7 @@ pub enum Command {
 // Rename the selected file in the LoadState to `filename`.
 fn rename_selected_file(
     load_state: &mut LoadState,
-    filename: &str
+    filename: &str,
 ) -> Result<()> {
     let i = load_state.index;
     let old_path = &load_state.files[i].path;
@@ -54,8 +43,7 @@ fn rename_selected_file(
 // Return None if there are no files left.
 fn delete_selected_file(mut load_state: LoadState) -> Option<LoadState> {
     let entry = load_state.files.remove(load_state.index);
-    std::fs::remove_file(entry.path)
-        .expect("Failed to delete file");
+    std::fs::remove_file(entry.path).expect("Failed to delete file");
     if load_state.files.is_empty() {
         return None;
     }
@@ -106,8 +94,7 @@ fn init_model(file_entry: FileEntry) -> Model {
 fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
     fs::set_read_only(path, false);
     let file = fs::open_write_locked(path);
-    bincode::serialize_into(&file, focus)
-        .expect("Failed to serialize data");
+    bincode::serialize_into(&file, focus).expect("Failed to serialize data");
     fs::set_read_only(path, true);
 }
 
@@ -133,7 +120,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::Load => match get_load_state() {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
-        }
+        },
         Command::InitSession(file_entry) => init_model(file_entry),
         Command::CheckFileExists(filename_state) => {
             let status = if fs::filename_exists(filename_state.trimmed()) {
@@ -146,10 +133,11 @@ pub fn execute_command(command: Command) -> Option<Model> {
         Command::RenameFile(filename, mut load_state) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
-            } else if rename_selected_file(&mut load_state, &filename).is_err() {
+            } else if rename_selected_file(&mut load_state, &filename).is_err()
+            {
                 FilenameStatus::Invalid
             } else {
-                return Some(Model::Load(load_state))
+                return Some(Model::Load(load_state));
             };
             let filename_state = FilenameState {
                 input: filename,
@@ -167,7 +155,7 @@ pub fn execute_command(command: Command) -> Option<Model> {
                 return match post_save {
                     PostSaveAction::Load => execute_command(Command::Load),
                     PostSaveAction::Quit => None,
-                }
+                };
             };
             let filename_state = FilenameState {
                 input: filename,
@@ -181,11 +169,13 @@ pub fn execute_command(command: Command) -> Option<Model> {
             return match action {
                 PostSaveAction::Load => execute_command(Command::Load),
                 PostSaveAction::Quit => None,
-            }
+            };
         }
-        Command::DeleteFile(load_state) => match delete_selected_file(load_state) {
-            Some(load_state) => Model::Load(load_state),
-            None => Model::Confirm(ConfirmState::NewSession),
+        Command::DeleteFile(load_state) => {
+            match delete_selected_file(load_state) {
+                Some(load_state) => Model::Load(load_state),
+                None => Model::Confirm(ConfirmState::NewSession),
+            }
         }
         Command::Quit => return None,
     };

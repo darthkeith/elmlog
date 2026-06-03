@@ -5,17 +5,10 @@ use ratatui::{
 
 use crate::{
     model::{
-        ConfirmState,
-        FilenameAction,
-        FilenameStatus,
-        LabelAction,
-        Model,
+        ConfirmState, FilenameAction, FilenameStatus, LabelAction, Model,
         PostSaveAction,
     },
-    view::{
-        INDENT,
-        style,
-    },
+    view::{INDENT, style},
 };
 
 mod confirm {
@@ -54,7 +47,10 @@ fn status(text: &str) -> Vec<Span<'_>> {
 }
 
 // Status bar Line with the `message` and additional info if present.
-fn status_info<'a>(message: &'a str, maybe_info: Option<&'a str>) -> Vec<Span<'a>> {
+fn status_info<'a>(
+    message: &'a str,
+    maybe_info: Option<&'a str>,
+) -> Vec<Span<'a>> {
     match maybe_info {
         Some(text) => vec![message.into(), " | ".into(), info(text)],
         None => status(message),
@@ -112,11 +108,9 @@ pub fn status_bar(model: &Model) -> Line<'_> {
             ConfirmState::NewSession => status(confirm::NEW),
             ConfirmState::DeleteItem(_) => status(confirm::DELETE_ITEM),
             ConfirmState::DeleteFile(_) => status(confirm::DELETE_FILE),
-        }
+        },
     };
     let mut spans = vec![Span::raw(INDENT)];
     spans.extend(content);
-    Line::from(spans)
-        .left_aligned()
-        .set_style(style::ACCENT)
+    Line::from(spans).left_aligned().set_style(style::ACCENT)
 }

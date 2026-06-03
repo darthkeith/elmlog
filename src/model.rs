@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    path::PathBuf
-};
+use std::{fs::File, path::PathBuf};
 
 use crate::zipper::FocusNode;
 
@@ -194,10 +191,18 @@ impl LabelState {
 
     /// Set the label of the focused node to the trimmed user input.
     pub fn set_label(self) -> SessionState {
-        let Self { fallback, input, mut session, .. } = self;
+        let Self {
+            fallback,
+            input,
+            mut session,
+            ..
+        } = self;
         let label = input.trim().to_string();
         let focus = session.forest.focus.map(|focus| focus.set_label(label));
-        session.forest = ForestState { focus, changed: true };
+        session.forest = ForestState {
+            focus,
+            changed: true,
+        };
         session.push_history(fallback);
         session
     }
@@ -226,10 +231,7 @@ impl FilenameState {
         Self {
             input: String::new(),
             status: FilenameStatus::Empty,
-            action: FilenameAction::SaveNew {
-                session,
-                post_save,
-            },
+            action: FilenameAction::SaveNew { session, post_save },
         }
     }
 
@@ -391,9 +393,10 @@ impl SessionState {
     ///
     /// The locked File is implicitly dropped to unlock it.
     pub fn unlock_state(self) -> (Option<FocusNode>, Option<PathBuf>) {
-        let Self { forest, maybe_file, .. } = self;
-        let maybe_path = maybe_file
-            .map(|open_file| open_file.path);
+        let Self {
+            forest, maybe_file, ..
+        } = self;
+        let maybe_path = maybe_file.map(|open_file| open_file.path);
         (forest.focus, maybe_path)
     }
 }

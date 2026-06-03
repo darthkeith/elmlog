@@ -10,11 +10,9 @@ const APP_DIR: &str = "elmlog";
 
 // Return the application directory path, creating any missing directories.
 fn app_dir_path() -> PathBuf {
-    let data_dir = dirs::data_dir()
-        .expect("Failed to identify data directory");
+    let data_dir = dirs::data_dir().expect("Failed to identify data directory");
     let path = data_dir.join(APP_DIR);
-    fs::create_dir_all(&path)
-        .expect("Failed to create data directory");
+    fs::create_dir_all(&path).expect("Failed to create data directory");
     path
 }
 
@@ -30,10 +28,7 @@ pub fn scan_app_dir() -> Result<Vec<(String, PathBuf)>> {
     let files = fs::read_dir(app_dir_path())?
         .filter_map(Result::ok)
         .map(|entry| {
-            let name = entry
-                .file_name()
-                .to_string_lossy()
-                .into_owned();
+            let name = entry.file_name().to_string_lossy().into_owned();
             let path = entry.path();
             (name, path)
         })
@@ -43,15 +38,13 @@ pub fn scan_app_dir() -> Result<Vec<(String, PathBuf)>> {
 
 // Lock the `file` for exclusive data access.
 fn lock(file: &File) {
-    file.try_lock_exclusive()
-        .expect("File is currently locked");
+    file.try_lock_exclusive().expect("File is currently locked");
 }
 
 /// Return a buffer containing all of the file's bytes.
 pub fn read_all_bytes(mut file: &File) -> Vec<u8> {
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)
-        .expect("Failed to read file");
+    file.read_to_end(&mut buffer).expect("Failed to read file");
     buffer
 }
 

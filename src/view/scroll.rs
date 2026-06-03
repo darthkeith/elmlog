@@ -4,11 +4,7 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::view::{
-    SCROLL_HINT,
-    style,
-    top_mid_bottom,
-};
+use crate::view::{SCROLL_HINT, style, top_mid_bottom};
 
 pub struct ScrollContent<'a> {
     pub text: Text<'a>,
@@ -18,29 +14,27 @@ pub struct ScrollContent<'a> {
 
 pub struct ScrollArea<'a, F>
 where
-    F: FnOnce(usize) -> ScrollContent<'a>
+    F: FnOnce(usize) -> ScrollContent<'a>,
 {
-    pub build: F
+    pub build: F,
 }
 
-fn scroll_hint(more: bool) -> &'static str{
+fn scroll_hint(more: bool) -> &'static str {
     if more { SCROLL_HINT } else { "" }
 }
 
 impl<'a, F> Widget for ScrollArea<'a, F>
 where
-    F: FnOnce(usize) -> ScrollContent<'a>
+    F: FnOnce(usize) -> ScrollContent<'a>,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [top_line, mid_area, bottom_line] = top_mid_bottom(area);
         let ScrollContent {
             text,
             more_above,
-            more_below
+            more_below,
         } = (self.build)(mid_area.height as usize);
-        Block::new()
-            .style(style::BG_DEFAULT)
-            .render(mid_area, buf);
+        Block::new().style(style::BG_DEFAULT).render(mid_area, buf);
         text.render(mid_area, buf);
         Text::from(scroll_hint(more_above))
             .style(style::DEFAULT)

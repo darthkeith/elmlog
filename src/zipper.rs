@@ -2,7 +2,7 @@ pub mod iter;
 
 use std::rc::Rc;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // A node in a multi-way forest stored using child-sibling representation.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,7 +38,6 @@ pub struct FocusNode {
     next: Option<Rc<Node>>,
     label: Rc<str>,
 }
-
 
 // Join two sibling chains into one forest.
 fn join_siblings(
@@ -88,7 +87,7 @@ impl FocusNode {
 
     /// Focus on the parent of the current focused node (if present).
     pub fn focus_parent(self) -> Self {
-        match self.parent{
+        match self.parent {
             Some(parent_rc) => {
                 let parent = Rc::unwrap_or_clone(parent_rc);
                 let node = Node {
@@ -110,7 +109,7 @@ impl FocusNode {
 
     /// Focus on the first child of the current focused node (if present).
     pub fn focus_child(self) -> Self {
-        match self.child{
+        match self.child {
             Some(child_rc) => {
                 let child = Rc::unwrap_or_clone(child_rc);
                 let parent = PathNode {
@@ -260,10 +259,8 @@ impl FocusNode {
 
     /// Adjoin the siblings of the focused node to its children, preserving order.
     pub fn nest(self) -> Self {
-        let child_plus_next = join_siblings(
-            reverse_siblings(self.child),
-            self.next
-        );
+        let child_plus_next =
+            join_siblings(reverse_siblings(self.child), self.next);
         Self {
             child: join_siblings(self.prev, child_plus_next),
             prev: None,
@@ -274,10 +271,8 @@ impl FocusNode {
 
     /// Insert the focused node's children before its subsequent siblings.
     pub fn flatten(self) -> Self {
-        let child_plus_next = join_siblings(
-            reverse_siblings(self.child),
-            self.next
-        );
+        let child_plus_next =
+            join_siblings(reverse_siblings(self.child), self.next);
         Self {
             child: None,
             next: child_plus_next,

@@ -1,16 +1,7 @@
-use ratatui::{
-    style::Styled,
-    text::Line,
-};
+use ratatui::{style::Styled, text::Line};
 
 use crate::{
-    model::{
-        ConfirmState,
-        FilenameState,
-        LabelState,
-        Model,
-        SessionState,
-    },
+    model::{ConfirmState, FilenameState, LabelState, Model, SessionState},
     view::style,
 };
 
@@ -46,7 +37,9 @@ const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
 
 // Return the confirm mode key-command pairs.
-fn confirm_mode_commands(confirm_state: &ConfirmState) -> Vec<KeyPair<'static>> {
+fn confirm_mode_commands(
+    confirm_state: &ConfirmState,
+) -> Vec<KeyPair<'static>> {
     match confirm_state {
         ConfirmState::NewSession => vec![CONFIRM],
         _ => vec![CONFIRM, CANCEL],
@@ -91,7 +84,9 @@ fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair<'static>> {
 }
 
 // Return the input mode key-command pairs.
-fn filename_input_commands(filename_state: &FilenameState) -> Vec<KeyPair<'static>> {
+fn filename_input_commands(
+    filename_state: &FilenameState,
+) -> Vec<KeyPair<'static>> {
     if filename_state.is_valid() {
         vec![SUBMIT, CANCEL]
     } else {
@@ -107,10 +102,8 @@ fn to_command_bar(pairs: Vec<KeyPair>) -> Line {
         spans.push(format!(" {command}").set_style(style::CMD_NAME));
         spans.push("    ".into());
     }
-    spans.pop();  // Remove extra spacer at end
-    Line::from(spans)
-        .centered()
-        .set_style(style::ACCENT)
+    spans.pop(); // Remove extra spacer at end
+    Line::from(spans).centered().set_style(style::ACCENT)
 }
 
 /// Return the command bar widget based on the current `model`.
@@ -122,8 +115,9 @@ pub fn command_bar(model: &Model) -> Line<'static> {
         Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
         Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
         Model::LabelInput(label_state) => label_input_commands(label_state),
-        Model::FilenameInput(filename_state) =>
-            filename_input_commands(filename_state),
+        Model::FilenameInput(filename_state) => {
+            filename_input_commands(filename_state)
+        }
         Model::Confirm(confirm_state) => confirm_mode_commands(confirm_state),
     };
     to_command_bar(pairs)

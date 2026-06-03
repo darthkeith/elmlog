@@ -3,12 +3,7 @@ use std::io::Result;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 
 use crate::model::{
-    ConfirmState,
-    FilenameState,
-    LabelState,
-    LoadState,
-    Model,
-    SaveState,
+    ConfirmState, FilenameState, LabelState, LoadState, Model, SaveState,
     SessionState,
 };
 
@@ -228,8 +223,9 @@ fn key_to_message(model: Model, key: KeyCode) -> Message {
         Model::Move(session_state) => to_move_msg(key, session_state),
         Model::Save(save_state) => to_save_msg(key, save_state),
         Model::LabelInput(label_state) => to_label_input_msg(key, label_state),
-        Model::FilenameInput(filename_state) =>
-            to_filename_input_msg(key, filename_state),
+        Model::FilenameInput(filename_state) => {
+            to_filename_input_msg(key, filename_state)
+        }
         Model::Confirm(confirm_state) => to_confirm_msg(key, confirm_state),
     }
 }

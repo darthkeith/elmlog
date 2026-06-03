@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::VecDeque,
-};
+use std::{borrow::Cow, collections::VecDeque};
 
 use ratatui::text::{Line, Span, Text};
 
@@ -38,9 +35,7 @@ struct ForestIter<'a> {
 
 impl<'a> ForestIter<'a> {
     fn new(focus: Option<&'a FocusNode>) -> Self {
-        let node_iter = focus
-            .into_iter()
-            .flat_map(focus_iter);
+        let node_iter = focus.into_iter().flat_map(focus_iter);
         ForestIter {
             prefix_stack: Vec::new(),
             node_iter: Box::new(node_iter),
@@ -62,7 +57,11 @@ impl<'a> Iterator for ForestIter<'a> {
         match position {
             NodePosition::Root => {
                 self.prefix_stack.clear();
-                return Some(LineContent { tree_prefix, label, is_focused });
+                return Some(LineContent {
+                    tree_prefix,
+                    label,
+                    is_focused,
+                });
             }
             NodePosition::FirstChild => (),
             NodePosition::SubsequentChild => {
@@ -82,7 +81,11 @@ impl<'a> Iterator for ForestIter<'a> {
             tree_prefix.push_str("├──");
             self.prefix_stack.push(IndentBlock::VertBar);
         }
-        Some(LineContent { tree_prefix, label, is_focused })
+        Some(LineContent {
+            tree_prefix,
+            label,
+            is_focused,
+        })
     }
 }
 
@@ -106,7 +109,7 @@ impl ForestWindow<'_> {
 // Build a window of visible lines centering the focused line.
 fn build_forest_window(
     mut iter: ForestIter,
-    window_height: usize
+    window_height: usize,
 ) -> ForestWindow {
     if window_height == 0 {
         return ForestWindow::empty();
@@ -162,14 +165,20 @@ enum FocusStyle<'a> {
 
 // Construct a styled UI Line from its content.
 fn format_line<'a>(item: LineContent<'a>, style: &FocusStyle<'a>) -> Line<'a> {
-    let LineContent { tree_prefix, label, is_focused } = item;
+    let LineContent {
+        tree_prefix,
+        label,
+        is_focused,
+    } = item;
     let prefix_span = Span::styled(tree_prefix, style::TEXT_TREE);
     let (text, text_style, bg_style) = if is_focused {
         let (text, bg_style) = match style {
             FocusStyle::Normal => (Cow::Borrowed(label), style::BG_DEFAULT),
             FocusStyle::Insert => (Cow::Borrowed(label), style::BG_INSERT),
             FocusStyle::Move => (Cow::Borrowed(label), style::BG_MOVE),
-            FocusStyle::Input(input) => (Cow::Owned(format!("{input}█")), style::BG_INPUT),
+            FocusStyle::Input(input) => {
+                (Cow::Owned(format!("{input}█")), style::BG_INPUT)
+            }
             FocusStyle::Delete => (Cow::Borrowed(label), style::BG_DELETE),
         };
         (text, style::TEXT_SELECTED, bg_style)
@@ -184,7 +193,7 @@ fn format_line<'a>(item: LineContent<'a>, style: &FocusStyle<'a>) -> Line<'a> {
 // Construct a ScrollArea to display the forest, styling the focused line.
 fn new_scroll_area<'a>(
     focus: Option<&'a FocusNode>,
-    style: FocusStyle<'a>
+    style: FocusStyle<'a>,
 ) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     let build = move |height| {
         let ForestWindow {
@@ -204,21 +213,21 @@ fn new_scroll_area<'a>(
 
 /// Return a ScrollArea widget for Normal mode.
 pub fn normal<'a>(
-    focus: Option<&'a FocusNode>
+    focus: Option<&'a FocusNode>,
 ) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     new_scroll_area(focus, FocusStyle::Normal)
 }
 
 /// Return a ScrollArea widget for selecting an insert position.
 pub fn insert<'a>(
-    focus: Option<&'a FocusNode>
+    focus: Option<&'a FocusNode>,
 ) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     new_scroll_area(focus, FocusStyle::Insert)
 }
 
 /// Return a ScrollArea widget for Move mode.
 pub fn move_mode<'a>(
-    focus: Option<&'a FocusNode>
+    focus: Option<&'a FocusNode>,
 ) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     new_scroll_area(focus, FocusStyle::Move)
 }
@@ -233,7 +242,7 @@ pub fn input<'a>(
 
 /// Return a ScrollArea widget for confirming a deletion.
 pub fn delete<'a>(
-    focus: Option<&'a FocusNode>
+    focus: Option<&'a FocusNode>,
 ) -> ScrollArea<'a, impl FnOnce(usize) -> ScrollContent<'a> + 'a> {
     new_scroll_area(focus, FocusStyle::Delete)
 }
