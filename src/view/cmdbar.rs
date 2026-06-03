@@ -40,6 +40,7 @@ const BEFORE: KeyPair = ("K", "Before");
 const AFTER: KeyPair = ("J", "After");
 const DELETE: KeyPair = ("D", "Delete");
 const UNDO: KeyPair = ("U", "Undo");
+const REDO: KeyPair = ("R", "Redo");
 const BACK: KeyPair = ("Bksp", "Back");
 const TOGGLE: KeyPair = ("Space", "Toggle");
 const CANCEL: KeyPair = ("Esc", "Cancel");
@@ -72,6 +73,9 @@ fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
     }
     if !session.undo_stack.is_empty() {
         pairs.push(UNDO);
+    }
+    if !session.redo_stack.is_empty() {
+        pairs.push(REDO);
     }
     pairs.extend(&[BACK, QUIT]);
     pairs

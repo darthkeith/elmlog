@@ -76,6 +76,7 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
             Model::Confirm(ConfirmState::DeleteItem(state))
         }
         NormalMsg::Undo => Model::Normal(state.undo()),
+        NormalMsg::Redo => Model::Normal(state.redo()),
         NormalMsg::Load => if state.is_changed() {
             Model::Save(SaveState::new_load(state))
         } else {

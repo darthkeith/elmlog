@@ -358,6 +358,14 @@ impl SessionState {
         self
     }
 
+    pub fn redo(mut self) -> Self {
+        if let Some(next_forest) = self.redo_stack.pop() {
+            self.undo_stack.push(self.forest);
+            self.forest = next_forest;
+        }
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
         self.forest.focus.is_none()
     }

@@ -36,6 +36,7 @@ pub enum NormalMsg {
     Flatten,
     Delete,
     Undo,
+    Redo,
     Load,
     Quit,
 }
@@ -135,6 +136,7 @@ fn to_normal_msg(key: KeyCode, state: SessionState) -> Message {
         KeyCode::Char('f') => NormalMsg::Flatten,
         KeyCode::Char('d') => NormalMsg::Delete,
         KeyCode::Char('u') => NormalMsg::Undo,
+        KeyCode::Char('r') => NormalMsg::Redo,
         KeyCode::Char('q') => NormalMsg::Quit,
         KeyCode::Left => NormalMsg::Ascend,
         KeyCode::Right => NormalMsg::Descend,
