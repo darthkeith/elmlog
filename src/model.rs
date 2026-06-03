@@ -37,6 +37,7 @@ pub struct ForestState {
 pub struct SessionState {
     pub forest: ForestState,
     pub undo_stack: Vec<ForestState>,
+    pub redo_stack: Vec<ForestState>,
     pub maybe_file: Option<OpenDataFile>,
 }
 
@@ -153,20 +154,17 @@ impl LabelState {
     }
 
     /// Create a LabelState to insert an item into an empty forest.
-    pub fn new_insert_empty(session: SessionState) -> Self {
-        let forest = ForestState {
+    pub fn new_insert_empty(mut session: SessionState) -> Self {
+        let fallback = session.forest.clone();
+        session.forest = ForestState {
             focus: Some(FocusNode::new()),
             changed: true,
         };
-        let new_session = SessionState {
-            forest,
-            ..session
-        };
         Self {
-            fallback: session.forest,
+            fallback,
             input: String::new(),
             action: LabelAction::Insert,
-            session: new_session,
+            session,
         }
     }
 
@@ -198,11 +196,9 @@ impl LabelState {
     pub fn set_label(self) -> SessionState {
         let Self { fallback, input, mut session, .. } = self;
         let label = input.trim().to_string();
-        session.forest = ForestState {
-            focus: session.forest.focus.map(|focus| focus.set_label(label)),
-            changed: true,
-        };
-        session.undo_stack.push(fallback);
+        let focus = session.forest.focus.map(|focus| focus.set_label(label));
+        session.forest = ForestState { focus, changed: true };
+        session.push_history(fallback);
         session
     }
 
@@ -303,8 +299,14 @@ impl SessionState {
                 changed: false,
             },
             undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
             maybe_file: None,
         }
+    }
+
+    fn push_history(&mut self, forest: ForestState) {
+        self.undo_stack.push(forest);
+        self.redo_stack.clear();
     }
 
     /// Apply a navigation function to the focused node.
@@ -327,39 +329,31 @@ impl SessionState {
     }
 
     /// Apply a function to the focused node and update the history.
-    pub fn map_focus<F>(self, f: F) -> Self
+    pub fn map_focus<F>(mut self, f: F) -> Self
     where
         F: FnOnce(FocusNode) -> FocusNode,
     {
-        let Self {forest, mut undo_stack, .. } = self;
-        let old_forest = forest.clone();
-        let new_focus = forest.focus.map(f);
-        let is_distinct = new_focus != old_forest.focus;
-        let new_forest = ForestState {
-            focus: new_focus,
-            changed: old_forest.changed || is_distinct,
-        };
-        if is_distinct {
-            undo_stack.push(old_forest);
+        let old_forest = self.forest.clone();
+        self.forest.focus = self.forest.focus.map(f);
+        if self.forest.focus != old_forest.focus {
+            self.forest.changed = true;
+            self.push_history(old_forest);
         }
-        Self {
-            forest: new_forest,
-            undo_stack,
-            ..self
-        }
+        self
     }
 
     /// Delete the focused node and mark the state as changed.
     pub fn delete(mut self) -> Self {
-        self.undo_stack.push(self.forest.clone());
+        self.push_history(self.forest.clone());
         self.forest.focus = self.forest.focus.and_then(FocusNode::delete);
         self.forest.changed = true;
         self
     }
 
     pub fn undo(mut self) -> Self {
-        if let Some(forest) = self.undo_stack.pop() {
-            self.forest = forest;
+        if let Some(prev_forest) = self.undo_stack.pop() {
+            self.redo_stack.push(self.forest);
+            self.forest = prev_forest;
         }
         self
     }
