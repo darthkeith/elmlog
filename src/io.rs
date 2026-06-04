@@ -66,8 +66,8 @@ fn get_load_state() -> Option<LoadState> {
     Some(LoadState { files, index: 0 })
 }
 
-// Initialize a Model from a saved file.
-fn init_model(file_entry: FileEntry) -> Model {
+// Initialize a session from a saved file.
+fn init_session(file_entry: FileEntry) -> SessionState {
     let FileEntry { name, path } = file_entry;
     let file = fs::open_read_locked(&path);
     let focus = bincode::deserialize(&fs::read_all_bytes(&file))
@@ -81,13 +81,12 @@ fn init_model(file_entry: FileEntry) -> Model {
         path,
         _file: file,
     };
-    let session = SessionState {
+    SessionState {
         forest,
         undo_stack: Vec::new(),
         redo_stack: Vec::new(),
         maybe_file: Some(open_file),
-    };
-    Model::Normal(session)
+    }
 }
 
 // Write the forest to an existing file at `path`.
@@ -121,7 +120,9 @@ pub fn execute_command(command: Command) -> Option<Model> {
             Some(load_state) => Model::Load(load_state),
             None => Model::Confirm(ConfirmState::NewSession),
         },
-        Command::InitSession(file_entry) => init_model(file_entry),
+        Command::InitSession(file_entry) => {
+            Model::Normal(init_session(file_entry))
+        }
         Command::CheckFileExists(filename_state) => {
             let status = if fs::filename_exists(filename_state.trimmed()) {
                 FilenameStatus::Exists
