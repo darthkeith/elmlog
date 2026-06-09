@@ -38,16 +38,9 @@ pub struct SessionState {
     pub maybe_file: Option<OpenDataFile>,
 }
 
-/// Action to perform after saving.
-pub enum PostSaveAction {
-    Load,
-    Quit,
-}
-
 /// User's current save choice and subsequent action.
 pub struct SaveState {
     pub save: bool,
-    pub post_save: PostSaveAction,
     pub session: SessionState,
 }
 
@@ -76,10 +69,7 @@ pub enum FilenameStatus {
 /// Action to perform with the user input filename string.
 pub enum FilenameAction {
     Rename(LoadState),
-    SaveNew {
-        session: SessionState,
-        post_save: PostSaveAction,
-    },
+    SaveNew(SessionState),
 }
 
 /// Current user input filename with status and next action to be performed.
@@ -227,11 +217,11 @@ impl FilenameState {
     }
 
     /// Create a FilenameState to save a new file.
-    pub fn new_save(session: SessionState, post_save: PostSaveAction) -> Self {
+    pub fn new_save(session: SessionState) -> Self {
         Self {
             input: String::new(),
             status: FilenameStatus::Empty,
-            action: FilenameAction::SaveNew { session, post_save },
+            action: FilenameAction::SaveNew(session),
         }
     }
 
@@ -267,20 +257,9 @@ impl FilenameState {
 }
 
 impl SaveState {
-    /// Create a SaveState for subsequently loading.
-    pub fn new_load(session: SessionState) -> Self {
+    pub fn new(session: SessionState) -> Self {
         Self {
             save: true,
-            post_save: PostSaveAction::Load,
-            session,
-        }
-    }
-
-    /// Create a SaveState for subsequently quitting.
-    pub fn new_quit(session: SessionState) -> Self {
-        Self {
-            save: true,
-            post_save: PostSaveAction::Quit,
             session,
         }
     }

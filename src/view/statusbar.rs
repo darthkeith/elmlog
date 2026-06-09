@@ -4,10 +4,7 @@ use ratatui::{
 };
 
 use crate::{
-    model::{
-        ConfirmState, FilenameAction, FilenameStatus, LabelAction, Model,
-        PostSaveAction,
-    },
+    model::{ConfirmState, FilenameAction, FilenameStatus, LabelAction, Model},
     view::{INDENT, style},
 };
 
@@ -26,10 +23,6 @@ mod alert {
     pub const EMPTY: &str = "Empty";
     pub const EXISTS: &str = "File Exists";
     pub const INVALID: &str = "Invalid Filename";
-}
-mod post_save {
-    pub const LOAD: &str = "Loading";
-    pub const QUIT: &str = "Quitting";
 }
 const LOAD: &str = "Open a file or start a new session";
 const MOVE: &str = "Move subtree";
@@ -72,13 +65,7 @@ pub fn status_bar(model: &Model) -> Line<'_> {
         Model::Normal(state) => status_normal(state.get_filename()),
         Model::Insert(_) => status(INSERT),
         Model::Move(_) => status(MOVE),
-        Model::Save(save_state) => {
-            let info = match save_state.post_save {
-                PostSaveAction::Load => post_save::LOAD,
-                PostSaveAction::Quit => post_save::QUIT,
-            };
-            status_info(SAVE, Some(info))
-        }
+        Model::Save(_) => status(SAVE),
         Model::LabelInput(label_state) => {
             let message = match label_state.action {
                 LabelAction::Insert => input::INSERT,

@@ -32,7 +32,6 @@ pub enum NormalMsg {
     Delete,
     Undo,
     Redo,
-    Load,
     Quit,
 }
 
@@ -137,7 +136,6 @@ fn to_normal_msg(key: KeyCode, state: SessionState) -> Message {
         KeyCode::Right => NormalMsg::Descend,
         KeyCode::Up => NormalMsg::Previous,
         KeyCode::Down => NormalMsg::Next,
-        KeyCode::Backspace => NormalMsg::Load,
         _ => return Message::Continue(Model::Normal(state)),
     };
     Message::Normal(msg, state)

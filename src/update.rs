@@ -6,7 +6,7 @@ use crate::{
     },
     model::{
         ConfirmState, FilenameAction, FilenameState, FilenameStatus,
-        LabelState, LoadState, Model, PostSaveAction, SaveState, SessionState,
+        LabelState, LoadState, Model, SaveState, SessionState,
     },
     zipper::FocusNode,
 };
@@ -76,18 +76,11 @@ fn update_normal(msg: NormalMsg, state: SessionState) -> Command {
         }
         NormalMsg::Undo => Model::Normal(state.undo()),
         NormalMsg::Redo => Model::Normal(state.redo()),
-        NormalMsg::Load => {
-            if state.is_changed() {
-                Model::Save(SaveState::new_load(state))
-            } else {
-                return Command::Load;
-            }
-        }
         NormalMsg::Quit => {
             if state.is_changed() {
-                Model::Save(SaveState::new_quit(state))
+                Model::Save(SaveState::new(state))
             } else {
-                return Command::Quit;
+                return Command::Load { quit: true };
             }
         }
     };
@@ -124,24 +117,16 @@ fn update_save(msg: SaveMsg, save_state: SaveState) -> Command {
     let model = match msg {
         SaveMsg::Toggle => Model::Save(save_state.toggle()),
         SaveMsg::Confirm => {
-            let SaveState {
-                save,
-                post_save,
-                session,
-            } = save_state;
+            let SaveState { save, session } = save_state;
             if save {
                 if session.maybe_file.is_some() {
                     let session = session.navigate(FocusNode::focus_first_root);
-                    return Command::Save(session, post_save);
+                    return Command::Save(session);
                 } else {
-                    let state = FilenameState::new_save(session, post_save);
-                    Model::FilenameInput(state)
+                    Model::FilenameInput(FilenameState::new_save(session))
                 }
             } else {
-                match post_save {
-                    PostSaveAction::Load => return Command::Load,
-                    PostSaveAction::Quit => return Command::Quit,
-                }
+                return Command::Load { quit: true };
             }
         }
         SaveMsg::Cancel => Model::Normal(save_state.session),
@@ -196,16 +181,11 @@ fn update_filename_input(
                     FilenameAction::Rename(load_state) => {
                         Command::RenameFile(filename, load_state)
                     }
-                    FilenameAction::SaveNew { session, post_save } => {
+                    FilenameAction::SaveNew(session) => {
                         let focus = session.forest.focus.clone();
                         let initial_focus =
                             focus.map(FocusNode::focus_first_root);
-                        Command::SaveNew(
-                            initial_focus,
-                            filename,
-                            session,
-                            post_save,
-                        )
+                        Command::SaveNew(initial_focus, filename, session)
                     }
                 };
             }
@@ -213,9 +193,7 @@ fn update_filename_input(
         FilenameMsg::Cancel => {
             let model = match filename_state.action {
                 FilenameAction::Rename(load_state) => Model::Load(load_state),
-                FilenameAction::SaveNew { session, .. } => {
-                    Model::Normal(session)
-                }
+                FilenameAction::SaveNew(session) => Model::Normal(session),
             };
             return Command::None(model);
         }

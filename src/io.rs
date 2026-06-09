@@ -5,8 +5,7 @@ use std::{io::Result, path::Path};
 use crate::{
     model::{
         ConfirmState, FileEntry, FilenameAction, FilenameState, FilenameStatus,
-        ForestState, LoadState, Model, OpenDataFile, PostSaveAction,
-        SessionState,
+        ForestState, LoadState, Model, OpenDataFile, SessionState,
     },
     zipper::FocusNode,
 };
@@ -14,12 +13,12 @@ use crate::{
 /// A message indicating an IO action to perform.
 pub enum Command {
     None(Model),
-    Load,
+    Load { quit: bool },
     InitSession(FileEntry),
     CheckFileExists(FilenameState),
     RenameFile(String, LoadState),
-    SaveNew(Option<FocusNode>, String, SessionState, PostSaveAction),
-    Save(SessionState, PostSaveAction),
+    SaveNew(Option<FocusNode>, String, SessionState),
+    Save(SessionState),
     DeleteFile(LoadState),
     Quit,
 }
@@ -97,7 +96,7 @@ fn write_to_file(focus: &Option<FocusNode>, path: &Path) {
     fs::set_read_only(path, true);
 }
 
-// Save the current session `state`.
+// Save the current session.
 fn save(state: SessionState) {
     let (focus, maybe_path) = state.unlock_state();
     if let Some(path) = maybe_path {
@@ -116,9 +115,15 @@ fn save_new(focus: &Option<FocusNode>, filename: &str) -> Result<()> {
 pub fn execute_command(command: Command) -> Option<Model> {
     let model = match command {
         Command::None(model) => model,
-        Command::Load => match get_load_state() {
+        Command::Load { quit } => match get_load_state() {
             Some(load_state) => Model::Load(load_state),
-            None => Model::Confirm(ConfirmState::NewSession),
+            None => {
+                if quit {
+                    return None;
+                } else {
+                    Model::Confirm(ConfirmState::NewSession)
+                }
+            }
         },
         Command::InitSession(file_entry) => {
             Model::Normal(init_session(file_entry))
@@ -147,30 +152,24 @@ pub fn execute_command(command: Command) -> Option<Model> {
             };
             Model::FilenameInput(filename_state)
         }
-        Command::SaveNew(initial_focus, filename, session, post_save) => {
+        Command::SaveNew(initial_focus, filename, session) => {
             let status = if fs::filename_exists(&filename) {
                 FilenameStatus::Exists
             } else if save_new(&initial_focus, &filename).is_err() {
                 FilenameStatus::Invalid
             } else {
-                return match post_save {
-                    PostSaveAction::Load => execute_command(Command::Load),
-                    PostSaveAction::Quit => None,
-                };
+                return execute_command(Command::Load { quit: true });
             };
             let filename_state = FilenameState {
                 input: filename,
                 status,
-                action: FilenameAction::SaveNew { session, post_save },
+                action: FilenameAction::SaveNew(session),
             };
             Model::FilenameInput(filename_state)
         }
-        Command::Save(state, action) => {
+        Command::Save(state) => {
             save(state);
-            return match action {
-                PostSaveAction::Load => execute_command(Command::Load),
-                PostSaveAction::Quit => None,
-            };
+            return execute_command(Command::Load { quit: true });
         }
         Command::DeleteFile(load_state) => {
             match delete_selected_file(load_state) {

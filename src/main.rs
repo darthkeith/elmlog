@@ -17,7 +17,7 @@ use crate::{
 };
 
 fn run(mut terminal: DefaultTerminal) -> Result<()> {
-    let mut model = execute_command(Command::Load).unwrap();
+    let mut model = execute_command(Command::Load { quit: false }).unwrap();
     loop {
         terminal.draw(|frame| view(&model, frame))?;
         let message = handle_input(model)?;

@@ -70,7 +70,7 @@ fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
     if !session.redo_stack.is_empty() {
         pairs.push(REDO);
     }
-    pairs.extend(&[BACK, QUIT]);
+    pairs.push(QUIT);
     pairs
 }
 
