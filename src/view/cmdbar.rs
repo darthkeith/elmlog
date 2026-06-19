@@ -34,7 +34,7 @@ const UNDO: KeyPair = ("U", "Undo");
 const REDO: KeyPair = ("R", "Redo");
 const TOGGLE: KeyPair = ("J", "Toggle");
 const CANCEL_SPACE: KeyPair = ("Space", "Cancel");
-const CANCEL: KeyPair = ("Esc", "Cancel");
+const CANCEL_TAB: KeyPair = ("Tab", "Cancel");
 
 // Return the confirm mode key-command pairs.
 fn confirm_mode_commands(
@@ -42,7 +42,7 @@ fn confirm_mode_commands(
 ) -> Vec<KeyPair<'static>> {
     match confirm_state {
         ConfirmState::NewSession => vec![CONFIRM],
-        _ => vec![CONFIRM, CANCEL],
+        _ => vec![CONFIRM, CANCEL_SPACE],
     }
 }
 
@@ -77,9 +77,9 @@ fn normal_mode_commands(session: &SessionState) -> Vec<KeyPair<'static>> {
 // Return the input mode key-command pairs.
 fn label_input_commands(label_state: &LabelState) -> Vec<KeyPair<'static>> {
     if label_state.input.is_empty() {
-        vec![CANCEL]
+        vec![CANCEL_TAB]
     } else {
-        vec![SUBMIT, CANCEL]
+        vec![SUBMIT, CANCEL_TAB]
     }
 }
 
@@ -88,9 +88,9 @@ fn filename_input_commands(
     filename_state: &FilenameState,
 ) -> Vec<KeyPair<'static>> {
     if filename_state.is_valid() {
-        vec![SUBMIT, CANCEL]
+        vec![SUBMIT, CANCEL_TAB]
     } else {
-        vec![CANCEL]
+        vec![CANCEL_TAB]
     }
 }
 

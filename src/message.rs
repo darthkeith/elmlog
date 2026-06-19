@@ -173,7 +173,7 @@ fn to_label_input_msg(key: KeyCode, state: LabelState) -> Message {
         KeyCode::Char(c) => LabelMsg::Edit(InputEdit::Append(c)),
         KeyCode::Backspace => LabelMsg::Edit(InputEdit::PopChar),
         KeyCode::Enter => LabelMsg::Submit,
-        KeyCode::Esc => LabelMsg::Cancel,
+        KeyCode::Tab => LabelMsg::Cancel,
         _ => return Message::Continue(Model::LabelInput(state)),
     };
     Message::LabelInput(msg, state)
@@ -196,7 +196,7 @@ fn to_filename_input_msg(key: KeyCode, state: FilenameState) -> Message {
         KeyCode::Char(c) => FilenameMsg::Edit(InputEdit::Append(c)),
         KeyCode::Backspace => FilenameMsg::Edit(InputEdit::PopChar),
         KeyCode::Enter => FilenameMsg::Submit,
-        KeyCode::Esc => FilenameMsg::Cancel,
+        KeyCode::Tab => FilenameMsg::Cancel,
         _ => return Message::Continue(Model::FilenameInput(state)),
     };
     Message::FilenameInput(msg, state)
@@ -206,7 +206,7 @@ fn to_filename_input_msg(key: KeyCode, state: FilenameState) -> Message {
 fn to_confirm_msg(key: KeyCode, state: ConfirmState) -> Message {
     let msg = match key {
         KeyCode::Enter => ConfirmMsg::Confirm,
-        KeyCode::Esc => ConfirmMsg::Cancel,
+        KeyCode::Char(' ') => ConfirmMsg::Cancel,
         _ => return Message::Continue(Model::Confirm(state)),
     };
     Message::Confirm(msg, state)
