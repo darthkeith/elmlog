@@ -95,7 +95,7 @@ fn update_insert(msg: InsertMsg, state: SessionState) -> Model {
         InsertMsg::Child => state.insert(FocusNode::insert_child),
         InsertMsg::Before => state.insert(FocusNode::insert_prev),
         InsertMsg::After => state.insert(FocusNode::insert_next),
-        InsertMsg::Back => return Model::Normal(state),
+        InsertMsg::Cancel => return Model::Normal(state),
     };
     Model::LabelInput(LabelState::new_insert(state, fallback))
 }

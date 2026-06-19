@@ -14,7 +14,7 @@ const NEW: KeyPair = ("N", "New");
 const RENAME: KeyPair = ("R", "Rename");
 const SUBMIT: KeyPair = ("Enter", "Submit");
 const CONFIRM: KeyPair = ("Enter", "Confirm");
-const DONE: KeyPair = ("Enter", "Done");
+const DONE: KeyPair = ("Space", "Done");
 const QUIT: KeyPair = ("Q", "Quit");
 const MOVE: KeyPair = ("M", "Move");
 const NEST: KeyPair = ("N", "Nest");
@@ -32,8 +32,8 @@ const AFTER: KeyPair = ("J", "After");
 const DELETE: KeyPair = ("D", "Delete");
 const UNDO: KeyPair = ("U", "Undo");
 const REDO: KeyPair = ("R", "Redo");
-const BACK: KeyPair = ("Bksp", "Back");
-const TOGGLE: KeyPair = ("Space", "Toggle");
+const TOGGLE: KeyPair = ("J", "Toggle");
+const CANCEL_SPACE: KeyPair = ("Space", "Cancel");
 const CANCEL: KeyPair = ("Esc", "Cancel");
 
 // Return the confirm mode key-command pairs.
@@ -111,9 +111,9 @@ pub fn command_bar(model: &Model) -> Line<'static> {
     let pairs = match model {
         Model::Load(load_state) => load_mode_commands(load_state.files.len()),
         Model::Normal(state) => normal_mode_commands(state),
-        Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, BACK],
+        Model::Insert(_) => vec![PARENT, CHILD, BEFORE, AFTER, CANCEL_SPACE],
         Model::Move(_) => vec![DOWN, UP, PROMOTE, DEMOTE, DONE],
-        Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL],
+        Model::Save(_) => vec![TOGGLE, CONFIRM, CANCEL_SPACE],
         Model::LabelInput(label_state) => label_input_commands(label_state),
         Model::FilenameInput(filename_state) => {
             filename_input_commands(filename_state)

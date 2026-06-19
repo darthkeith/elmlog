@@ -41,7 +41,7 @@ pub enum InsertMsg {
     Child,
     Before,
     After,
-    Back,
+    Cancel,
 }
 
 /// A message sent in Move mode.
@@ -148,7 +148,7 @@ fn to_insert_msg(key: KeyCode, state: SessionState) -> Message {
         KeyCode::Char('l') => InsertMsg::Child,
         KeyCode::Char('k') => InsertMsg::Before,
         KeyCode::Char('j') => InsertMsg::After,
-        KeyCode::Backspace => InsertMsg::Back,
+        KeyCode::Char(' ') => InsertMsg::Cancel,
         _ => return Message::Continue(Model::Insert(state)),
     };
     Message::Insert(msg, state)
@@ -161,7 +161,7 @@ fn to_move_msg(key: KeyCode, state: SessionState) -> Message {
         KeyCode::Char('l') | KeyCode::Right => MoveMsg::Demote,
         KeyCode::Char('k') | KeyCode::Up => MoveMsg::Backward,
         KeyCode::Char('j') | KeyCode::Down => MoveMsg::Forward,
-        KeyCode::Enter => MoveMsg::Done,
+        KeyCode::Char(' ') => MoveMsg::Done,
         _ => return Message::Continue(Model::Move(state)),
     };
     Message::Move(msg, state)
@@ -182,9 +182,9 @@ fn to_label_input_msg(key: KeyCode, state: LabelState) -> Message {
 // Map a `key` to a Message in Save mode.
 fn to_save_msg(key: KeyCode, state: SaveState) -> Message {
     let msg = match key {
-        KeyCode::Char(' ') => SaveMsg::Toggle,
+        KeyCode::Char('j') => SaveMsg::Toggle,
         KeyCode::Enter => SaveMsg::Confirm,
-        KeyCode::Esc => SaveMsg::Cancel,
+        KeyCode::Char(' ') => SaveMsg::Cancel,
         _ => return Message::Continue(Model::Save(state)),
     };
     Message::Save(msg, state)
