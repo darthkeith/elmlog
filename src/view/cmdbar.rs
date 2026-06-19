@@ -7,44 +7,47 @@ use crate::{
 
 type KeyPair<'a> = (&'a str, &'a str);
 
+// Multimode
+const CANCEL_SPACE: KeyPair = ("Space", "Cancel");
+const CANCEL_TAB: KeyPair = ("Tab", "Cancel");
+const SUBMIT: KeyPair = ("Enter", "Submit");
+const DELETE: KeyPair = ("D", "Delete");
+const QUIT: KeyPair = ("Q", "Quit");
+
+// Load Mode
 const LOAD_NAVIGATE: KeyPair = ("JK │ ↓↑", "Navigate");
-const NAVIGATE: KeyPair = ("HJKL │ ←↓↑→", "Navigate");
 const OPEN: KeyPair = ("Enter", "Open");
 const NEW: KeyPair = ("N", "New");
 const RENAME: KeyPair = ("R", "Rename");
-const SUBMIT: KeyPair = ("Enter", "Submit");
-const CONFIRM: KeyPair = ("Enter", "Confirm");
-const DONE: KeyPair = ("Space", "Done");
-const QUIT: KeyPair = ("Q", "Quit");
+
+// Normal mode
+const NAVIGATE: KeyPair = ("HJKL │ ←↓↑→", "Navigate");
+const EDIT: KeyPair = ("E", "Edit");
 const MOVE: KeyPair = ("M", "Move");
 const NEST: KeyPair = ("N", "Nest");
 const FLATTEN: KeyPair = ("F", "Flatten");
-const DOWN: KeyPair = ("J │ ↓", "Down");
-const UP: KeyPair = ("K │ ↑", "Up");
-const PROMOTE: KeyPair = ("H │ ←", "Promote");
-const DEMOTE: KeyPair = ("L │ →", "Demote");
-const EDIT: KeyPair = ("E", "Edit");
 const INSERT: KeyPair = ("I", "Insert");
+const UNDO: KeyPair = ("U", "Undo");
+const REDO: KeyPair = ("R", "Redo");
+
+// Insert
 const PARENT: KeyPair = ("H", "Parent");
 const CHILD: KeyPair = ("L", "Child");
 const BEFORE: KeyPair = ("K", "Before");
 const AFTER: KeyPair = ("J", "After");
-const DELETE: KeyPair = ("D", "Delete");
-const UNDO: KeyPair = ("U", "Undo");
-const REDO: KeyPair = ("R", "Redo");
-const TOGGLE: KeyPair = ("J", "Toggle");
-const CANCEL_SPACE: KeyPair = ("Space", "Cancel");
-const CANCEL_TAB: KeyPair = ("Tab", "Cancel");
 
-// Return the confirm mode key-command pairs.
-fn confirm_mode_commands(
-    confirm_state: &ConfirmState,
-) -> Vec<KeyPair<'static>> {
-    match confirm_state {
-        ConfirmState::NewSession => vec![CONFIRM],
-        _ => vec![CONFIRM, CANCEL_SPACE],
-    }
-}
+// Move
+const DOWN: KeyPair = ("J │ ↓", "Down");
+const UP: KeyPair = ("K │ ↑", "Up");
+const PROMOTE: KeyPair = ("H │ ←", "Promote");
+const DEMOTE: KeyPair = ("L │ →", "Demote");
+const DONE: KeyPair = ("Space", "Done");
+
+// Save
+const TOGGLE: KeyPair = ("J", "Toggle");
+
+// Confirm mode
+const CONFIRM: KeyPair = ("Enter", "Confirm");
 
 // Return the load mode key-command pairs.
 fn load_mode_commands(file_count: usize) -> Vec<KeyPair<'static>> {
@@ -91,6 +94,16 @@ fn filename_input_commands(
         vec![SUBMIT, CANCEL_TAB]
     } else {
         vec![CANCEL_TAB]
+    }
+}
+
+// Return the confirm mode key-command pairs.
+fn confirm_mode_commands(
+    confirm_state: &ConfirmState,
+) -> Vec<KeyPair<'static>> {
+    match confirm_state {
+        ConfirmState::NewSession => vec![CONFIRM],
+        _ => vec![CONFIRM, CANCEL_SPACE],
     }
 }
 
